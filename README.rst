@@ -11,9 +11,8 @@ Requirements
 * Python 3.5 or greater
 * NumPy + SciPy
 
-.. note::
-    A Fortran compiler is not required as PyRADS is not a wrapper around the
-    official Fortran library but a complete re-write into Python.
+*NOTE: A Fortran compiler is not required as PyRADS is not a wrapper around the
+official Fortran library but a complete re-write into Python.*
 
 
 .. _Radar Altimeter Database System: https://github.com/remkos/rads
