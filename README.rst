@@ -12,7 +12,7 @@ Requirements
 * NumPy + SciPy
 
 *NOTE: A Fortran compiler is not required as PyRADS is not a wrapper around the
-official Fortran library but a complete re-write into Python.*
+official Fortran library but a complete re-write in Python.*
 
 
 .. _Radar Altimeter Database System: https://github.com/remkos/rads
