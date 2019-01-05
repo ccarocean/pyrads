@@ -3,7 +3,7 @@
 # A comma-separated list of package or module names from where C extensions may
 # be loaded. Extensions are loading into the active Python interpreter and may
 # run arbitrary code.
-extension-pkg-whitelist=
+extension-pkg-whitelist=lxml
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
@@ -142,7 +142,7 @@ disable=print-statement,
         comprehension-escape,
         too-few-public-methods,
         protected-access
-        
+
 # pylint treats protected access on an object basis and not a class basis.
 # While this traditionally makes sense, with type hints the C++ and Java method
 # of class based access is more useful.
