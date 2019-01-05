@@ -141,11 +141,18 @@ disable=print-statement,
         exception-escape,
         comprehension-escape,
         too-few-public-methods,
-        protected-access
+        protected-access,
+        abstract-method
 
+# protected-access
 # pylint treats protected access on an object basis and not a class basis.
 # While this traditionally makes sense, with type hints the C++ and Java method
 # of class based access is more useful.
+
+# abstract-method
+# This is currently broken (see https://github.com/PyCQA/pylint/issues/565).
+# However, by using Abstract Base Classes this check will be done by the
+# interpreter.
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
