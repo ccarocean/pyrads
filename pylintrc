@@ -140,7 +140,12 @@ disable=print-statement,
         deprecated-sys-function,
         exception-escape,
         comprehension-escape,
-        too-few-public-methods
+        too-few-public-methods,
+        protected-access
+        
+# pylint treats protected access on an object basis and not a class basis.
+# While this traditionally makes sense, with type hints the C++ and Java method
+# of class based access is more useful.
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
