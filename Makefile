@@ -24,7 +24,7 @@ check:
 	@python setup.py check --restructuredtext --strict && \
 		([ $$? -eq 0 ] && echo "README.rst ok") || \
 		echo "Invalid markup in README.rst!"
-	@python -m pylint --rcfile=.pylintrc rads
+	@python -m pylint rads
 	@python -m pycodestyle rads tests
 	@python -m pydocstyle rads
 
