@@ -3,6 +3,7 @@ cached_property
 lxml
 numpy
 scipy
+yzal>=0.0.4
 
 
 # documentation
