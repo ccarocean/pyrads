@@ -1,12 +1,12 @@
 """XML tools using the :mod:`lxml` library."""
 
-from typing import cast, Mapping, Optional
+from typing import cast, Mapping, Optional, Union, Any, IO
 from lxml import etree  # type: ignore
 from cached_property import cached_property  # type: ignore
 from rads.xml.base import Element
 
 
-__all__ = ('LibXMLElement',)
+__all__ = ('LibXMLElement', 'parse')
 
 
 class LibXMLElement(Element):
@@ -56,7 +56,7 @@ class LibXMLElement(Element):
 
     @cached_property  # type: ignore
     def num_lines(self) -> int:
-        return cast(int, len(etree.tostring(self._element).strip().split()))
+        return len(etree.tostring(self._element).strip().split())
 
     @cached_property  # type: ignore
     def closing_line(self) -> int:
@@ -73,3 +73,8 @@ class LibXMLElement(Element):
     @property
     def attributes(self) -> Mapping[str, str]:
         return cast(Mapping[str, str], self._element.attrib)
+
+
+def parse(source: Union[str, bytes, int, IO[Any]]) -> LibXMLElement:
+    """TODO: Fill this in."""
+    return LibXMLElement(etree.parse(source).getroot())

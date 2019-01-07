@@ -1,6 +1,8 @@
 """XML tools for reading the RADS's configuration files."""
 
 try:
-    from .lxml import etree
+    from .lxml import parse
 except ImportError:
-    from .etree import etree  # type: ignore
+    from .etree import parse
+
+__all__ = ('parse',)

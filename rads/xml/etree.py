@@ -1,7 +1,7 @@
 """XML tools using :mod:`xml.etree.ElementTree`."""
 
-from typing import Optional, Mapping
-import xml.etree.ElementTree as etree
+from typing import Optional, Mapping, Union, IO, Any
+import xml.etree.ElementTree as ET
 from rads.xml.base import Element
 
 
@@ -32,7 +32,7 @@ class ETreeElement(Element):
 
     """
 
-    def __init__(self, element: etree.Element, index: Optional[int] = None,
+    def __init__(self, element: ET.Element, index: Optional[int] = None,
                  parent: Optional['ETreeElement'] = None,
                  file: Optional[str] = None) -> None:
         assert parent is None or isinstance(parent, ETreeElement)
@@ -88,3 +88,8 @@ class ETreeElement(Element):
     @property
     def attributes(self) -> Mapping[str, str]:
         return self._element.attrib
+
+
+def parse(source: Union[str, bytes, int, IO[Any]]) -> ETreeElement:
+    """TODO: Fill this in."""
+    return ETreeElement(ET.parse(source).getroot())
