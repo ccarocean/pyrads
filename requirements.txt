@@ -3,7 +3,7 @@ cached_property
 lxml
 numpy
 scipy
-yzal>=0.0.4
+yzal>=0.0.5
 
 
 # documentation
@@ -18,3 +18,6 @@ pytest-mock
 pylint
 pycodestyle
 pydocstyle>=2.1.0
+
+# building
+wheel

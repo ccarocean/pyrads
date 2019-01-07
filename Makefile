@@ -33,7 +33,7 @@ check:
 	@mypy $(module)
 
 apidoc:
-	@sphinx-apidoc -o docs/api -e -P rads
+	@sphinx-apidoc -o docs/api -e -P $(module)
 	@rm docs/api/modules.rst
 
 html: apidoc
