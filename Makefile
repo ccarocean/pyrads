@@ -30,6 +30,7 @@ check:
 	@python -m pylint $(module)
 	@python -m pycodestyle $(module) tests
 	@python -m pydocstyle $(module)
+	@mypy $(module)
 
 html:
 	@$(MAKE) -C docs html

@@ -3,4 +3,4 @@
 try:
     from .lxml import etree
 except ImportError:
-    from .etree import etree
+    from .etree import etree  # type: ignore

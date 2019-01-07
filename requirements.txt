@@ -11,6 +11,7 @@ sphinx>=1.7
 sphinx_paramlinks
 
 # testing
+mypy
 pytest
 pytest-cov
 pytest-mock
