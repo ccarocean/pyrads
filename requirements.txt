@@ -12,4 +12,4 @@ pytest-cov
 pytest-mock
 pylint
 pycodestyle
-pydocstyle
+pydocstyle>=2.1.0
