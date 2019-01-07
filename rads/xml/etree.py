@@ -1,4 +1,4 @@
-"""XML tools using :module:`xml.etree.ElementTree`."""
+"""XML tools using :mod:`xml.etree.ElementTree`."""
 
 from typing import Optional, Mapping
 import xml.etree.ElementTree as etree
@@ -20,7 +20,7 @@ class ETreeElement(Element):
     Parameters
     ----------
     element
-        XML element from the standard :module:`xml.etree.ElementTree`
+        XML element from the standard :mod:`xml.etree.ElementTree`
         package.
     index
         Index of element at current level, among it's siblings. Not

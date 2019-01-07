@@ -23,7 +23,7 @@ class ParseFailure(Exception):
     file
         Name of file that was being parsed when the error occurred.
     line
-        Line number in the :param:`file` that was being parsed when the
+        Line number in the :paramref:`file` that was being parsed when the
         error occurred.
     message
         An optional message (instead of the default 'parsing failed')
@@ -34,7 +34,7 @@ class ParseFailure(Exception):
     file : str
         Filename where the error occurred.
     line : int
-        Line number in the :attribute:`file` where the error occurred.
+        Line number in the :attr:`file` where the error occurred.
     message : str
         The message provided when the error was constructed.
 
@@ -143,11 +143,11 @@ class Parser(ABC):
 
     @abstractmethod
     def __call__(self, position: Element) -> Tuple[Any, Element]:
-        """Call the parser, trying to match it at the given :param:`position`.
+        """Call the parser, trying to match it at the given :paramref:`position`.
 
         If the match fails a :class:`LocalParseFailure` will be raised.  This
         call will only return if the parser matches at the given
-        :param:`position`.
+        :paramref:`position`.
 
         Parameters
         ----------
@@ -160,7 +160,7 @@ class Parser(ABC):
             The value result of the match, depends on the particular parser.
         Element
             The next XML element to match at.  This can be the same element as
-            given in :param:`position` (a non consuming parser) or any later
+            given in :paramref:`position` (a non consuming parser) or any later
             sibling element.
 
             Further, it will actually be a :class:`yzal.Thunk` and will
@@ -171,7 +171,7 @@ class Parser(ABC):
         Raises
         ------
         LocalParseFailure
-            If the parser does not match at the given :param:`position`.
+            If the parser does not match at the given :paramref:`position`.
         GlobalParseFailure
             If the parser encounters an unrecoverable error.
 
@@ -193,7 +193,7 @@ class Parser(ABC):
         -------
         Sequence
             A new parser that will match this parser followed by the
-            :param:`other` parser (if the this parser matched).
+            :paramref:`other` parser (if the this parser matched).
 
         """
         return Sequence(self, other)
@@ -214,7 +214,7 @@ class Parser(ABC):
         -------
         Alternate
             A new parser that will match either this parser or the
-            :param:`other` parser (if the this parser did not match).
+            :paramref:`other` parser (if the this parser did not match).
 
         """
         return Alternate(self, other)
@@ -235,7 +235,7 @@ class Parser(ABC):
         -------
         Apply
             A new parser that will match this parser and upon a successful
-            match apply the given :param:`func` to the value result.
+            match apply the given :paramref:`func` to the value result.
 
         """
         return Apply(self, func)
@@ -259,8 +259,8 @@ class Parser(ABC):
     def __lshift__(self, message: str) -> 'Must':
         """Require the parser to succeed.
 
-        This will convert all :class:`LocalParseFailure`'s to
-        :class:`GlobalParseFailure`s.
+        This will convert all :class:`LocalParseFailure` s to
+        :class:`GlobalParseFailure` s.
 
         Parameters
         ----------
@@ -271,7 +271,7 @@ class Parser(ABC):
         -------
         Must
             A new parser that will elevate any local parse failures to global
-            failures and overwrite their message with :param:`message`.
+            failures and overwrite their message with :paramref:`message`.
 
         """
         return Must(self, message)
@@ -283,7 +283,7 @@ class Apply(Parser):
     Parameters
     ----------
     parser
-        The parser whose value result to apply the given :param:`func` to
+        The parser whose value result to apply the given :paramref:`func` to
         the value result of.
     func
         The function to apply
@@ -450,9 +450,9 @@ class Sequence(MultiParser):
 
         .. note::
 
-            If the :param:`other` parser is a :class:`Sequence` then the
-            parsers in the :param:`other` :class:`Sequence` will be unwrapped
-            and appended individually.
+            If the :paramref:`other` parser is a :class:`Sequence` then the
+            parsers in the :paramref:`other` :class:`Sequence` will be
+            unwrapped and appended individually.
 
         Parameters
         ----------
@@ -473,11 +473,11 @@ class Sequence(MultiParser):
 
         .. note::
 
-            If the :param:`other` parser is a :class:`Sequence` then the
-            parsers in the :param:`other` :class:`Sequence` will be unwrapped
-            and appended to this sequence individually.
+            If the :paramref:`other` parser is a :class:`Sequence` then the
+            parsers in the :paramref:`other` :class:`Sequence` will be
+            unwrapped and appended to this sequence individually.
 
-        Parameter
+        Parameters
         ----------
         other
             The parser to combine with (append to) this sequence.
@@ -522,9 +522,9 @@ class Alternate(MultiParser):
 
         .. note::
 
-            If the :param:`other` parser is a :class:`Alternate` then the
-            parsers in the :param:`other` :class:`Alternate` will be unwrapped
-            and added individually.
+            If the :paramref:`other` parser is a :class:`Alternate` then the
+            parsers in the :paramref:`other` :class:`Alternate` will be
+            unwrapped and added individually.
 
         Parameters
         ----------
@@ -546,9 +546,9 @@ class Alternate(MultiParser):
 
         .. note::
 
-            If the :param:`other` parser is a :class:`Alternate` then the
-            parsers in the :param:`other` :class:`Alternate` will be unwrapped
-            and added to this alternate individually.
+            If the :paramref:`other` parser is a :class:`Alternate` then the
+            parsers in the :paramref:`other` :class:`Alternate` will be
+            unwrapped and added to this alternate individually.
 
         Parameters
         ----------
@@ -645,7 +645,7 @@ def at(parser: Parser) -> Parser:
     Returns
     -------
     Parser
-        A new parser that succeeds if and only if :param:`parser` succeeds,
+        A new parser that succeeds if and only if :paramref:`parser` succeeds,
         but does not consume input.
 
     """
@@ -663,7 +663,7 @@ def not_at(parser: Parser) -> Parser:
     Returns
     -------
     Parser
-        A new parser that succeeds if and only if :param:`parser` fails,
+        A new parser that succeeds if and only if :paramref:`parser` fails,
         but does not consume input.
 
     """
@@ -681,10 +681,10 @@ def opt(parser: Parser) -> Parser:
     Returns
     -------
     Parser
-        A new parser that optionally matches :param:`parser`.  If
-        :param:`parser` succeeds this parser will be transparent, as if
-        :param:`parser` was called directly. If :param:`parser` fails this
-        :func:`opt` returns None as the result and does not consume
+        A new parser that optionally matches :paramref:`parser`.  If
+        :paramref:`parser` succeeds this parser will be transparent, as if
+        :paramref:`parser` was called directly. If :paramref:`parser` fails
+        this :func:`opt` returns None as the result and does not consume
         anything.
 
     """
@@ -702,7 +702,7 @@ def plus(parser: Parser) -> Parser:
     Returns
     -------
     Parser
-        A new parser that matches :param:`parser` one or more times.
+        A new parser that matches :paramref:`parser` one or more times.
         Failing if no matches are made.
 
     """
@@ -720,8 +720,8 @@ def seq(*parsers: Parser) -> Parser:
     Returns
     -------
     Parser
-        A new parser that matches all the given :param:`parser`'s in order,
-        failing if any one of the :param:`parser`'s fails.
+        A new parser that matches all the given :paramref:`parser`'s in order,
+        failing if any one of the :paramref:`parser`'s fails.
 
     """
     return Sequence(*parsers)
@@ -740,8 +740,8 @@ def sor(*parsers: Parser) -> Parser:
     Returns
     -------
     Parser
-        A new parser that matches the first :param:`parser` that succeeds or
-        fails if all :param:`parser`'s fail.
+        A new parser that matches the first :paramref:`parser` that succeeds or
+        fails if all :paramref:`parser`'s fail.
 
     """
     return Alternate(*parsers)
@@ -758,7 +758,7 @@ def star(parser: Parser) -> Parser:
     Returns
     -------
     Parser
-        A new parser that matches :param:`parser` one or more times.
+        A new parser that matches :paramref:`parser` one or more times.
         Failing if no matches are made.
 
     """
@@ -798,24 +798,24 @@ def rep(parser: Parser, times: int) -> Parser:
     Parameters
     ----------
     parser : Parser
-        The parser to match :param:`times`.
+        The parser to match :paramref:`times`.
     times : int
-        Number of times the :param:`parser` must succeed.
+        Number of times the :paramref:`parser` must succeed.
 
     Returns
     -------
     Parser
-        A parser that succeeds only if the given :param:`parser` matches the
-        given number of times :param:`times`.
+        A parser that succeeds only if the given :paramref:`parser` matches the
+        given number of times :paramref:`times`.
 
     """
     return Sequence(*([parser] * times))
 
 
 def until(parser: Parser) -> Parser:
-    """Match all elements until the given :param:`parser` matches.
+    """Match all elements until the given :paramref:`parser` matches.
 
-    Does not consume the elements that the given :param:`parser` matches.
+    Does not consume the elements that the given :paramref:`parser` matches.
 
     Parameters
     ----------
@@ -825,9 +825,9 @@ def until(parser: Parser) -> Parser:
     Returns
     -------
     Parser
-        A parser that will consume all elements until the given :param:`parser`
-        matches.  It will not consume the elements that the given
-        :param:`parser` matched.
+        A parser that will consume all elements until the given
+        :paramref:`parser` matches.  It will not consume the elements that the
+        given :paramref:`parser` matched.
     """
     return star(not_at(parser) + not_at(end) + any) + at(parser)
 
@@ -859,7 +859,7 @@ def tag(name: str) -> Parser:
     Returns
     -------
     Parser
-        Parser matching the given :param:`tag` name.
+        Parser matching the given :paramref:`tag` name.
 
     """
     return Tag(name)

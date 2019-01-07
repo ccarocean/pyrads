@@ -1,4 +1,4 @@
-"""XML tools using the :module:`lxml` library."""
+"""XML tools using the :mod:`lxml` library."""
 
 from typing import cast, Mapping, Optional
 from lxml import etree  # type: ignore
@@ -10,14 +10,14 @@ __all__ = ('LibXMLElement',)
 
 
 class LibXMLElement(Element):
-    """XML element that encapsulates an element from :module:`lxml`.
+    """XML element that encapsulates an element from :mod:`lxml`.
 
     Supports line number examination.
 
     Parameters
     ----------
     element
-        XML element from the :module:`lxml` library.
+        XML element from the :mod:`lxml` library.
 
     """
 

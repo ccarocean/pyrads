@@ -192,3 +192,7 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+autodoc_default_options = {
+    'special-members': '__call__,__add__,__iadd__,__or__,__invert__,__xor__,__lshift__'
+}

@@ -1,4 +1,4 @@
-.PHONY: all init check test coverage html pdf clean clean-all
+.PHONY: all init check test coverage html pdf clean clean-all apidoc
 
 module=rads
 
@@ -32,10 +32,14 @@ check:
 	@python -m pydocstyle $(module)
 	@mypy $(module)
 
-html:
+apidoc:
+	@sphinx-apidoc -o docs/api -e -P rads
+	@rm docs/api/modules.rst
+
+html: apidoc
 	@$(MAKE) -C docs html
 
-pdf:
+pdf: apidoc
 	@$(MAKE) -C docs latexpdf
 
 package: test
@@ -43,6 +47,7 @@ package: test
 	@python setup.py bdist_wheel
 
 clean:
+	@rm -f docs/api/*.rst
 	@rm -f rads/*.pyc
 	@rm -f tests/*.pyc
 	@rm -rf tests/.pytest_cache
