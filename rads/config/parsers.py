@@ -611,7 +611,7 @@ class AnyElement(Parser):
 
     def __call__(self, position: Element) \
             -> Tuple[Element, Element]:  # noqa: D102
-        return position, next_element(position)
+        return yzal.strict(position), next_element(position)
 
 
 class Tag(Parser):
@@ -630,7 +630,7 @@ class Tag(Parser):
     def __call__(self, position: Element) \
             -> Tuple[Element, Element]:  # noqa: D102
         if position.tag == self._name:
-            return position, next_element(position)
+            return yzal.strict(position), next_element(position)
         raise LocalParseFailure(position.file, position.opening_line)
 
 
