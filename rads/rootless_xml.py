@@ -8,7 +8,7 @@ __all__ = ['wrap_with_root', 'parse', 'fromstring', 'fromstringlist']
 
 
 def wrap_with_root(lines):
-    """Wraps XML document with <ROOT> tags.
+    """Wrap XML document with <ROOT> tags.
 
     Parameters
     ----------
@@ -19,6 +19,7 @@ def wrap_with_root(lines):
     -------
     : iterable
         XML document with root element.
+
     """
     def is_prolog(text):
         return text.startswith(b'<?xml version')
@@ -42,6 +43,7 @@ def parse(source, parser=None):
     -------
     : Element
         Root of parsed XML tree.
+
     """
     close_file = False
     if not hasattr(source, 'read'):
@@ -55,7 +57,7 @@ def parse(source, parser=None):
 
 
 def fromstring(text, parser=None):
-    """
+    """Parse a rootless XML document from a string.
 
     Parameters
     ----------
@@ -68,12 +70,13 @@ def fromstring(text, parser=None):
     -------
     : Element
         Root of parsed XML tree.
+
     """
     return ET.fromstringlist(wrap_with_root(text.splitlines()), parser)
 
 
 def fromstringlist(sequence, parser=None):
-    """
+    """Parse a rootless XML document from a list of strings.
 
     Parameters
     ----------
@@ -86,5 +89,6 @@ def fromstringlist(sequence, parser=None):
     -------
     : Element
         Root of parsed XML tree.
+
     """
     return ET.fromstringlist(wrap_with_root(sequence), parser)
