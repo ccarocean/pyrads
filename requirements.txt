@@ -1,6 +1,9 @@
 # runtime
+cached_property
+lxml
 numpy
 scipy
+
 
 # documentation
 sphinx>=1.7
