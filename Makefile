@@ -1,5 +1,7 @@
 .PHONY: all init check test coverage html pdf clean clean-all
 
+module=rads
+
 all:
 	@echo 'init             install development requirements'
 	@echo 'check            run static code checkers'
@@ -7,6 +9,7 @@ all:
 	@echo 'coverage         generate HTML coverage report'
 	@echo 'html             build HTML documentation'
 	@echo 'pdf              build PDF documentation (requires LaTeX)'
+	@echo 'package          build source and binary packages'
 	@echo 'clean            cleanup source tree'
 	@echo 'clean-all        also removes tox and eggs'
 
@@ -14,19 +17,19 @@ init:
 	@pip install -q -r requirements.txt
 
 test: check
-	@python -m pytest --cov=rads --cov=tests --cov-branch
+	@python -m pytest -v --cov=$(module) --cov-branch
 
 coverage: check
-	@python -m pytest --cov=rads --cov=tests --cov-branch \
+	@python -m pytest -v --cov=$(module) --cov-branch \
 		--cov-report html
 
 check:
 	@python setup.py check --restructuredtext --strict && \
 		([ $$? -eq 0 ] && echo "README.rst ok") || \
 		echo "Invalid markup in README.rst!"
-	@python -m pylint rads
-	@python -m pycodestyle rads tests
-	@python -m pydocstyle rads
+	@python -m pylint $(module)
+	@python -m pycodestyle $(module) tests
+	@python -m pydocstyle $(module)
 
 html:
 	@$(MAKE) -C docs html
@@ -34,13 +37,20 @@ html:
 pdf:
 	@$(MAKE) -C docs latexpdf
 
+package: test
+	@python setup.py sdist
+	@python setup.py bdist_wheel
+
 clean:
 	@rm -f rads/*.pyc
 	@rm -f tests/*.pyc
+	@rm -rf tests/.pytest_cache
+	@rm -f tests/.coverage
 	@rm -f .coverage
 	@rm -rf htmlcov
 	@rm -rf __pycache__ rads/__pycache__ tests/__pycache__
 	@rm -rf *.egg-info
+	@rm -rf dist
 
 clean-all: clean
 	@rm -rf .tox
