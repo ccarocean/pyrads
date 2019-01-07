@@ -2,35 +2,16 @@ import os
 import re
 from setuptools import setup, find_packages
 
+
 def read(filename):
     with open(os.path.join(os.path.dirname(__file__), filename)) as infile:
         text = infile.read()
     return text
 
-def is_requirement(line):
-    line = line.strip()
-    requirement = not (
-        line == '' or
-        line.startswith('--') or
-        line.startswith('-r') or
-        line.startswith('#') or
-        line.startswith('-e') or
-        line.startswith('git+')
-    )
-    return requirement
-
-def get_requirements(filename):
-    with open(os.path.join(os.path.dirname(__file__), filename)) as infile:
-        lines = infile.readlines()
-    return [line.strip() for line in lines if is_requirement(line)]
-
-VERSION = re.search(
-    r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
-    read('rads/__init__.py'), re.MULTILINE).group(1)
 
 setup(
     name='rads',
-    version=VERSION,
+    version='4.0.1a1',
     author='Michael R. Shannon',
     author_email='mrshannon.aerospace@gmail.com',
     description='Python front end for the Radar Altimeter Database System.',
@@ -39,9 +20,18 @@ setup(
     url='https://github.com/ccarocean/pyrads',
     packages=find_packages(),
     setup_requires=['pytest-runner'],
-    install_requires=get_requirements('requirements.txt'),
-    tests_require=get_requirements('dev-requirements.txt'),
-    classifiers=(
+    install_requires=[
+        'numpy',
+        'scipy',
+        'lxml',
+        'yzal',
+        'cached_property'
+    ],
+    tests_require=[
+        'pytest',
+        'pytest-mock',
+    ],
+    classifiers=[
         'Development Status :: 1 - Planning',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: MIT License',
@@ -55,6 +45,6 @@ setup(
         'Topic :: Scientific/Engineering'
         'Topic :: Scientific/Engineering :: GIS'
         'Topic :: Software Development :: Libraries :: Python Modules'
-    ),
+    ],
     zip_safe=False
 )
