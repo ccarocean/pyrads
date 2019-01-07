@@ -143,7 +143,7 @@ class Parser(ABC):
 
     @abstractmethod
     def __call__(self, position: Element) -> Tuple[Any, Element]:
-        """Call the parser, trying to match it at the given :paramref:`position`.
+        """Call the parser, trying to match at the given :paramref:`position`.
 
         If the match fails a :class:`LocalParseFailure` will be raised.  This
         call will only return if the parser matches at the given
