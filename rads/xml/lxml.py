@@ -56,7 +56,7 @@ class LibXMLElement(Element):
 
     @cached_property  # type: ignore
     def num_lines(self) -> int:
-        return cast(int, etree.tostring(self._element).strip().split())
+        return cast(int, len(etree.tostring(self._element).strip().split()))
 
     @cached_property  # type: ignore
     def closing_line(self) -> int:

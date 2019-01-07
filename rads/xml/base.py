@@ -99,6 +99,7 @@ class Element(ABC):
             Name of the file containing this element, or None.
 
         """
+        return None
 
     @property
     def opening_line(self) -> Optional[int]:
@@ -110,6 +111,7 @@ class Element(ABC):
             Opening line number, or None.
 
         """
+        return None
 
     @property
     def num_lines(self) -> Optional[int]:
@@ -121,6 +123,7 @@ class Element(ABC):
             Number of lines in XML element, or None.
 
         """
+        return None
 
     @property
     def closing_line(self) -> Optional[int]:
@@ -132,6 +135,7 @@ class Element(ABC):
             Closing line number, or None.
 
         """
+        return None
 
     @property
     @abstractmethod
