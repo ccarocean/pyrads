@@ -1,6 +1,7 @@
 """Utility functions."""
 
-from typing import cast, IO, Optional, Any, Union
+import sys
+from typing import cast, IO, Optional, Any, Union, Text
 from wrapt import ObjectProxy  # type: ignore
 from ._typing import PathOrFile, PathLike
 
@@ -87,9 +88,7 @@ def ensure_open(file: PathOrFile,
 
 
 # TODO: Remove when support for Python 3.5 is dropped.
-try:
-    from os import fspath
-except ImportError:
+if sys.version_info < (3, 6):
     def fspath(path: PathLike) -> Union[str, bytes]:
         """Get a str or bytes object from a PathLike object.
 
@@ -107,6 +106,8 @@ except ImportError:
         if isinstance(path, (str, bytes)):
             return path
         return str(path)
+else:
+    from os import fspath
 
 
 def filestring(file: PathOrFile) -> Optional[str]:

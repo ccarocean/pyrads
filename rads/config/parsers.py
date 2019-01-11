@@ -406,7 +406,9 @@ class MultiParser(Parser, ABC):
     def __init__(self, subtype: type, *parsers: Parser) -> None:
         assert issubclass(subtype, MultiParser)
         self._subtype = subtype
-        self._parsers: List[Parser] = []
+        # TODO: Change when Python 3.5 support is dropped.
+        #   https://www.python.org/dev/peps/pep-0526/#specification
+        self._parsers = []  # type: List[Parser]
         for parser in parsers:
             if isinstance(parser, subtype):
                 self._parsers.extend(cast(MultiParser, parser)._parsers)
