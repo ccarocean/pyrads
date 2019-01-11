@@ -21,11 +21,12 @@ setup(
     packages=find_packages(),
     setup_requires=['pytest-runner'],
     install_requires=[
+        'cached_property'
+        'lxml',
         'numpy',
         'scipy',
-        'lxml',
+        'wrapt',
         'yzal',
-        'cached_property'
     ],
     tests_require=[
         'pytest',
