@@ -4,6 +4,7 @@ module=rads
 
 all:
 	@echo 'init             install development requirements'
+	@echo 'todo             list TODO statements (requires grep)'
 	@echo 'check            run static code checkers'
 	@echo 'test             run unit tests'
 	@echo 'coverage         generate HTML coverage report'
@@ -13,8 +14,12 @@ all:
 	@echo 'clean            cleanup source tree'
 	@echo 'clean-all        also removes tox and eggs'
 
+
 init:
 	@pip install -q -r requirements.txt
+
+todo:
+	@grep -roI --color 'TODO:.*' $(module)
 
 test: check
 	@python -m pytest -v --cov=$(module) --cov-branch
@@ -33,7 +38,7 @@ check:
 	@mypy $(module)
 
 apidoc:
-	@sphinx-apidoc -o docs/api -e -P $(module)
+	@sphinx-apidoc -o docs/api -e $(module)
 	@rm docs/api/modules.rst
 
 html: apidoc
