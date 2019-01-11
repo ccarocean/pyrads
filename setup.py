@@ -22,12 +22,14 @@ setup(
     setup_requires=['pytest-runner'],
     install_requires=[
         'cached_property'
-        'lxml',
         'numpy',
         'scipy',
         'wrapt',
         'yzal',
     ],
+    extras_require = {
+        'libxml2': ['lxml']  # use libxml2 to read configuration files
+    },
     tests_require=[
         'pytest',
         'pytest-mock',
