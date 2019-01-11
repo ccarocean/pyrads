@@ -16,9 +16,9 @@ official Fortran library but a complete re-write in Python.*
 
 
 .. _Radar Altimeter Database System: https://github.com/remkos/rads
-.. |build-status| image:: https://travis-ci.org/mrshannon/pyrads.svg?branch=master&style=flat
-   :target: https://travis-ci.org/mrshannon/pyrads
+.. |build-status| image:: https://travis-ci.com/ccarocean/pyrads.svg?branch=master&style=flat
+   :target: https://travis-ci.org/ccarocean/pyrads
    :alt: Build status
-.. |coverage-status| image:: http://codecov.io/github/mrshannon/pyrads/coverage.svg?branch=master
-   :target: http://codecov.io/github/mrshannon/pyrads?branch=master
+.. |coverage-status| image:: http://codecov.io/github/ccarocean/pyrads/coverage.svg?branch=master
+   :target: http://codecov.io/github/ccarocean/pyrads?branch=master
    :alt: Test coverage
