@@ -93,6 +93,8 @@ class Element(BaseIterable, collections.abc.Sized, ABC):
         # get text
         if self.text and self.text.strip():
             text = self.text
+            if not text.endswith('\n'):
+                text = text + '\n'
         else:
             text = ''
 
