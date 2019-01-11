@@ -142,7 +142,10 @@ disable=print-statement,
         comprehension-escape,
         too-few-public-methods,
         protected-access,
-        abstract-method
+        abstract-method,
+        too-many-arguments,
+        missing-docstring,
+        fixme
 
 # protected-access
 # pylint treats protected access on an object basis and not a class basis.
@@ -153,6 +156,12 @@ disable=print-statement,
 # This is currently broken (see https://github.com/PyCQA/pylint/issues/565).
 # However, by using Abstract Base Classes this check will be done by the
 # interpreter.
+
+# too-many-arguments
+# The stdlib does not follow this either.
+
+# missing-docstring
+# pydocstyle handles this better
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

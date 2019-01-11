@@ -1,11 +1,13 @@
 """XML tools using :mod:`xml.etree.ElementTree`."""
 
-from typing import Optional, Mapping, Union, IO, Any
-import xml.etree.ElementTree as ET
-from rads.xml.base import Element
+from typing import Optional, Mapping
+import xml.etree.ElementTree as etree
+import rads.xml.base as base
+
+__all__ = ['Element']
 
 
-class ETreeElement(Element):
+class Element(base.Element):
     """XML element that encapsulates an element from the ElementTree module.
 
     Does not support line number examination.
@@ -13,9 +15,9 @@ class ETreeElement(Element):
 
     .. note::
 
-        It is recommended to use LibXMLElement if libxml is available on
-        your system as this version does not support line numbers which can
-        make debugging XML files for syntax errors more difficult.
+        It is recommended to use :class:`rads.xml.lxml.Element` if libxml is
+        available on your system as this version does not support line numbers
+        which can make debugging XML files for syntax errors more difficult.
 
     Parameters
     ----------
@@ -32,44 +34,44 @@ class ETreeElement(Element):
 
     """
 
-    def __init__(self, element: ET.Element, index: Optional[int] = None,
-                 parent: Optional['ETreeElement'] = None,
+    def __init__(self, element: etree.Element, index: Optional[int] = None,
+                 parent: Optional['Element'] = None,
                  file: Optional[str] = None) -> None:
-        assert parent is None or isinstance(parent, ETreeElement)
+        assert parent is None or isinstance(parent, Element)
         self._element = element
         self._index = index
         self._parent = parent
         self._file = file
 
-    def next(self) -> Element:  # noqa: D102
+    def next(self) -> 'Element':  # noqa: D102
         if self._parent is None or self._index is None:
             raise StopIteration()
         siblings = list(self._parent._element)
         new_index = self._index + 1
         if new_index >= len(siblings):
             raise StopIteration()
-        return ETreeElement(siblings[new_index], new_index,
-                            self._parent, self._file)
+        return Element(siblings[new_index], new_index,
+                       self._parent, self._file)
 
-    def prev(self) -> Element:  # noqa: D102
+    def prev(self) -> 'Element':  # noqa: D102
         if self._parent is None or self._index is None:
             raise StopIteration()
         siblings = list(self._parent._element)
         new_index = self._index - 1
         if new_index < 0:
             raise StopIteration()
-        return ETreeElement(siblings[new_index], new_index,
-                            self._parent, self._file)
+        return Element(siblings[new_index], new_index,
+                       self._parent, self._file)
 
-    def up(self) -> Element:  # noqa: D102
+    def up(self) -> 'Element':  # noqa: D102
         if self._parent is None:
             raise StopIteration()
         return self._parent
 
-    def down(self) -> Element:  # noqa: D102
+    def down(self) -> 'Element':  # noqa: D102
         try:
             element = list(self._element)[0]
-            return ETreeElement(element, 0, self, self.file)
+            return Element(element, 0, self, self.file)
         except IndexError:
             raise StopIteration()
 
@@ -88,8 +90,3 @@ class ETreeElement(Element):
     @property
     def attributes(self) -> Mapping[str, str]:
         return self._element.attrib
-
-
-def parse(source: Union[str, bytes, int, IO[Any]]) -> ETreeElement:
-    """TODO: Fill this in."""
-    return ETreeElement(ET.parse(source).getroot())

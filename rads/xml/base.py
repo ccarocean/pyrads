@@ -4,6 +4,9 @@ from abc import abstractmethod, ABC
 from typing import Optional, Mapping
 
 
+__all__ = ['Element']
+
+
 class Element(ABC):
     """A generic XML element.
 

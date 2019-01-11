@@ -1,15 +1,15 @@
 """XML tools using the :mod:`lxml` library."""
 
-from typing import cast, Mapping, Optional, Union, Any, IO
+from typing import cast, Mapping, Optional
 from lxml import etree  # type: ignore
 from cached_property import cached_property  # type: ignore
-from rads.xml.base import Element
+import rads.xml.base as base
 
 
-__all__ = ('LibXMLElement', 'parse')
+__all__ = ['Element']
 
 
-class LibXMLElement(Element):
+class Element(base.Element):
     """XML element that encapsulates an element from :mod:`lxml`.
 
     Supports line number examination.
@@ -24,27 +24,27 @@ class LibXMLElement(Element):
     def __init__(self, element: etree._Element) -> None:
         self._element = element
 
-    def next(self) -> Element:  # noqa: D102
+    def next(self) -> 'Element':  # noqa: D102
         element = self._element.getnext()
         if element is None:
             raise StopIteration()
-        return LibXMLElement(element)
+        return Element(element)
 
-    def prev(self) -> Element:  # noqa: D102
+    def prev(self) -> 'Element':  # noqa: D102
         element = self._element.getprevious()
         if element is None:
             raise StopIteration()
-        return LibXMLElement(element)
+        return Element(element)
 
-    def up(self) -> Element:  # noqa: D102
+    def up(self) -> 'Element':  # noqa: D102
         element = self._element.getparent()
         if element is None:
             raise StopIteration()
-        return LibXMLElement(element)
+        return Element(element)
 
-    def down(self) -> Element:  # noqa: D102
+    def down(self) -> 'Element':  # noqa: D102
         # throws StopIteration if there are no children
-        return LibXMLElement(next(self._element.iterchildren()))
+        return Element(next(self._element.iterchildren()))
 
     @property
     def file(self) -> str:
@@ -73,8 +73,3 @@ class LibXMLElement(Element):
     @property
     def attributes(self) -> Mapping[str, str]:
         return cast(Mapping[str, str], self._element.attrib)
-
-
-def parse(source: Union[str, bytes, int, IO[Any]]) -> LibXMLElement:
-    """TODO: Fill this in."""
-    return LibXMLElement(etree.parse(source).getroot())
