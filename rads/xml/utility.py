@@ -12,7 +12,7 @@ try:
 except ImportError:
     # TODO: Remove 'ignore' when https://github.com/python/mypy/issues/1153 is
     #  fixed.
-    from .etree import Element  # type: ignore
+    from .etree import Element, etree  # type: ignore
 
 
 __all__ = ['parse', 'fromstring', 'fromstringlist']
