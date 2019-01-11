@@ -76,6 +76,12 @@ class Element(BaseIterable, collections.abc.Sized, ABC):
             String representation of this and all child elements.
 
         """
+        attributes = ''
+        text = ''
+        children = ''
+        closing_indent = ''
+        multiline = False
+
         # compute next indent
         if isinstance(indent, int):
             next_indent = _current_indent + ' ' * indent
@@ -84,35 +90,23 @@ class Element(BaseIterable, collections.abc.Sized, ABC):
         else:
             next_indent = _current_indent + '    '
 
-        # get attributes
-        attributes = ' '.join('{:s}="{}"'.format(k, v)
-                              for k, v in self.attributes.items())
-        if attributes:
-            attributes = ' ' + attributes
-
-        # get text
-        if self.text and self.text.strip():
-            text = self.text
-            if not text.endswith('\n'):
-                text = text + '\n'
-        else:
-            text = ''
-
-        # get children
-        if self:
+        if self.attributes:
+            attributes = ' ' + ' '.join('{:s}="{}"'.format(k, v)
+                                        for k, v in self.attributes.items())
+        if self:  # has children
             children_ = (c.dumps(indent=indent, _current_indent=next_indent)
                          for c in self)
             children = '\n'.join(chain([''], children_, ['']))
-        else:
-            children = ''
-
-        # set closing indent
-        if '\n' in text or children:
+            multiline = True
+        if self.text and self.text.strip():
+            text = self.text.rstrip()
+            if '\n' in text:
+                multiline = True
+            if multiline:
+                text = text + '\n'
+        if multiline:
             closing_indent = _current_indent
-        else:
-            closing_indent = ''
 
-        # return text representation
         format_str = ('{_current_indent:s}<{tag:s}{attributes:s}>'
                       '{text:s}{children:s}{closing_indent:s}</{tag:s}>')
         text = format_str.format(_current_indent=_current_indent,
