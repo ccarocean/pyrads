@@ -8,11 +8,11 @@ from rads._typing import PathOrFile, PathLike
 from .._utility import ensure_open, filestring
 
 try:
-    from .lxml import Element, etree
+    import rads.xml.lxml as xml
 except ImportError:
     # TODO: Remove 'ignore' when https://github.com/python/mypy/issues/1153 is
     #  fixed.
-    from .etree import Element, etree  # type: ignore
+    import rads.xml.etree as xml  # type: ignore
 
 
 __all__ = ['parse', 'fromstring', 'fromstringlist']
@@ -54,41 +54,32 @@ def _wrap_with_root(sequence: Sequence[AnyStr]) -> Sequence[AnyStr]:
 
 
 def parse(source: PathOrFile,
-          parser: Optional[etree.XMLParser] = None,
-          rootless: bool = False) -> Element:
+          parser: Optional[xml.XMLParser] = None,
+          rootless: bool = False) -> xml.Element:
     """TODO: Fill this in."""
     if rootless:
         with ensure_open(source) as file:
             return fromstringlist(
                 file.readlines(), parser, rootless=True, file=filestring(file))
-    # TODO: Remove cast when https://github.com/python/typeshed/issues/2733 is
-    #  fixed
-    parser_ = cast(etree.XMLParser, parser)
-    return Element(etree.parse(
-        _fix_source(source), parser_).getroot(), file=filestring(source))
+    return xml.Element(xml.parse(
+        _fix_source(source), parser).getroot(), file=filestring(source))
 
 
 def fromstring(text: AnyStr,
-               parser: Optional[etree.XMLParser] = None,
+               parser: Optional[xml.XMLParser] = None,
                rootless: bool = False,
-               file: Optional[str] = None) -> Element:
+               file: Optional[str] = None) -> xml.Element:
     """TODO: Fill this in."""
     if rootless:
         return fromstringlist(text.splitlines(), parser, rootless=True)
-    # TODO: Remove cast when https://github.com/python/typeshed/issues/2733 is
-    #  fixed
-    parser_ = cast(etree.XMLParser, parser)
-    return Element(etree.fromstring(text, parser_), file=file)
+    return xml.Element(xml.fromstring(text, parser), file=file)
 
 
 def fromstringlist(sequence: Sequence[AnyStr],
-                   parser: Optional[etree.XMLParser] = None,
+                   parser: Optional[xml.XMLParser] = None,
                    rootless: bool = False,
-                   file: Optional[str] = None) -> Element:
+                   file: Optional[str] = None) -> xml.Element:
     """TODO: Fill this in."""
     if rootless:
         sequence = _wrap_with_root(sequence)
-    # TODO: Remove cast when https://github.com/python/typeshed/issues/2733 is
-    #  fixed
-    parser_ = cast(etree.XMLParser, parser)
-    return Element(etree.fromstringlist(sequence, parser_), file=file)
+    return xml.Element(xml.fromstringlist(sequence, parser), file=file)

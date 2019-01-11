@@ -1,12 +1,14 @@
 """XML tools using the :mod:`lxml` library."""
 
-from typing import cast, Mapping, Optional, Iterator
+from typing import (Mapping, Optional, Iterator, Union, IO, Any, Text,
+                    Sequence, cast)
 from lxml import etree  # type: ignore
+from lxml.etree import XMLParser, ETCompatXMLParser   # type: ignore
 from cached_property import cached_property  # type: ignore
 import rads.xml.base as base
 
 
-__all__ = ['Element']
+__all__ = ['Element', 'XMLParser', 'parse', 'fromstring', 'fromstringlist']
 
 
 class Element(base.Element):
@@ -83,3 +85,84 @@ class Element(base.Element):
     @property
     def attributes(self) -> Mapping[str, str]:
         return cast(Mapping[str, str], self._element.attrib)
+
+
+_ParserInputType = Union[bytes, Text]
+_FileOrFilename = Union[str, bytes, int, IO[Any]]
+
+
+def parse(source: _FileOrFilename, parser: Optional[XMLParser] = None) \
+        -> etree._ElementTree:
+    """Parse XML document into element tree.
+
+    This is wrapper around :func:`lxml.etree.parse` to make it behave like
+    :func:`xml.etree.ElementTree.parse`.
+
+    Parameters
+    ----------
+    source
+        Filename or file object containing XML data.
+    parser
+        Optional parser instance, defaulting to
+        :class:`lxml.etree.ETCompatXMLParser`.
+
+    Returns
+    -------
+    _ElementTree
+        An ElementTree instance.
+
+    """
+    if parser is None:
+        parser = ETCompatXMLParser()
+    return etree.parse(source, parser)
+
+
+def fromstring(text: _ParserInputType, parser: Optional[XMLParser] = None) \
+        -> etree._Element:
+    """Parse XML document from string constant.
+
+    This function can be used to embed 'XML Literals' in Python code.
+
+    This is wrapper around :func:`lxml.etree.fromstring` to make it behave like
+    :func:`xml.etree.ElementTree.fromtstring`.
+
+    Parameters
+    ----------
+    text
+        A string containing XML data.
+    parser
+        Optional parser instance, defaulting to
+        :class:`lxml.etree.ETCompatXMLParser`.
+
+    Returns
+    -------
+    _Element
+        An Element instance.
+
+    """
+    if parser is None:
+        parser = ETCompatXMLParser()
+    return etree.fromstring(text, parser)
+
+
+def fromstringlist(sequence: Sequence[_ParserInputType],
+                   parser: Optional[XMLParser] = ...) -> etree._Element:
+    """Parse XML document from sequence of string fragments.
+
+    Parameters
+    ----------
+    sequence
+        A list or other sequence of strings containing XML data.
+    parser
+        Optional parser instance, defaulting to
+        :class:`lxml.etree.ETCompatXMLParser`.
+
+    Returns
+    -------
+    _Element
+        An Element instance.
+
+    """
+    if parser is None:
+        parser = ETCompatXMLParser()
+    return etree.fromstringlist(sequence, parser)
