@@ -1,6 +1,6 @@
 """XML tools using :mod:`xml.etree.ElementTree`."""
 
-from typing import Optional, Mapping
+from typing import Optional, Mapping, Iterator
 import xml.etree.ElementTree as etree
 import rads.xml.base as base
 
@@ -42,6 +42,13 @@ class Element(base.Element):
         self._index = index
         self._parent = parent
         self._file = file
+
+    def __iter__(self) -> Iterator['Element']:  # noqa: D105
+        return (Element(e, i, self, self._file)
+                for i, e in enumerate(self._element))
+
+    def __len__(self) -> int:  # noqa: D105
+        return len(self._element)
 
     def next(self) -> 'Element':  # noqa: D102
         if self._parent is None or self._index is None:

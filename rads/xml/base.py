@@ -1,13 +1,21 @@
 """Generic XML tools, not relating to a specific backend."""
 
 from abc import abstractmethod, ABC
-from typing import Optional, Mapping
-
+import collections.abc
+from itertools import chain
+from typing import Optional, Mapping, Union, Iterable, Iterator, TYPE_CHECKING
 
 __all__ = ['Element']
 
+# TODO: Remove when dropping support for Python 3.6
+#  See: https://github.com/python/mypy/issues/5446
+if TYPE_CHECKING:
+    BaseIterable = Iterable['Element']
+else:
+    BaseIterable = collections.abc.Iterable
 
-class Element(ABC):
+
+class Element(BaseIterable, collections.abc.Sized, ABC):
     """A generic XML element.
 
     Base class of XML elements.
@@ -27,6 +35,91 @@ class Element(ABC):
         if attributes:
             attributes = ' ' + attributes
         return '<{:s}{:s}>'.format(self.tag, attributes)
+
+    @abstractmethod
+    def __iter__(self) -> Iterator['Element']:
+        """Get the children of this element.
+
+        Returns
+        -------
+        Iterable[Element]
+            An iterable to the children of this element in the same order as
+            they are in the XML file.
+
+        """
+
+    @abstractmethod
+    def __len__(self) -> int:
+        """Get number of children.
+
+        Returns
+        -------
+        int
+            Number of children.
+
+        """
+
+    def dumps(self, *,
+              indent: Optional[Union[int, str]] = None,
+              _current_indent: str = '') -> str:
+        """Get string representation of this element and all child elements.
+
+        Parameters
+        ----------
+        indent
+            Amount to indent each level.  Can be given as an int or a string.
+            Defaults to 4 spaces.
+
+        Returns
+        -------
+        str
+            String representation of this and all child elements.
+
+        """
+        # compute next indent
+        if isinstance(indent, int):
+            next_indent = _current_indent + ' ' * indent
+        elif isinstance(indent, str):
+            next_indent = _current_indent + indent
+        else:
+            next_indent = _current_indent + '    '
+
+        # get attributes
+        attributes = ' '.join('{:s}="{}"'.format(k, v)
+                              for k, v in self.attributes.items())
+        if attributes:
+            attributes = ' ' + attributes
+
+        # get text
+        if self.text and self.text.strip():
+            text = self.text
+        else:
+            text = ''
+
+        # get children
+        if self:
+            children_ = (c.dumps(indent=indent, _current_indent=next_indent)
+                         for c in self)
+            children = '\n'.join(chain([''], children_, ['']))
+        else:
+            children = ''
+
+        # set closing indent
+        if '\n' in text or children:
+            closing_indent = _current_indent
+        else:
+            closing_indent = ''
+
+        # return text representation
+        format_str = ('{_current_indent:s}<{tag:s}{attributes:s}>'
+                      '{text:s}{children:s}{closing_indent:s}</{tag:s}>')
+        text = format_str.format(_current_indent=_current_indent,
+                                 tag=self.tag,
+                                 attributes=attributes,
+                                 text=text,
+                                 children=children,
+                                 closing_indent=closing_indent)
+        return text
 
     @abstractmethod
     def next(self) -> 'Element':

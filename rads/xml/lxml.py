@@ -1,6 +1,6 @@
 """XML tools using the :mod:`lxml` library."""
 
-from typing import cast, Mapping, Optional
+from typing import cast, Mapping, Optional, Iterator
 from lxml import etree  # type: ignore
 from cached_property import cached_property  # type: ignore
 import rads.xml.base as base
@@ -23,6 +23,12 @@ class Element(base.Element):
 
     def __init__(self, element: etree._Element) -> None:
         self._element = element
+
+    def __iter__(self) -> Iterator['Element']:  # noqa: D105
+        return (Element(e) for e in self._element)
+
+    def __len__(self) -> int:  # noqa: D105
+        return len(self._element)
 
     def next(self) -> 'Element':  # noqa: D102
         element = self._element.getnext()
