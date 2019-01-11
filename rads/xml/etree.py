@@ -3,7 +3,7 @@
 from typing import Optional, Mapping, Iterator
 import xml.etree.ElementTree as etree
 from xml.etree.ElementTree import XMLParser, parse, fromstring, fromstringlist
-import rads.xml.base as base
+from ..xml import base
 
 __all__ = ['Element', 'XMLParser', 'parse', 'fromstring', 'fromstringlist']
 

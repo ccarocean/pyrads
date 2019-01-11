@@ -4,15 +4,15 @@ import os
 import sys
 from typing import Optional, AnyStr, Sequence, cast, Any
 from itertools import chain, tee, takewhile, dropwhile
-from rads._typing import PathOrFile, PathLike
+from .._typing import PathOrFile, PathLike
 from .._utility import ensure_open, filestring
 
 try:
-    import rads.xml.lxml as xml
+    from ..xml import lxml as xml
 except ImportError:
     # TODO: Remove 'ignore' when https://github.com/python/mypy/issues/1153 is
     #  fixed.
-    import rads.xml.etree as xml  # type: ignore
+    from ..xml import etree as xml  # type: ignore
 
 
 __all__ = ['parse', 'fromstring', 'fromstringlist']
