@@ -145,6 +145,7 @@ disable=print-statement,
         abstract-method,
         too-many-arguments,
         missing-docstring,
+        too-many-return-statements,
         fixme
 
 # protected-access
@@ -162,6 +163,10 @@ disable=print-statement,
 
 # missing-docstring
 # pydocstyle handles this better
+
+# too-many-return-statements
+# This gets in the way of using guard clauses.
+
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option

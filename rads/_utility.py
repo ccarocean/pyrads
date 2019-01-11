@@ -5,6 +5,9 @@ from wrapt import ObjectProxy  # type: ignore
 from ._typing import PathOrFile, PathLike
 
 
+__all__ = ['ensure_open', 'fspath', 'filestring']
+
+
 class _NoCloseIOWrapper(ObjectProxy):  # type: ignore
 
     def __exit__(self, *args: object, **kwargs: object) -> None:
@@ -81,3 +84,62 @@ def ensure_open(file: PathOrFile,
         return cast(IO[Any], file)
     return open(cast(Union[PathLike, int], file), mode, buffering,
                 encoding, errors, newline, closefd)
+
+
+# TODO: Remove when support for Python 3.5 is dropped.
+try:
+    from os import fspath
+except ImportError:
+    def fspath(path: PathLike) -> Union[str, bytes]:
+        """Get a str or bytes object from a PathLike object.
+
+        Parameters
+        ----------
+        path
+            PathLike object to get a str or bytes object from.
+
+        Returns
+        -------
+        str or bytes
+            The str or bytes representation of the given path.
+
+        """
+        if isinstance(path, (str, bytes)):
+            return path
+        return str(path)
+
+
+def filestring(file: PathOrFile) -> Optional[str]:
+    """Convert a PathOrFile to a string.
+
+    Parameters
+    ----------
+    file
+        file or file-like object to get the string for.
+
+    Returns
+    -------
+    str or None
+        The string representation of the filename or path.  If it cannot get
+        the name/path of the given file or file-like object or cannot convert
+        it to a str, None will be returned.
+
+    """
+    if isinstance(file, int):
+        return None
+    if hasattr(file, 'read'):
+        return cast(IO[Any], file).name
+    if isinstance(file, str):
+        return file
+    if isinstance(file, bytes):
+        try:
+            return file.decode('utf-8')
+        except UnicodeDecodeError:
+            return None
+    file_ = fspath(cast(PathLike, file))
+    if isinstance(file_, bytes):
+        try:
+            return file_.decode('utf-8')
+        except UnicodeDecodeError:
+            return None
+    return file_

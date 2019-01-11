@@ -2,10 +2,10 @@
 
 import os
 import sys
-from typing import Optional, AnyStr, Sequence, cast, Union, Any
+from typing import Optional, AnyStr, Sequence, cast, Any
 from itertools import chain, tee, takewhile, dropwhile
 from rads._typing import PathOrFile, PathLike
-from .._utility import ensure_open
+from .._utility import ensure_open, filestring
 
 try:
     from .lxml import Element, etree
@@ -20,11 +20,11 @@ __all__ = ['parse', 'fromstring', 'fromstringlist']
 
 # TODO: Remove when Python 3.5 support is dropped.
 if sys.version_info < (3, 6):
-    def _fix_source(source: Union[PathOrFile, int]) -> Any:
+    def _fix_source(source: PathOrFile) -> Any:
         return source
 else:
     # TODO: Remove when ElementTree.parse accepts PathLike objects.
-    def _fix_source(source: Union[PathOrFile, int]) -> Any:
+    def _fix_source(source: PathOrFile) -> Any:
         if isinstance(source, int):
             return source
         if hasattr(source, 'read'):
@@ -59,32 +59,36 @@ def parse(source: PathOrFile,
     """TODO: Fill this in."""
     if rootless:
         with ensure_open(source) as file:
-            return fromstringlist(file.readlines(), parser, rootless=True)
+            return fromstringlist(
+                file.readlines(), parser, rootless=True, file=filestring(file))
     # TODO: Remove cast when https://github.com/python/typeshed/issues/2733 is
     #  fixed
     parser_ = cast(etree.XMLParser, parser)
-    return Element(etree.parse(_fix_source(source), parser_).getroot())
+    return Element(etree.parse(
+        _fix_source(source), parser_).getroot(), file=filestring(source))
 
 
 def fromstring(text: AnyStr,
                parser: Optional[etree.XMLParser] = None,
-               rootless: bool = False) -> Element:
+               rootless: bool = False,
+               file: Optional[str] = None) -> Element:
     """TODO: Fill this in."""
     if rootless:
         return fromstringlist(text.splitlines(), parser, rootless=True)
     # TODO: Remove cast when https://github.com/python/typeshed/issues/2733 is
     #  fixed
     parser_ = cast(etree.XMLParser, parser)
-    return Element(etree.fromstring(text, parser_))
+    return Element(etree.fromstring(text, parser_), file=file)
 
 
 def fromstringlist(sequence: Sequence[AnyStr],
                    parser: Optional[etree.XMLParser] = None,
-                   rootless: bool = False) -> Element:
+                   rootless: bool = False,
+                   file: Optional[str] = None) -> Element:
     """TODO: Fill this in."""
     if rootless:
         sequence = _wrap_with_root(sequence)
     # TODO: Remove cast when https://github.com/python/typeshed/issues/2733 is
     #  fixed
     parser_ = cast(etree.XMLParser, parser)
-    return Element(etree.fromstringlist(sequence, parser_))
+    return Element(etree.fromstringlist(sequence, parser_), file=file)

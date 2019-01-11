@@ -43,12 +43,12 @@ class Element(base.Element):
         self._parent = parent
         self._file = file
 
+    def __len__(self) -> int:  # noqa: D105
+        return len(self._element)
+
     def __iter__(self) -> Iterator['Element']:  # noqa: D105
         return (Element(e, i, self, self._file)
                 for i, e in enumerate(self._element))
-
-    def __len__(self) -> int:  # noqa: D105
-        return len(self._element)
 
     def next(self) -> 'Element':  # noqa: D102
         if self._parent is None or self._index is None:

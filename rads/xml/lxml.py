@@ -21,39 +21,43 @@ class Element(base.Element):
 
     """
 
-    def __init__(self, element: etree._Element) -> None:
+    def __init__(self, element: etree._Element, file: Optional[str] = None) \
+            -> None:
         self._element = element
-
-    def __iter__(self) -> Iterator['Element']:  # noqa: D105
-        return (Element(e) for e in self._element)
+        self._file = file
 
     def __len__(self) -> int:  # noqa: D105
         return len(self._element)
+
+    def __iter__(self) -> Iterator['Element']:  # noqa: D105
+        return (Element(e, file=self._file) for e in self._element)
 
     def next(self) -> 'Element':  # noqa: D102
         element = self._element.getnext()
         if element is None:
             raise StopIteration()
-        return Element(element)
+        return Element(element, file=self._file)
 
     def prev(self) -> 'Element':  # noqa: D102
         element = self._element.getprevious()
         if element is None:
             raise StopIteration()
-        return Element(element)
+        return Element(element, file=self._file)
 
     def up(self) -> 'Element':  # noqa: D102
         element = self._element.getparent()
         if element is None:
             raise StopIteration()
-        return Element(element)
+        return Element(element, file=self._file)
 
     def down(self) -> 'Element':  # noqa: D102
         # throws StopIteration if there are no children
-        return Element(next(self._element.iterchildren()))
+        return Element(next(self._element.iterchildren()), file=self._file)
 
     @property
     def file(self) -> str:
+        if self._file:
+            return self._file
         return cast(str, self._element.base)
 
     @property
