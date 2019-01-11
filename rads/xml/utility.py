@@ -47,16 +47,41 @@ def _wrap_with_root_helper(
 
 def _wrap_with_root(sequence: Sequence[AnyStr]) -> Sequence[AnyStr]:
     if sequence and isinstance(sequence[0], bytes):
-        return _wrap_with_root_helper(sequence, b'<ROOT>', b'</ROOT>', b'<?')
+        return _wrap_with_root_helper(
+            sequence, b'<rootless>', b'</rootless>', b'<?')
     if sequence and isinstance(sequence[0], str):
-        return _wrap_with_root_helper(sequence, '<ROOT>', '</ROOT>', '<?')
+        return _wrap_with_root_helper(
+            sequence, '<rootless>', '</rootless>', '<?')
     raise TypeError("'sequence' bust be a sequence of 'bytes' or 'str'")
 
 
 def parse(source: PathOrFile,
           parser: Optional[xml.XMLParser] = None,
           rootless: bool = False) -> xml.Element:
-    """TODO: Fill this in."""
+    """Parse an XML document from a file or file-like object.
+
+    Parameters
+    ----------
+    source
+        File or file-like object containing the XML data.
+    parser
+        XML parser to use, defaults to the standard XMLParser, which is
+        ElementTree compatible regardless of backend.
+    rootless
+        Set to True to parse an XML document that does not have a root.
+
+        .. note::
+
+            This is done by adding `<rootless>` tags around the document before
+            parsing it.
+
+    Returns
+    -------
+    xml.Element
+        The root XML element.  If :paramref:`rootless` is True this will be the
+        added `<rootless>` element
+
+    """
     if rootless:
         with ensure_open(source) as file:
             return fromstringlist(
@@ -69,7 +94,33 @@ def fromstring(text: AnyStr,
                parser: Optional[xml.XMLParser] = None,
                rootless: bool = False,
                file: Optional[str] = None) -> xml.Element:
-    """TODO: Fill this in."""
+    """Parse an XML document or section from a string constant.
+
+    Parameters
+    ----------
+    text
+        XML text to parse.
+    parser
+        XML parser to use, defaults to the standard XMLParser, which is
+        ElementTree compatible regardless of backend.
+    rootless
+        Set to True to parse an XML document that does not have a root.
+
+        .. note::
+
+            This is done by adding `<rootless>` tags around the document before
+            parsing it.
+    file
+        Optional filename to associate with the returned :class:`xml.Element`.
+
+    Returns
+    -------
+    xml.Element
+        The root XML element (of the section given in :paramref:`text`).  If
+        :paramref:`rootless` is True this will be the added `<rootless>`
+        element.
+
+    """
     if rootless:
         return fromstringlist(text.splitlines(), parser, rootless=True)
     return xml.Element(xml.fromstring(text, parser), file=file)
@@ -79,7 +130,33 @@ def fromstringlist(sequence: Sequence[AnyStr],
                    parser: Optional[xml.XMLParser] = None,
                    rootless: bool = False,
                    file: Optional[str] = None) -> xml.Element:
-    """TODO: Fill this in."""
+    """Parse an XML document or section from a sequence of string fragments.
+
+    Parameters
+    ----------
+    sequence
+        String fragments containing the XML text to parse.
+    parser
+        XML parser to use, defaults to the standard XMLParser, which is
+        ElementTree compatible regardless of backend.
+    rootless
+        Set to True to parse an XML document that does not have a root.
+
+        .. note::
+
+            This is done by adding `<rootless>` tags around the document before
+            parsing it.
+    file
+        Optional filename to associate with the returned :class:`xml.Element`.
+
+    Returns
+    -------
+    xml.Element
+        The root XML element (of the section given in :paramref:`text`).  If
+        :paramref:`rootless` is True this will be the added `<rootless>`
+        element.
+
+    """
     if rootless:
         sequence = _wrap_with_root(sequence)
     return xml.Element(xml.fromstringlist(sequence, parser), file=file)
