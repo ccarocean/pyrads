@@ -1,7 +1,7 @@
 """Utility functions."""
 
 import sys
-from typing import cast, IO, Optional, Any, Union, Text
+from typing import cast, IO, Optional, Any, Union
 from wrapt import ObjectProxy  # type: ignore
 from ._typing import PathOrFile, PathLike
 

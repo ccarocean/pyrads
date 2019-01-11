@@ -146,6 +146,8 @@ disable=print-statement,
         too-many-arguments,
         missing-docstring,
         too-many-return-statements,
+        no-name-in-module,
+        no-member,
         fixme
 
 # protected-access
@@ -166,6 +168,9 @@ disable=print-statement,
 
 # too-many-return-statements
 # This gets in the way of using guard clauses.
+
+# no-name-in-module and no-member
+# pylint does not handle imports conditional on the python version properly.
 
 
 # Enable the message, report, category or checker with the given id(s). You can

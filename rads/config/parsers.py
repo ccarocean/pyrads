@@ -570,7 +570,8 @@ class Alternate(MultiParser):
 class Success(Parser):
     """Parser that always succeeds, consuming nothing."""
 
-    def __call__(self, position: Element) -> Tuple[None, Element]:  # noqa: D102
+    def __call__(self, position: Element) \
+            -> Tuple[None, Element]:  # noqa: D102
         return None, position
 
 
@@ -584,7 +585,8 @@ class Failure(Parser):
 class Start(Parser):
     """Match start of an element, consuming nothing."""
 
-    def __call__(self, position: Element) -> Tuple[None, Element]:  # noqa: D102
+    def __call__(self, position: Element) \
+            -> Tuple[None, Element]:  # noqa: D102
         try:
             prev = position.prev()
             raise LocalParseFailure(
@@ -596,7 +598,8 @@ class Start(Parser):
 class End(Parser):
     """Match end of an element, consuming nothing."""
 
-    def __call__(self, position: Element) -> Tuple[None, Element]:  # noqa: D102
+    def __call__(self, position: Element) \
+            -> Tuple[None, Element]:  # noqa: D102
         try:
             # Element is really a Thunk[Element] so we need to cast it and
             # force it's evaluation to determine if a parse error is thrown,

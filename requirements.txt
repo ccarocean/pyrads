@@ -12,6 +12,7 @@ sphinx>=1.7
 sphinx_paramlinks
 
 # testing
+flake8
 mypy
 pytest
 pytest-cov

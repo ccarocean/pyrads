@@ -32,10 +32,11 @@ check:
 	@python setup.py check --restructuredtext --strict && \
 		([ $$? -eq 0 ] && echo "README.rst ok") || \
 		echo "Invalid markup in README.rst!"
+	@mypy $(module)
 	@python -m pylint $(module)
 	@python -m pycodestyle $(module) tests
 	@python -m pydocstyle $(module)
-	@mypy $(module)
+	@flake8 $(module)
 
 apidoc:
 	@sphinx-apidoc -o docs/api -e $(module)
