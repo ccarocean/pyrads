@@ -87,29 +87,6 @@ def ensure_open(file: PathOrFile,
                 encoding, errors, newline, closefd)
 
 
-# TODO: Remove when support for Python 3.5 is dropped.
-if sys.version_info < (3, 6):
-    def fspath(path: PathLike) -> Union[str, bytes]:
-        """Get a str or bytes object from a PathLike object.
-
-        Parameters
-        ----------
-        path
-            PathLike object to get a str or bytes object from.
-
-        Returns
-        -------
-        str or bytes
-            The str or bytes representation of the given path.
-
-        """
-        if isinstance(path, (str, bytes)):
-            return path
-        return str(path)
-else:
-    from os import fspath
-
-
 def filestring(file: PathOrFile) -> Optional[str]:
     """Convert a PathOrFile to a string.
 

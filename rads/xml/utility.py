@@ -18,18 +18,13 @@ except ImportError:
 __all__ = ['parse', 'fromstring', 'fromstringlist']
 
 
-# TODO: Remove when Python 3.5 support is dropped.
-if sys.version_info < (3, 6):
-    def _fix_source(source: PathOrFile) -> Any:
+# TODO: Remove when ElementTree.parse accepts PathLike objects.
+def _fix_source(source: PathOrFile) -> Any:
+    if isinstance(source, int):
         return source
-else:
-    # TODO: Remove when ElementTree.parse accepts PathLike objects.
-    def _fix_source(source: PathOrFile) -> Any:
-        if isinstance(source, int):
-            return source
-        if hasattr(source, 'read'):
-            return source
-        return os.fspath(cast(PathLike, source))
+    if hasattr(source, 'read'):
+        return source
+    return os.fspath(cast(PathLike, source))
 
 
 def _wrap_with_root_helper(
