@@ -22,6 +22,7 @@ setup(
     setup_requires=['pytest-runner'],
     install_requires=[
         'cached_property',
+        'dataclasses;python_version=="3.6"',
         'numpy',
         'scipy',
         'wrapt',

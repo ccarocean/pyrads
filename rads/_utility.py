@@ -1,12 +1,19 @@
 """Utility functions."""
 
-import sys
+import os
 from typing import cast, IO, Optional, Any, Union
 from wrapt import ObjectProxy  # type: ignore
 from ._typing import PathOrFile, PathLike
 
 
-__all__ = ['ensure_open', 'fspath', 'filestring']
+__all__ = ['ValueEquatable', 'ensure_open', 'filestring']
+
+
+class ValueEquatable:
+
+    def __eq__(self, other: object) -> bool:
+        return (self.__class__ == other.__class__
+                ) and (self.__dict__ == other.__dict__)
 
 
 class _NoCloseIOWrapper(ObjectProxy):  # type: ignore
@@ -114,7 +121,7 @@ def filestring(file: PathOrFile) -> Optional[str]:
             return file.decode('utf-8')
         except UnicodeDecodeError:
             return None
-    file_ = fspath(cast(PathLike, file))
+    file_ = os.fspath(cast(PathLike, file))
     if isinstance(file_, bytes):
         try:
             return file_.decode('utf-8')
