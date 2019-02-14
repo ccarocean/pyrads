@@ -101,6 +101,7 @@ class Phase:
 class Satellite:
     id: str
     id3: str
+    name: str
     names: Sequence[str]
     dt1hz: float
     inclination: float
