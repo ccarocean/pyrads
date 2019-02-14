@@ -128,3 +128,34 @@ def filestring(file: PathOrFile) -> Optional[str]:
         except UnicodeDecodeError:
             return None
     return file_
+
+
+def xor(a: bool, b: bool) -> bool:
+    """Boolean XOR operator.
+
+    This implements the XOR boolean operator and has the following truth table:
+
+    ===== ===== =======
+    a       b   a XOR b
+    ===== ===== =======
+    True  True  False
+    True  False True
+    False True  True
+    False False False
+    ===== ===== =======
+
+    Parameters
+    ----------
+    a
+        First boolean value.
+    b
+        Second boolean value.
+
+    Returns
+    -------
+    bool
+        The result of :paramref:`a` XOR :paramref:`b` from the truth table
+        above.
+
+    """
+    return (a and not b) or (not a and b)
