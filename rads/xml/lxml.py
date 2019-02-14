@@ -68,7 +68,7 @@ class Element(base.Element):
 
     @cached_property  # type: ignore
     def num_lines(self) -> int:
-        return len(etree.tostring(self._element).strip().split())
+        return len(etree.tostring(self._element).strip().split(b'\n'))
 
     @cached_property  # type: ignore
     def closing_line(self) -> int:
