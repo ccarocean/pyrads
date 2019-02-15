@@ -1,9 +1,12 @@
-from typing import Any, Optional, Callable, Mapping, Sequence, Tuple, Iterable
+from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
+                    Iterable, TypeVar, List)
 
 import rads.config.parsers as p
 from ..xml.base import Element
 from .ast import (Assignment, SatelliteCondition, TrueCondition, Statement,
                   CompoundStatement, Condition, If)
+
+T = TypeVar('T')
 
 
 def parse_condition(attr: Mapping[str, str]) -> Condition:
@@ -14,6 +17,12 @@ def parse_condition(attr: Mapping[str, str]) -> Condition:
             satellites=sat.strip('!').split(), invert=sat.startswith('!'))
     except KeyError:
         return TrueCondition()
+
+
+def list_of(parser: Callable[[str], T]) -> Callable[[str], List[T]]:
+    def _parser(string: str) -> List[T]:
+        return [parser(s) for s in string.split()]
+    return _parser
 
 
 def value(parser: Callable[[str], Any], tag: Optional[str] = None,
@@ -77,8 +86,8 @@ def root_statements() -> p.Parser:
                         value(int, 'satid') |
                         value(float, 'dt1hz') |
                         value(float, 'inclination') |
-                        value(str, 'frequency') |
-                        value(str, 'xover_params') |
+                        value(list_of(float), 'frequency') |
+                        value(list_of(float), 'xover_params') |
                         if_statement(p.lazy(root_statements)))
     return (p.start() + (statements ^ process) + p.end()
             << 'Invalid configuration block or value.') ^ (lambda x: x[1])
