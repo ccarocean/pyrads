@@ -6,7 +6,7 @@ from wrapt import ObjectProxy  # type: ignore
 from ._typing import PathOrFile, PathLike
 
 
-__all__ = ['ValueEquatable', 'ensure_open', 'filestring']
+__all__ = ['ValueEquatable', 'ensure_open', 'filestring', 'xor']
 
 
 class ValueEquatable:
