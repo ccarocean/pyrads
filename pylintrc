@@ -148,6 +148,7 @@ disable=print-statement,
         too-many-return-statements,
         no-name-in-module,
         no-member,
+        function-redefined,
         fixme
 
 # protected-access
@@ -159,6 +160,7 @@ disable=print-statement,
 # This is currently broken (see https://github.com/PyCQA/pylint/issues/565).
 # However, by using Abstract Base Classes this check will be done by the
 # interpreter.
+# TODO: Remove this when https://github.com/PyCQA/pylint/issues/565) is fixed
 
 # too-many-arguments
 # The stdlib does not follow this either.
@@ -171,6 +173,11 @@ disable=print-statement,
 
 # no-name-in-module and no-member
 # pylint does not handle imports conditional on the python version properly.
+
+# function-redefined
+# typing.overload is not supported yet
+# TODO: Remove this when https://github.com/PyCQA/pylint/issues/2239 is fixed
+
 
 
 # Enable the message, report, category or checker with the given id(s). You can
