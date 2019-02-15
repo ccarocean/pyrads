@@ -12,9 +12,8 @@ class Condition(ABC):
     """Base class of AST node conditionals."""
 
     @abstractmethod
-    def eval(self, satellite: Optional[str] = None,
-             phase: Optional[str] = None) -> bool:
-        """Evaluate condition to determine match based on satellite and phase.
+    def eval(self, satellite: Optional[str] = None) -> bool:
+        """Evaluate condition to determine match based on satellite.
 
         This is used to determine whether or not a block should be executed.
 
@@ -22,8 +21,6 @@ class Condition(ABC):
         ----------
         satellite
             Name of current satellite.
-        phase
-            Single character phase ID.
 
         Returns
         -------
@@ -36,8 +33,7 @@ class Condition(ABC):
 class TrueCondition(Condition):
     """Condition that is always true."""
 
-    def eval(self, satellite: Optional[str] = None,
-             phase: Optional[str] = None) -> bool:  # noqa: D102
+    def eval(self, satellite: Optional[str] = None) -> bool:  # noqa: D102
         return True
 
     def __repr__(self) -> str:
@@ -48,8 +44,7 @@ class TrueCondition(Condition):
 class FalseCondition(Condition):
     """Condition that is always false."""
 
-    def eval(self, satellite: Optional[str] = None,
-             phase: Optional[str] = None) -> bool:  # noqa: D102
+    def eval(self, satellite: Optional[str] = None) -> bool:  # noqa: D102
         return False
 
     def __repr__(self) -> str:
@@ -72,8 +67,7 @@ class SatelliteCondition(Condition):
     satellites: Container[str]
     invert: bool = False
 
-    def eval(self, satellite: Optional[str] = None,
-             phase: Optional[str] = None) -> bool:  # noqa: D102
+    def eval(self, satellite: Optional[str] = None) -> bool:  # noqa: D102
         return not satellite or xor(satellite in self.satellites, self.invert)
 
 
@@ -82,8 +76,7 @@ class Statement(ABC):
 
     @abstractmethod
     def eval(self, environment: MutableMapping[str, Any],
-             satellite: Optional[str] = None,
-             phase: Optional[str] = None) -> None:
+             satellite: Optional[str] = None) -> None:
         """Evaluate statement, adding to the environment dictionary.
 
         Parameters
@@ -93,8 +86,6 @@ class Statement(ABC):
             added to this mapping.
         satellite
             Current satellite.
-        phase
-            Current phase.
 
         """
 
@@ -134,8 +125,7 @@ class CompoundStatement(Sequence[Statement], Statement):
             ', '.join(repr(s) for s in self._statements))
 
     def eval(self, environment: MutableMapping[str, Any],
-             satellite: Optional[str] = None,
-             phase: Optional[str] = None) -> None:
+             satellite: Optional[str] = None) -> None:
         """Evaluate compound statement, adding to the environment dictionary.
 
         This will evaluate each statement in this compound statement in order.
@@ -147,12 +137,10 @@ class CompoundStatement(Sequence[Statement], Statement):
             added to this mapping.
         satellite
             Current satellite.
-        phase
-            Current phase.
 
         """
         for statement in self:
-            statement.eval(environment, satellite, phase)
+            statement.eval(environment, satellite)
 
 
 @dataclass(frozen=True)
@@ -178,13 +166,12 @@ class If(Statement):
     false_statement: Optional[Statement] = None
 
     def eval(self, environment: MutableMapping[str, Any],
-             satellite: Optional[str] = None,
-             phase: Optional[str] = None) -> None:
+             satellite: Optional[str] = None) -> None:
         """Evaluate if/else statement, adding to the environment dictionary.
 
-        If the satellite and phase match the condition then the
-        :attr:`true_statement` will be evaluated.  Otherwise the
-        :attr:`false_statement` will be evaluated (if it exists).
+        If the satellite matches the condition then the :attr:`true_statement`
+        will be evaluated.  Otherwise the :attr:`false_statement` will be
+        evaluated (if it exists).
 
         Parameters
         ----------
@@ -193,14 +180,12 @@ class If(Statement):
             added to this mapping.
         satellite
             Current satellite.
-        phase
-            Current phase.
 
         """
-        if self.condition.eval(satellite, phase):
-            self.true_statement.eval(environment, satellite, phase)
+        if self.condition.eval(satellite):
+            self.true_statement.eval(environment, satellite)
         elif self.false_statement is not None:
-            self.false_statement.eval(environment, satellite, phase)
+            self.false_statement.eval(environment, satellite)
 
 
 @dataclass(frozen=True)
@@ -235,8 +220,7 @@ class Assignment(Statement):
     action: str = 'replace'
 
     def eval(self, environment: MutableMapping[str, Any],
-             satellite: Optional[str] = None,
-             phase: Optional[str] = None) -> None:
+             satellite: Optional[str] = None) -> None:
         """Evaluate assignment, adding to the environment dictionary.
 
         Parameters
@@ -246,11 +230,9 @@ class Assignment(Statement):
             added to this mapping.
         satellite
             Current satellite.
-        phase
-            Current phase.
 
         """
-        if self.condition.eval(satellite, phase):
+        if self.condition.eval(satellite):
             if (self.name not in environment) or self.action == 'replace':
                 environment[self.name] = self.value
             elif self.action == 'append':
