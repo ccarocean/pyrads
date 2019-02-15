@@ -377,7 +377,8 @@ class Not(Parser):
     def __init__(self, parser: Parser) -> None:
         self._parser = parser
 
-    def __call__(self, position: Element) -> Tuple[None, Element]:  # noqa: D102
+    def __call__(self, position: Element) -> \
+            Tuple[None, Element]:  # noqa: D102
         try:
             self._parser(position)
         except LocalParseFailure:
