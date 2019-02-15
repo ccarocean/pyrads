@@ -1,21 +1,13 @@
 """Generic XML tools, not relating to a specific backend."""
 
 from abc import abstractmethod, ABC
-import collections.abc
 from itertools import chain
-from typing import Optional, Mapping, Union, Iterable, Iterator, TYPE_CHECKING
+from typing import Optional, Mapping, Union, Iterable, Iterator, Sized
 
 __all__ = ['Element']
 
-# TODO: Remove when dropping support for Python 3.6
-#  See: https://github.com/python/mypy/issues/5446
-if TYPE_CHECKING:
-    BaseIterable = Iterable['Element']
-else:
-    BaseIterable = collections.abc.Iterable
 
-
-class Element(BaseIterable, collections.abc.Sized, ABC):
+class Element(Iterable['Element'], Sized, ABC):
     """A generic XML element.
 
     Base class of XML elements.
