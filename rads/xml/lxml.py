@@ -28,10 +28,10 @@ class Element(base.Element):
         self._element = element
         self._file = file
 
-    def __len__(self) -> int:  # noqa: D105
+    def __len__(self) -> int:
         return len(self._element)
 
-    def __iter__(self) -> Iterator['Element']:  # noqa: D105
+    def __iter__(self) -> Iterator['Element']:
         return (Element(e, file=self._file) for e in self._element)
 
     def next(self) -> 'Element':  # noqa: D102
