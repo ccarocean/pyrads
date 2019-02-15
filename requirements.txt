@@ -21,6 +21,7 @@ pytest-mock
 pylint
 pycodestyle
 pydocstyle>=2.1.0
+pyflakes>=2.1.0
 
 # building
 wheel
