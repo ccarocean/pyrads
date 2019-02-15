@@ -5,8 +5,9 @@ This module is heavily based on PEGTL_, a parser combinator library for C++.
 .. _PEGTL: https://github.com/taocpp/PEGTL
 
 """
-
-from typing import Callable, List, Any, Tuple, NoReturn, Optional, cast
+import typing
+from typing import (Callable, List, Any, Tuple, NoReturn, Optional,
+                    MutableSequence, cast)
 from abc import abstractmethod, ABC
 
 import yzal
@@ -876,7 +877,17 @@ def until(parser: Parser) -> Parser:
         :paramref:`parser` matches.  It will not consume the elements that the
         given :paramref:`parser` matched.
     """
-    return star(not_at(parser) + not_at(end()) + any()) + at(parser)
+    def process(elements: typing.Sequence[Element]) -> Element:
+        return elements[-1]
+
+    def process2(elements: Tuple[MutableSequence[Element], Element]) \
+            -> typing.Sequence[Element]:
+        start_elements, last_element = elements
+        start_elements.append(last_element)
+        return start_elements
+
+    return star(not_at(parser) + not_at(end()) + any() ^ process
+                ) + at(parser) ^ process2
 
 
 def failure() -> Parser:

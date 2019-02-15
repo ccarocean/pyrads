@@ -1,8 +1,9 @@
 """Abstract Syntax Tree elements for RADS configuration file."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Container, Sequence, Union, MutableMapping
+from typing import (Any, Optional, Container, Sequence, Union, MutableMapping,
+                    Mapping, Collection, Iterator)
 import typing
 
 from .._utility import xor
@@ -88,6 +89,16 @@ class Statement(ABC):
             Current satellite.
 
         """
+
+
+class NullStatement(Statement):
+
+    def eval(self, environment: MutableMapping[str, Any],
+             satellite: Optional[str] = None) -> None:
+        pass
+
+    def __repr__(self) -> str:
+        return 'NullStatement()'
 
 
 class CompoundStatement(Sequence[Statement], Statement):
@@ -244,3 +255,43 @@ class Assignment(Statement):
                     environment[self.name].append(self.value)
             elif self.action != 'noreplace':
                 raise ValueError("Invalid action '{:s}'".format(self.action))
+
+
+@dataclass(frozen=True)
+class SatelliteID(Statement):
+    id: str
+    id3: str
+    names: Collection[str] = field(default_factory=set)
+
+    def eval(self, environment: MutableMapping[str, Any],
+             satellite: Optional[str] = None) -> None:
+        if satellite == self.id:
+            environment['id'] = self.id
+            environment['id3'] = self.id3
+            environment['names'] = self.names
+
+
+class Satellites(Mapping[str, Statement], Statement):
+
+    def __init__(self, *satellites: SatelliteID):
+        self._satellites: MutableMapping[str, SatelliteID] = {}
+        for satellite in satellites:
+            self._satellites[satellite.id] = satellite
+
+    def __getitem__(self, key: str) -> SatelliteID:
+        return self._satellites.__getitem__(key)
+
+    def __iter__(self) -> Iterator[str]:
+        return self._satellites.__iter__()
+
+    def __len__(self) -> int:
+        return self._satellites.__len__()
+
+    def __repr__(self) -> str:
+        return 'Satellites({:s})'.format(
+            ', '.join(repr(v) for v in self._satellites.values()))
+
+    def eval(self, environment: MutableMapping[str, Any],
+             satellite: Optional[str] = None) -> None:
+        if satellite and satellite in self:
+            self[satellite].eval(environment, satellite)

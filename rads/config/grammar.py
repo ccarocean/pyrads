@@ -1,12 +1,25 @@
 from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
-                    Iterable, TypeVar, List)
+                    Iterable, TypeVar, List, cast)
 
 import rads.config.parsers as p
 from ..xml.base import Element
 from .ast import (Assignment, SatelliteCondition, TrueCondition, Statement,
-                  CompoundStatement, Condition, If)
+                  CompoundStatement, Condition, If, NullStatement, SatelliteID,
+                  Satellites)
 
 T = TypeVar('T')
+
+
+def filter_none(elements: Iterable[Any]) -> Iterable[Any]:
+    return (x for x in elements if x is not None)
+
+
+def ignore(tag: Optional[str] = None) -> p.Parser:
+    def process(_: Element) -> NullStatement:
+        return NullStatement()
+    if tag:
+        return p.tag(tag) ^ process
+    return p.any() ^ process
 
 
 def parse_condition(attr: Mapping[str, str]) -> Condition:
@@ -14,7 +27,7 @@ def parse_condition(attr: Mapping[str, str]) -> Condition:
     try:
         sat = attr['sat'].strip()
         return SatelliteCondition(
-            satellites=sat.strip('!').split(), invert=sat.startswith('!'))
+            satellites=set(sat.strip('!').split()), invert=sat.startswith('!'))
     except KeyError:
         return TrueCondition()
 
@@ -76,13 +89,33 @@ def else_statement(internal: p.Parser) -> p.Parser:
     return p.tag('else') ^ process
 
 
+def satellites_statement() -> p.Parser:
+    def process(element: Element) -> Satellites:
+        if not element.text:
+            return Satellites()
+        satellites = []
+        for line in element.text.strip().splitlines():
+            try:
+                id_, id3, *names = line.split()
+            except ValueError:
+                raise TypeError('TODO')
+            satellites.append(SatelliteID(id_, id3, set(names)))
+        return Satellites(*satellites)
+    return p.tag('satellites') ^ process
+
+
 def root_statements() -> p.Parser:
     def process(statements: Sequence[Statement]) -> Statement:
         # flatten if only a single statement
         if len(statements) == 1:
             return statements[0]
         return CompoundStatement(*statements)
-    statements = p.star(value(str, 'satellite') |
+    statements = p.star(ignore('global_attributes') |
+                        satellites_statement() |
+                        ignore('var') |
+                        ignore('alias') |
+                        ignore('phase') |
+                        value(str, 'satellite', var='name') |
                         value(int, 'satid') |
                         value(float, 'dt1hz') |
                         value(float, 'inclination') |
@@ -93,4 +126,12 @@ def root_statements() -> p.Parser:
             << 'Invalid configuration block or value.') ^ (lambda x: x[1])
 
 
-grammar = root_statements()  # pylint: disable=invalid-name
+def parse(root: Element) -> Statement:
+    return cast(Statement, root_statements()(root.down())[0])
+
+
+def preparse(root: Element) -> Statement:
+    def process(elements: Sequence[Element]) -> Element:
+        return elements[-1]
+    parser = p.until(p.tag('satellites')) + satellites_statement() ^ process
+    return cast(Statement, parser(root.down())[0])
