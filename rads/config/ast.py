@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 from abc import ABC, abstractmethod
-from typing import Any, Optional, Container, Sequence, Union
+from typing import Any, Optional, Container, Sequence, Union, MutableMapping
 import typing
 
 from .._utility import xor
@@ -77,8 +77,26 @@ class SatelliteCondition(Condition):
         return not satellite or xor(satellite in self.satellites, self.invert)
 
 
-class Statement:
+class Statement(ABC):
     """Base class of Abstract Syntax Tree nodes."""
+
+    @abstractmethod
+    def eval(self, environment: MutableMapping[str, Any],
+             satellite: Optional[str] = None,
+             phase: Optional[str] = None) -> None:
+        """Evaluate statement, adding to the environment dictionary.
+
+        Parameters
+        ----------
+        environment
+            Environment dictionary.  Additions from this statement will be
+            added to this mapping.
+        satellite
+            Current satellite.
+        phase
+            Current phase.
+
+        """
 
 
 class CompoundStatement(Sequence[Statement], Statement):
@@ -115,6 +133,27 @@ class CompoundStatement(Sequence[Statement], Statement):
         return 'CompoundStatement({:s})'.format(
             ', '.join(repr(s) for s in self._statements))
 
+    def eval(self, environment: MutableMapping[str, Any],
+             satellite: Optional[str] = None,
+             phase: Optional[str] = None) -> None:
+        """Evaluate compound statement, adding to the environment dictionary.
+
+        This will evaluate each statement in this compound statement in order.
+
+        Parameters
+        ----------
+        environment
+            Environment dictionary.  Additions from this statement will be
+            added to this mapping.
+        satellite
+            Current satellite.
+        phase
+            Current phase.
+
+        """
+        for statement in self:
+            statement.eval(environment, satellite, phase)
+
 
 @dataclass(frozen=True)
 class If(Statement):
@@ -123,13 +162,13 @@ class If(Statement):
     Attributes
     ----------
     condition
-        Condition that must be True for the :paramref:`true_statement` branch
-        to be executed.  Otherwise, the :paramref:`false_statement` is
+        Condition that must be True for the :attr:`true_statement` branch
+        to be executed.  Otherwise, the :attr:`false_statement` is
         executed.
     true_statement:
-        Statement to be executed if :paramref:`condition` evaluates to True.
+        Statement to be executed if :attr:`condition` evaluates to True.
     false_statement:
-        Optional statement to be executed if :paramref:`condition` evaluates
+        Optional statement to be executed if :attr:`condition` evaluates
         to False.
 
     """
@@ -137,6 +176,31 @@ class If(Statement):
     condition: Condition
     true_statement: Statement
     false_statement: Optional[Statement] = None
+
+    def eval(self, environment: MutableMapping[str, Any],
+             satellite: Optional[str] = None,
+             phase: Optional[str] = None) -> None:
+        """Evaluate if/else statement, adding to the environment dictionary.
+
+        If the satellite and phase match the condition then the
+        :attr:`true_statement` will be evaluated.  Otherwise the
+        :attr:`false_statement` will be evaluated (if it exists).
+
+        Parameters
+        ----------
+        environment
+            Environment dictionary.  Additions from this statement will be
+            added to this mapping.
+        satellite
+            Current satellite.
+        phase
+            Current phase.
+
+        """
+        if self.condition.eval(satellite, phase):
+            self.true_statement.eval(environment, satellite, phase)
+        elif self.false_statement is not None:
+            self.false_statement.eval(environment, satellite, phase)
 
 
 @dataclass(frozen=True)
@@ -155,15 +219,13 @@ class Assignment(Statement):
         Action to take if this variable has already been set, the allowable
         actions are listed in the table below.
 
-        ================= =================================
+        ================= ==================================================
         Action            Description
-        ================= =================================
+        ================= ==================================================
         replace (default) Replace the existing value.
         noreplace         Keep the original value.
-        append            Append (with space separator).
-        add               Add value (must be numeric).
-        subtract          Subtract value (must be numeric).
-        ================= =================================
+        append            Extend current value/s.
+        ================= ==================================================
 
     """
 
@@ -171,3 +233,32 @@ class Assignment(Statement):
     value: Any
     condition: Condition
     action: str = 'replace'
+
+    def eval(self, environment: MutableMapping[str, Any],
+             satellite: Optional[str] = None,
+             phase: Optional[str] = None) -> None:
+        """Evaluate assignment, adding to the environment dictionary.
+
+        Parameters
+        ----------
+        environment
+            Environment dictionary.  The addition from this statement will be
+            added to this mapping.
+        satellite
+            Current satellite.
+        phase
+            Current phase.
+
+        """
+        if self.condition.eval(satellite, phase):
+            if (self.name not in environment) or self.action == 'replace':
+                environment[self.name] = self.value
+            elif self.action == 'append':
+                if not hasattr(environment[self.name], 'append'):
+                    environment[self.name] = [environment[self.name]]
+                try:
+                    environment[self.name].extend(self.value)
+                except TypeError:
+                    environment[self.name].append(self.value)
+            elif self.action != 'noreplace':
+                raise ValueError("Invalid action '{:s}'".format(self.action))
