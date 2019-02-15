@@ -6,11 +6,10 @@ This module is heavily based on PEGTL_, a parser combinator library for C++.
 
 """
 
-from typing import Callable, List, Any, Tuple, NoReturn, cast, Optional
+from typing import Callable, List, Any, Tuple, NoReturn, Optional, cast
 from abc import abstractmethod, ABC
 
 import yzal
-from yzal import Thunk  # typing only
 
 from rads.xml.base import Element
 
@@ -219,7 +218,7 @@ class Parser(ABC):
         """
         return Alternate(self, other)
 
-    def __xor__(self, func: 'Parser') -> 'Apply':
+    def __xor__(self, func: Callable[[Any], Any]) -> 'Apply':
         """Apply a function to the value result of this parser.
 
         Parameters
@@ -289,13 +288,38 @@ class Apply(Parser):
         The function to apply
     """
 
-    def __init__(self, parser: Parser, func: Callable[..., Any]) -> None:
+    def __init__(self, parser: Parser, func: Callable[[Any], Any]) -> None:
         self._parser = parser
         self._function = func
 
     def __call__(self, position: Element) -> Tuple[Any, Element]:  # noqa: D102
         value, position = self._parser(position)
         return self._function(value), position
+
+
+class Lazy(Parser):
+    """Delay construction of parser until evaluated.
+
+    .. note::
+
+        This lazy behavior is useful when constructing recursive parsers in
+        order to avoid infinite recursion.
+
+    Parameters
+    ----------
+    parser_func
+        A zero argument function that returns a parser when called.  This will
+        be used to delay construction of the parser.
+    """
+
+    def __init__(self, parser_func: Callable[[], Parser]):
+        self._parser_func = parser_func
+        self._parser: Optional[Parser] = None
+
+    def __call__(self, position: Element) -> Tuple[Any, Element]:  # noqa: D102
+        if self._parser is None:
+            self._parser = self._parser_func()
+        return self._parser(position)
 
 
 class Must(Parser):
@@ -353,7 +377,7 @@ class Not(Parser):
     def __init__(self, parser: Parser) -> None:
         self._parser = parser
 
-    def __call__(self, position: Element) -> Tuple[Any, Element]:  # noqa: D102
+    def __call__(self, position: Element) -> Tuple[None, Element]:  # noqa: D102
         try:
             self._parser(position)
         except LocalParseFailure:
@@ -602,7 +626,7 @@ class End(Parser):
             # Element is really a Thunk[Element] so we need to cast it and
             # force it's evaluation to determine if a parse error is thrown,
             # indicating the end of the current level of elements.
-            yzal.strict(cast(Thunk[Element], position))
+            yzal.strict(cast(yzal.Thunk[Element], position))
         except LocalParseFailure:
             return None, position
         raise LocalParseFailure(
@@ -635,6 +659,25 @@ class Tag(Parser):
         if position.tag == self._name:
             return yzal.strict(position), next_element(position)
         raise LocalParseFailure(position.file, position.opening_line)
+
+
+def lazy(parser_func: Callable[[], Parser]) -> Parser:
+    """Delays construction of parser until evaluated.
+
+    Parameters
+    ----------
+    parser_func
+        A zero argument function that returns a parser when called.  This will
+        be used to delay construction of the parser.
+
+    Returns
+    -------
+    Parser
+        A new parser that is equivalent to the parser returned by
+        :paramref:`parser_func`.
+
+    """
+    return Lazy(parser_func)
 
 
 def at(parser: Parser) -> Parser:
@@ -832,23 +875,66 @@ def until(parser: Parser) -> Parser:
         :paramref:`parser` matches.  It will not consume the elements that the
         given :paramref:`parser` matched.
     """
-    return star(not_at(parser) + not_at(end) + any) + at(parser)
+    return star(not_at(parser) + not_at(end()) + any()) + at(parser)
 
 
-failure = Failure()  # pylint: disable=invalid-name
-"""Parser that always fails."""
+def failure() -> Parser:
+    """Parser that always fails.
 
-success = Success()  # pylint: disable=invalid-name
-"""Parser that always succeeds."""
+    Returns
+    -------
+    Parser
+        A new parser that always fails, consuming nothing.
 
-start = Start()  # pylint: disable=invalid-name
-"""Match the beginning of an element."""
+    """
+    return Failure()
 
-end = End()  # pylint: disable=invalid-name
-"""Match the end of an element."""
 
-any = AnyElement()  # pylint: disable=redefined-builtin,invalid-name
-"""Match any element."""
+def success() -> Parser:
+    """Parser that always succeeds.
+
+    Returns
+    -------
+    Parser
+        A new parser that always succeeds, consuming nothing.
+
+    """
+    return Success()
+
+
+def start() -> Parser:
+    """Match the beginning of an element.
+
+    Returns
+    -------
+        A new parser that matches the beginning of an element, consuming
+        nothing.
+
+    """
+    return Start()
+
+
+def end() -> Parser:
+    """Match the end of an element.
+
+    Returns
+    -------
+        A new parser that matches the end of an element, consuming nothing.
+
+    """
+    return End()
+
+
+def any() -> Parser:  # pylint: disable=redefined-builtin
+    """Match any element.
+
+    Returns
+    -------
+    Parser
+        A new parser that matches any single element.
+
+    """
+    return AnyElement()
 
 
 def tag(name: str) -> Parser:
