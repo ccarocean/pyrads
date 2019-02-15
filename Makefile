@@ -33,10 +33,10 @@ check:
 		([ $$? -eq 0 ] && echo "README.rst ok") || \
 		echo "Invalid markup in README.rst!"
 	@mypy $(module)
+	@flake8 $(module)
 	@python -m pylint $(module)
 	@python -m pycodestyle $(module) tests
 	@python -m pydocstyle $(module)
-	@flake8 $(module)
 
 apidoc:
 	@sphinx-apidoc -o docs/api -e $(module)
