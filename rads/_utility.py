@@ -5,15 +5,7 @@ from typing import cast, IO, Optional, Any, Union
 from wrapt import ObjectProxy  # type: ignore
 from ._typing import PathOrFile, PathLike
 
-
-__all__ = ['ValueEquatable', 'ensure_open', 'filestring', 'xor']
-
-
-class ValueEquatable:
-
-    def __eq__(self, other: object) -> bool:
-        return (self.__class__ == other.__class__
-                ) and (self.__dict__ == other.__dict__)
+__all__ = ['ensure_open', 'filestring', 'xor']
 
 
 class _NoCloseIOWrapper(ObjectProxy):  # type: ignore
