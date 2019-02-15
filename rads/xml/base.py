@@ -2,7 +2,8 @@
 
 from abc import abstractmethod, ABC
 from itertools import chain
-from typing import Optional, Mapping, Union, Iterable, Iterator, Sized
+from collections.abc import Sized
+from typing import Optional, Mapping, Union, Iterable, Iterator
 
 __all__ = ['Element']
 
