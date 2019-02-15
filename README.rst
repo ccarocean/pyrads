@@ -8,8 +8,9 @@ Python library for access to the `Radar Altimeter Database System`_ (RADS).
 Requirements
 ------------
 
-* Python 3.5 or greater
+* Python 3.6 or greater
 * NumPy + SciPy
+* UDUNITS
 
 *NOTE: A Fortran compiler is not required as PyRADS is not a wrapper around the
 official Fortran library but a complete re-write in Python.*
