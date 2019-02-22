@@ -9,6 +9,22 @@ import typing
 from .._utility import xor
 
 
+def _apply_environment_action(
+        environment: MutableMapping[str, Any], key: str, value: Any,
+        action: str = 'replace') -> None:
+    if (key not in environment) or action == 'replace':
+        environment[key] = value
+    elif action == 'append':
+        if not hasattr(environment[key], 'append'):
+            environment[key] = [environment[key]]
+        try:
+            environment[key].extend(value)
+        except TypeError:
+            environment[key].append(value)
+    elif action != 'noreplace':
+        raise ValueError("Invalid action '{:s}'".format(action))
+
+
 class Condition(ABC):
     """Base class of AST node conditionals."""
 
@@ -210,7 +226,8 @@ class Assignment(Statement):
     value
         Value to assign to variable.
     condition
-        Condition that must be true for this assignment to be executed.
+        Condition that must be true for this assignment to be executed.  This
+        defaults to the :class:`TrueCondition`.
     action
         Action to take if this variable has already been set, the allowable
         actions are listed in the table below.
@@ -227,7 +244,7 @@ class Assignment(Statement):
 
     name: str
     value: Any
-    condition: Condition
+    condition: Condition = field(default_factory=TrueCondition)
     action: str = 'replace'
 
     def eval(self, environment: MutableMapping[str, Any],
@@ -244,17 +261,29 @@ class Assignment(Statement):
 
         """
         if self.condition.eval(satellite):
-            if (self.name not in environment) or self.action == 'replace':
-                environment[self.name] = self.value
-            elif self.action == 'append':
-                if not hasattr(environment[self.name], 'append'):
-                    environment[self.name] = [environment[self.name]]
-                try:
-                    environment[self.name].extend(self.value)
-                except TypeError:
-                    environment[self.name].append(self.value)
-            elif self.action != 'noreplace':
-                raise ValueError("Invalid action '{:s}'".format(self.action))
+            _apply_environment_action(
+                environment, self.name, self.value, self.action)
+
+
+# TODO: Change satellite to selectors and make it a dictionary
+# TODO: Make actions a class.
+
+
+@dataclass(frozen=True)
+class VariableAlias(Statement):
+    alias: str
+    variables: Sequence[str]
+    condition: Condition = field(default_factory=TrueCondition)
+    action: str = 'replace'
+
+    def eval(self, environment: MutableMapping[str, Any],
+             satellite: Optional[str] = None) -> None:
+        if self.condition.eval(satellite):
+            if 'variable_aliases' not in environment:
+                environment['variable_aliases'] = dict()
+            _apply_environment_action(
+                environment['variable_aliases'],
+                self.alias, self.variables, self.action)
 
 
 @dataclass(frozen=True)

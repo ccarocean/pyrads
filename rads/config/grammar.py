@@ -5,7 +5,7 @@ import rads.config.parsers as p
 from ..xml.base import Element
 from .ast import (Assignment, SatelliteCondition, TrueCondition, Statement,
                   CompoundStatement, Condition, If, NullStatement, SatelliteID,
-                  Satellites)
+                  Satellites, VariableAlias)
 
 T = TypeVar('T')
 
@@ -32,24 +32,51 @@ def parse_condition(attr: Mapping[str, str]) -> Condition:
         return TrueCondition()
 
 
+def parse_action(element: Element) -> str:
+    action = element.attributes.get('action', 'replace')
+    if action not in {'replace', 'noreplace', 'append'}:
+        raise p.GlobalParseFailure(
+            element.file, element.opening_line,
+            'Invalid action="{:s}".'.format(action))
+    return action
+
+
 def list_of(parser: Callable[[str], T]) -> Callable[[str], List[T]]:
     def _parser(string: str) -> List[T]:
         return [parser(s) for s in string.split()]
     return _parser
 
 
+def variable_alias() -> p.Parser:
+    def process(element: Element) -> VariableAlias:
+        def error(message: str) -> p.GlobalParseFailure:
+            return p.GlobalParseFailure(
+                element.file, element.opening_line, message)
+        try:
+            alias = element.attributes['name']
+        except KeyError:
+            raise error("'name' attribute missing from <alias>")
+        variables = element.text.split() if element.text else []
+        if not variables:
+            raise error('<alias> cannot be empty')
+        condition = parse_condition(element.attributes)
+        action = parse_action(element)
+        return VariableAlias(alias, variables, condition, action)
+    return p.tag('alias') ^ process
+
+
 def value(parser: Callable[[str], Any], tag: Optional[str] = None,
           var: Optional[str] = None) -> p.Parser:
     def process(element: Element) -> Assignment:
         var_ = var if var else element.tag
+        condition = parse_condition(element.attributes)
+        action = element.attributes.get('action', 'replace')
+        text = element.text if element.text else ''
+        if action not in ['replace', 'noreplace', 'append']:
+            raise p.GlobalParseFailure(
+                element.file, element.opening_line,
+                'Invalid action="{:s}".'.format(action))
         try:
-            condition = parse_condition(element.attributes)
-            action = element.attributes.get('action', 'replace')
-            text = element.text if element.text else ''
-            if action not in ['replace', 'noreplace', 'append']:
-                raise p.GlobalParseFailure(
-                    element.file, element.opening_line,
-                    'Invalid action="{:s}".'.format(action))
             return Assignment(condition=condition,
                               name=var_,
                               value=parser(text),
@@ -113,7 +140,7 @@ def root_statements() -> p.Parser:
     statements = p.star(ignore('global_attributes') |
                         satellites_statement() |
                         ignore('var') |
-                        ignore('alias') |
+                        variable_alias() |
                         ignore('phase') |
                         value(str, 'satellite', var='name') |
                         value(int, 'satid') |
