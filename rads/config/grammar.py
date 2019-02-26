@@ -1,9 +1,10 @@
+from datetime import datetime
 from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
                     Iterable, TypeVar, List, cast)
 
 import rads.config.ast as ast
 import rads.config.parsers as p
-from .elements import Cycles, Repeat
+from .elements import Cycles, Repeat, ReferencePass
 from ..xml.base import Element
 
 T = TypeVar('T')
@@ -136,11 +137,11 @@ def satellites() -> p.Parser:
     return p.tag('satellites') ^ process
 
 
-def cycles(string: str) -> Cycles:
+def cycles(cycles_string: str) -> Cycles:
     try:
-        return Cycles(*(int(s) for s in string.split()))
+        return Cycles(*(int(s) for s in cycles_string.split()))
     except TypeError:
-        num_values = len(string.split())
+        num_values = len(cycles_string.split())
         if num_values == 0:
             raise TypeError("missing 'first' cycle")
         if num_values == 1:
@@ -149,18 +150,61 @@ def cycles(string: str) -> Cycles:
             "too many cycles given, expected only 'first' and 'last'")
 
 
-def repeat(string: str) -> Repeat:
-    strings = string.split()
-    if len(strings) > 2:
+def repeat(repeat_string: str) -> Repeat:
+    parts = repeat_string.split()
+    if len(parts) > 2:
         raise TypeError(
             "too many values given, expected only 'days' and 'passes'")
     try:
-        return Repeat(*(f(s) for f, s in zip((float, int), strings)))
+        return Repeat(*(f(s) for f, s in zip((float, int), parts)))
     except TypeError:
-        if strings:
-            raise TypeError("missing length of repeat cycle in 'days'")
-        # len(strings) == 1
-        raise TypeError("missing length of repeat cycle in 'passes'")
+        if parts:
+            raise TypeError("missing length of repeat cycle in 'passes'")
+        raise TypeError("missing length of repeat cycle in 'days'")
+
+
+def time(time_string: str) -> datetime:
+    try:
+        return datetime.strptime(time_string, '%Y-%m-%dT%H:%M:%S')
+    except ValueError:
+        try:
+            return datetime.strptime(time_string, '%Y-%m-%dT%H:%M')
+        except ValueError:
+            try:
+                return datetime.strptime(time_string, '%Y-%m-%dT%H')
+            except ValueError:
+                try:
+                    return datetime.strptime(time_string, '%Y-%m-%dT')
+                except ValueError:
+                    try:
+                        return datetime.strptime(time_string, '%Y-%m-%d')
+                    except ValueError:
+                        # required to avoid 'unconverted data' message from
+                        # strptime
+                        raise ValueError(
+                            "time data '{:s}' does not match format "
+                            "'%Y-%m-%dT%H:%M:%S'".format(time_string))
+
+
+def ref_pass(ref_pass_string: str) -> ReferencePass:
+    parts = ref_pass_string.split()
+    if len(parts) > 5:
+        raise TypeError("too many values given, expected only 'time', "
+                        "'longitude', 'cycle number', 'pass number', and "
+                        "optionally 'absolute orbit number'")
+    try:
+        funcs: Sequence[Callable[[str], Any]] = (time, float, int, int, int)
+        return ReferencePass(*(f(s) for f, s in zip(funcs, parts)))
+    except TypeError:
+        if not parts:
+            raise TypeError("missing 'time' of reference pass")
+        if len(parts) == 1:
+            raise TypeError("missing 'longitude' of reference pass")
+        if len(parts) == 2:
+            raise TypeError("missing 'cycle number' of reference pass")
+        # len(parts) == 3
+        raise TypeError("missing 'pass number' of reference pass")
+        # absolute orbit number is defaulted in ReferencePass
 
 
 def phase_statements() -> p.Parser:
@@ -174,7 +218,7 @@ def phase_statements() -> p.Parser:
         value(str, 'mission') |
         value(cycles, 'cycles') |
         value(repeat, 'repeat') |
-        value(str, 'ref_pass') |
+        value(ref_pass, 'ref_pass') |
         value(str, 'start_time') |
         value(str, 'subcycles')
     )
