@@ -3,10 +3,9 @@
 from typing import (Mapping, Optional, Iterator, Union, IO, Any, Text,
                     Sequence, cast)
 from lxml import etree  # type: ignore
-from lxml.etree import XMLParser, ETCompatXMLParser   # type: ignore
+from lxml.etree import XMLParser, ETCompatXMLParser  # type: ignore
 from cached_property import cached_property  # type: ignore
 from ..xml import base
-
 
 __all__ = ['Element', 'XMLParser', 'parse', 'fromstring', 'fromstringlist']
 

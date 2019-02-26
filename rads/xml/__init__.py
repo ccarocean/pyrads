@@ -16,5 +16,4 @@ except ImportError:
 
 from .utility import parse, fromstring, fromstringlist
 
-
 __all__ = ['Element', 'parse', 'fromstring', 'fromstringlist']

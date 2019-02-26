@@ -13,7 +13,6 @@ except ImportError:
     #  fixed.
     from ..xml import etree as xml  # type: ignore
 
-
 __all__ = ['parse', 'fromstring', 'fromstringlist']
 
 
@@ -33,6 +32,7 @@ def _wrap_with_root_helper(
         processing_instruction: AnyStr) -> Sequence[AnyStr]:
     def is_prolog(text: AnyStr) -> bool:
         return text.lstrip().startswith(processing_instruction)
+
     it1, it2 = tee(sequence)
     prolog = takewhile(is_prolog, it1)
     body = dropwhile(is_prolog, it2)

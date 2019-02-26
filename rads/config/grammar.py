@@ -14,6 +14,7 @@ T = TypeVar('T')
 def ignore(tag: Optional[str] = None) -> p.Parser:
     def process(_: Element) -> NullStatement:
         return NullStatement()
+
     if tag:
         return p.tag(tag) ^ process
     return p.any() ^ process
@@ -45,6 +46,7 @@ def parse_action(element: Element) -> ActionType:
 def list_of(parser: Callable[[str], T]) -> Callable[[str], List[T]]:
     def _parser(string: str) -> List[T]:
         return [parser(s) for s in string.split()]
+
     return _parser
 
 
@@ -53,6 +55,7 @@ def variable_alias() -> p.Parser:
         def error(message: str) -> p.GlobalParseFailure:
             return p.GlobalParseFailure(
                 element.file, element.opening_line, message)
+
         try:
             alias = element.attributes['name']
         except KeyError:
@@ -63,6 +66,7 @@ def variable_alias() -> p.Parser:
         condition = parse_condition(element.attributes)
         action = parse_action(element)
         return VariableAlias(alias, variables, condition, action)
+
     return p.tag('alias') ^ process
 
 
@@ -81,6 +85,7 @@ def value(parser: Callable[[str], Any], tag: Optional[str] = None,
         except ValueError as err:
             raise p.GlobalParseFailure(
                 element.file, element.opening_line, str(err))
+
     if tag:
         return p.tag(tag) ^ process
     return p.any() ^ process
@@ -92,6 +97,7 @@ def if_statement(internal: p.Parser) -> p.Parser:
         condition = parse_condition(if_element.attributes)
         true_statement = internal(if_element.down())[0]
         return If(condition, true_statement, false_statement)
+
     return p.tag('if') + p.opt(
         elseif_statement(internal) | else_statement(internal)) ^ process
 
@@ -102,6 +108,7 @@ def elseif_statement(internal: p.Parser) -> p.Parser:
         condition = parse_condition(elseif_element.attributes)
         true_statement = internal(elseif_element.down())[0]
         return If(condition, true_statement, false_statement)
+
     return p.Apply(p.tag('elseif') + p.opt(
         p.lazy(lambda: elseif_statement(internal)) | else_statement(
             internal)), process)
@@ -110,6 +117,7 @@ def elseif_statement(internal: p.Parser) -> p.Parser:
 def else_statement(internal: p.Parser) -> p.Parser:
     def process(element: Element) -> Any:
         return internal(element.down())[0]
+
     return p.tag('else') ^ process
 
 

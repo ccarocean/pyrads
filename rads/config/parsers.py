@@ -877,6 +877,7 @@ def until(parser: Parser) -> Parser:
         :paramref:`parser` matches.  It will not consume the elements that the
         given :paramref:`parser` matched.
     """
+
     def process(elements: typing.Sequence[Element]) -> Element:
         return elements[-1]
 
