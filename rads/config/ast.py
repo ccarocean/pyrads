@@ -3,26 +3,85 @@
 from dataclasses import dataclass, field
 from abc import ABC, abstractmethod
 from typing import (Any, Optional, Container, Sequence, Union, MutableMapping,
-                    Mapping, Collection, Iterator)
+                    Mapping, Collection, Iterator, Callable, cast)
 import typing
 
 from .._utility import xor
 
+ActionType = Callable[[MutableMapping[str, Any], str, Any], None]
 
-def _apply_environment_action(
-        environment: MutableMapping[str, Any], key: str, value: Any,
-        action: str = 'replace') -> None:
-    if (key not in environment) or action == 'replace':
+
+def replace_action(
+        environment: MutableMapping[str, Any], key: str, value: Any) -> None:
+    """Set key/value pair in the given environment.
+
+    Sets :paramref:`key`/:paramref:`value` pair in the given
+    :paramref:`environment`.  If the :paramref:`key` already exists it will
+    be overwritten.
+
+    Parameters
+    ----------
+    environment
+        Environment to apply the action to the value of key in.
+    key
+        Name of the value to change in the :paramref:`environment`.
+    value
+        New value to use for the action.
+
+    """
+    environment[key] = value
+
+
+def noreplace_action(
+        environment: MutableMapping[str, Any], key: str, value: Any) -> None:
+    """Set key/value pair in the given environment.
+
+    Sets :paramref:`key`/:paramref:`value` pair in the given
+    :paramref:`environment`.  If the :paramref:`key` already exists then it
+    will be left intact and the new value discarded.
+
+    Parameters
+    ----------
+    environment
+        Environment to apply the action to the value of key in.
+    key
+        Name of the value to change in the :paramref:`environment`.
+    value
+        New value to use for the action.
+
+    """
+    if key not in environment:
         environment[key] = value
-    elif action == 'append':
+
+
+def append_action(
+        environment: MutableMapping[str, Any], key: str, value: Any) -> None:
+    """Set key/value pair in the given environment.
+
+    Sets :paramref:`key`/:paramref:`value` pair in the given
+    :paramref:`environment`.  If the :paramref:`key` already exists the new
+    value will be appended, placing the original value in a list if
+    necessary.
+
+    Parameters
+    ----------
+    environment
+        Environment to apply the action to the value of key in.
+    key
+        Name of the value to change in the :paramref:`environment`.
+    value
+        New value to use for the action.
+
+    """
+    if key in environment:
         if not hasattr(environment[key], 'append'):
             environment[key] = [environment[key]]
         try:
             environment[key].extend(value)
         except TypeError:
             environment[key].append(value)
-    elif action != 'noreplace':
-        raise ValueError("Invalid action '{:s}'".format(action))
+    else:
+        environment[key] = [value]
 
 
 class Condition(ABC):
@@ -229,23 +288,16 @@ class Assignment(Statement):
         Condition that must be true for this assignment to be executed.  This
         defaults to the :class:`TrueCondition`.
     action
-        Action to take if this variable has already been set, the allowable
-        actions are listed in the table below.
-
-        ================= ==================================================
-        Action            Description
-        ================= ==================================================
-        replace (default) Replace the existing value.
-        noreplace         Keep the original value.
-        append            Extend current value/s.
-        ================= ==================================================
+        Action to take if this variable has already been set.
 
     """
 
     name: str
     value: Any
-    condition: Condition = field(default_factory=TrueCondition)
-    action: str = 'replace'
+    condition: Condition = TrueCondition()
+    # TODO: Remove Optional when https://github.com/python/mypy/issues/708 is
+    #  fixed.
+    action: Optional[ActionType] = replace_action
 
     def eval(self, environment: MutableMapping[str, Any],
              satellite: Optional[str] = None) -> None:
@@ -261,29 +313,33 @@ class Assignment(Statement):
 
         """
         if self.condition.eval(satellite):
-            _apply_environment_action(
-                environment, self.name, self.value, self.action)
+            action = cast(ActionType, self.action)
+            # TODO: Remove pylint override if it ever registers correctly.
+            # pylint: disable=too-many-function-args
+            action(environment, self.name, self.value)
 
 
 # TODO: Change satellite to selectors and make it a dictionary
-# TODO: Make actions a class.
 
 
 @dataclass(frozen=True)
 class VariableAlias(Statement):
     alias: str
     variables: Sequence[str]
-    condition: Condition = field(default_factory=TrueCondition)
-    action: str = 'replace'
+    condition: Condition = TrueCondition()
+    # TODO: Remove Optional when https://github.com/python/mypy/issues/708 is
+    #  fixed.
+    action: Optional[ActionType] = replace_action
 
     def eval(self, environment: MutableMapping[str, Any],
              satellite: Optional[str] = None) -> None:
         if self.condition.eval(satellite):
             if 'variable_aliases' not in environment:
                 environment['variable_aliases'] = dict()
-            _apply_environment_action(
-                environment['variable_aliases'],
-                self.alias, self.variables, self.action)
+            action = cast(ActionType, self.action)
+            # TODO: Remove pylint override if it ever registers correctly.
+            # pylint: disable=too-many-function-args
+            action(environment['variable_aliases'], self.alias, self.variables)
 
 
 @dataclass(frozen=True)

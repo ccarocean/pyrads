@@ -5,7 +5,8 @@ import rads.config.parsers as p
 from ..xml.base import Element
 from .ast import (Assignment, SatelliteCondition, TrueCondition, Statement,
                   CompoundStatement, Condition, If, NullStatement, SatelliteID,
-                  Satellites, VariableAlias)
+                  Satellites, VariableAlias, ActionType, replace_action,
+                  noreplace_action, append_action)
 
 T = TypeVar('T')
 
@@ -32,13 +33,17 @@ def parse_condition(attr: Mapping[str, str]) -> Condition:
         return TrueCondition()
 
 
-def parse_action(element: Element) -> str:
+def parse_action(element: Element) -> ActionType:
     action = element.attributes.get('action', 'replace')
-    if action not in {'replace', 'noreplace', 'append'}:
-        raise p.GlobalParseFailure(
-            element.file, element.opening_line,
-            'Invalid action="{:s}".'.format(action))
-    return action
+    if action == 'replace':
+        return replace_action
+    if action == 'noreplace':
+        return noreplace_action
+    if action == 'append':
+        return append_action
+    raise p.GlobalParseFailure(
+        element.file, element.opening_line,
+        'Invalid action="{:s}".'.format(action))
 
 
 def list_of(parser: Callable[[str], T]) -> Callable[[str], List[T]]:
@@ -70,12 +75,8 @@ def value(parser: Callable[[str], Any], tag: Optional[str] = None,
     def process(element: Element) -> Assignment:
         var_ = var if var else element.tag
         condition = parse_condition(element.attributes)
-        action = element.attributes.get('action', 'replace')
+        action = parse_action(element)
         text = element.text if element.text else ''
-        if action not in ['replace', 'noreplace', 'append']:
-            raise p.GlobalParseFailure(
-                element.file, element.opening_line,
-                'Invalid action="{:s}".'.format(action))
         try:
             return Assignment(condition=condition,
                               name=var_,
