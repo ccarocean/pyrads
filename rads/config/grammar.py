@@ -3,7 +3,7 @@ from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
 
 import rads.config.ast as ast
 import rads.config.parsers as p
-from .elements import Cycles
+from .elements import Cycles, Repeat
 from ..xml.base import Element
 
 T = TypeVar('T')
@@ -140,13 +140,27 @@ def cycles(string: str) -> Cycles:
     try:
         return Cycles(*(int(s) for s in string.split()))
     except TypeError:
-        num_cycles = len(string.split())
-        if num_cycles == 0:
+        num_values = len(string.split())
+        if num_values == 0:
             raise TypeError("missing 'first' cycle")
-        if num_cycles == 1:
+        if num_values == 1:
             raise TypeError("missing 'last' cycle")
         raise TypeError(
             "too many cycles given, expected only 'first' and 'last'")
+
+
+def repeat(string: str) -> Repeat:
+    strings = string.split()
+    if len(strings) > 2:
+        raise TypeError(
+            "too many values given, expected only 'days' and 'passes'")
+    try:
+        return Repeat(*(f(s) for f, s in zip((float, int), strings)))
+    except TypeError:
+        if strings:
+            raise TypeError("missing length of repeat cycle in 'days'")
+        # len(strings) == 1
+        raise TypeError("missing length of repeat cycle in 'passes'")
 
 
 def phase_statements() -> p.Parser:
@@ -159,7 +173,7 @@ def phase_statements() -> p.Parser:
     statements = p.star(
         value(str, 'mission') |
         value(cycles, 'cycles') |
-        value(str, 'repeat') |
+        value(repeat, 'repeat') |
         value(str, 'ref_pass') |
         value(str, 'start_time') |
         value(str, 'subcycles')
