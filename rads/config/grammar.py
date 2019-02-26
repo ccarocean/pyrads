@@ -3,6 +3,7 @@ from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
 
 import rads.config.ast as ast
 import rads.config.parsers as p
+from .elements import Cycles
 from ..xml.base import Element
 
 T = TypeVar('T')
@@ -79,7 +80,7 @@ def value(parser: Callable[[str], Any], tag: Optional[str] = None,
                                   name=var_,
                                   value=parser(text),
                                   action=action)
-        except ValueError as err:
+        except (ValueError, TypeError) as err:
             raise p.GlobalParseFailure(
                 element.file, element.opening_line, str(err))
 
@@ -127,11 +128,25 @@ def satellites() -> p.Parser:
             try:
                 id_, id3, *names = line.split()
             except ValueError:
+                # TODO: Fix this.
                 raise TypeError('TODO')
             satellites_.append(ast.SatelliteID(id_, id3, set(names)))
         return ast.Satellites(*satellites_)
 
     return p.tag('satellites') ^ process
+
+
+def cycles(string: str) -> Cycles:
+    try:
+        return Cycles(*(int(s) for s in string.split()))
+    except TypeError:
+        num_cycles = len(string.split())
+        if num_cycles == 0:
+            raise TypeError("missing 'first' cycle")
+        if num_cycles == 1:
+            raise TypeError("missing 'last' cycle")
+        raise TypeError(
+            "too many cycles given, expected only 'first' and 'last'")
 
 
 def phase_statements() -> p.Parser:
@@ -143,7 +158,7 @@ def phase_statements() -> p.Parser:
 
     statements = p.star(
         value(str, 'mission') |
-        value(str, 'cycles') |
+        value(cycles, 'cycles') |
         value(str, 'repeat') |
         value(str, 'ref_pass') |
         value(str, 'start_time') |
@@ -162,7 +177,8 @@ def phase() -> p.Parser:
                 element.file, element.opening_line,
                 "<phase> has no 'name' attribute.")
         try:
-            statement = cast(ast.Statement, phase_statements()(element.down())[0])
+            statement = cast(ast.Statement, phase_statements()(
+                element.down())[0])
         except StopIteration:
             statement = ast.NullStatement()
         condition = parse_condition(element.attributes)
