@@ -88,15 +88,16 @@ class Condition(ABC):
     """Base class of AST node conditionals."""
 
     @abstractmethod
-    def eval(self, satellite: Optional[str] = None) -> bool:
-        """Evaluate condition to determine match based on satellite.
+    def eval(self, selectors: Mapping[str, Any]) -> bool:
+        """Evaluate condition to determine match.
 
         This is used to determine whether or not a block should be executed.
 
         Parameters
         ----------
-        satellite
-            Name of current satellite.
+        selectors
+            Key/value pairs of things that can be used for conditional parsing
+            of the configuration file.
 
         Returns
         -------
@@ -109,7 +110,7 @@ class Condition(ABC):
 class TrueCondition(Condition):
     """Condition that is always true."""
 
-    def eval(self, satellite: Optional[str] = None) -> bool:  # noqa: D102
+    def eval(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
         return True
 
     def __repr__(self) -> str:
@@ -120,7 +121,7 @@ class TrueCondition(Condition):
 class FalseCondition(Condition):
     """Condition that is always false."""
 
-    def eval(self, satellite: Optional[str] = None) -> bool:  # noqa: D102
+    def eval(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
         return False
 
     def __repr__(self) -> str:
@@ -130,12 +131,15 @@ class FalseCondition(Condition):
 
 @dataclass(frozen=True)
 class SatelliteCondition(Condition):
-    """Condition that matches based on the satellite.
+    """Condition that matches based on the satellite `id`.
+
+    This makes use of the `id` key/value in the :paramref:`selectors` mapping
+    if it exists.
 
     Parameters
     ----------
     satellites : Container[str]
-        Set of satellites to match.
+        Set of satellite ID's to match.
     invert : bool
         Set to True to invert the match.
     """
@@ -143,8 +147,11 @@ class SatelliteCondition(Condition):
     satellites: Container[str]
     invert: bool = False
 
-    def eval(self, satellite: Optional[str] = None) -> bool:  # noqa: D102
-        return not satellite or xor(satellite in self.satellites, self.invert)
+    def eval(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
+        try:
+            return xor(selectors['id'] in self.satellites, self.invert)
+        except KeyError:
+            return True
 
 
 class Statement(ABC):
@@ -152,7 +159,7 @@ class Statement(ABC):
 
     @abstractmethod
     def eval(self, environment: MutableMapping[str, Any],
-             satellite: Optional[str] = None) -> None:
+             selectors: Mapping[str, Any]) -> None:
         """Evaluate statement, adding to the environment dictionary.
 
         Parameters
@@ -160,8 +167,9 @@ class Statement(ABC):
         environment
             Environment dictionary.  Additions from this statement will be
             added to this mapping.
-        satellite
-            Current satellite.
+        selectors
+            Key/value pairs of things that can be used for conditional parsing
+            of the configuration file.
 
         """
 
@@ -169,7 +177,7 @@ class Statement(ABC):
 class NullStatement(Statement):
 
     def eval(self, environment: MutableMapping[str, Any],
-             satellite: Optional[str] = None) -> None:
+             selectors: Mapping[str, Any]) -> None:
         pass
 
     def __repr__(self) -> str:
@@ -211,7 +219,7 @@ class CompoundStatement(Sequence[Statement], Statement):
             ', '.join(repr(s) for s in self._statements))
 
     def eval(self, environment: MutableMapping[str, Any],
-             satellite: Optional[str] = None) -> None:
+             selectors: Mapping[str, Any]) -> None:
         """Evaluate compound statement, adding to the environment dictionary.
 
         This will evaluate each statement in this compound statement in order.
@@ -221,12 +229,13 @@ class CompoundStatement(Sequence[Statement], Statement):
         environment
             Environment dictionary.  Additions from this statement will be
             added to this mapping.
-        satellite
-            Current satellite.
+        selectors
+            Key/value pairs of things that can be used for conditional parsing
+            of the configuration file.
 
         """
         for statement in self:
-            statement.eval(environment, satellite)
+            statement.eval(environment, selectors)
 
 
 @dataclass(frozen=True)
@@ -252,7 +261,7 @@ class If(Statement):
     false_statement: Optional[Statement] = None
 
     def eval(self, environment: MutableMapping[str, Any],
-             satellite: Optional[str] = None) -> None:
+             selectors: Mapping[str, Any]) -> None:
         """Evaluate if/else statement, adding to the environment dictionary.
 
         If the satellite matches the condition then the :attr:`true_statement`
@@ -264,14 +273,15 @@ class If(Statement):
         environment
             Environment dictionary.  Additions from this statement will be
             added to this mapping.
-        satellite
-            Current satellite.
+        selectors
+            Key/value pairs of things that can be used for conditional parsing
+            of the configuration file.
 
         """
-        if self.condition.eval(satellite):
-            self.true_statement.eval(environment, satellite)
+        if self.condition.eval(selectors):
+            self.true_statement.eval(environment, selectors)
         elif self.false_statement is not None:
-            self.false_statement.eval(environment, satellite)
+            self.false_statement.eval(environment, selectors)
 
 
 @dataclass(frozen=True)
@@ -300,7 +310,7 @@ class Assignment(Statement):
     action: Optional[ActionType] = replace_action
 
     def eval(self, environment: MutableMapping[str, Any],
-             satellite: Optional[str] = None) -> None:
+             selectors: Mapping[str, Any]) -> None:
         """Evaluate assignment, adding to the environment dictionary.
 
         Parameters
@@ -308,18 +318,16 @@ class Assignment(Statement):
         environment
             Environment dictionary.  The addition from this statement will be
             added to this mapping.
-        satellite
-            Current satellite.
+        selectors
+            Key/value pairs of things that can be used for conditional parsing
+            of the configuration file.
 
         """
-        if self.condition.eval(satellite):
+        if self.condition.eval(selectors):
             action = cast(ActionType, self.action)
             # TODO: Remove pylint override if it ever registers correctly.
             # pylint: disable=too-many-function-args
             action(environment, self.name, self.value)
-
-
-# TODO: Change satellite to selectors and make it a dictionary
 
 
 @dataclass(frozen=True)
@@ -332,8 +340,8 @@ class VariableAlias(Statement):
     action: Optional[ActionType] = replace_action
 
     def eval(self, environment: MutableMapping[str, Any],
-             satellite: Optional[str] = None) -> None:
-        if self.condition.eval(satellite):
+             selectors: Mapping[str, Any]) -> None:
+        if self.condition.eval(selectors):
             if 'variable_aliases' not in environment:
                 environment['variable_aliases'] = dict()
             action = cast(ActionType, self.action)
@@ -349,8 +357,8 @@ class SatelliteID(Statement):
     names: Collection[str] = field(default_factory=set)
 
     def eval(self, environment: MutableMapping[str, Any],
-             satellite: Optional[str] = None) -> None:
-        if satellite == self.id:
+             selectors: Mapping[str, Any]) -> None:
+        if selectors == self.id:
             environment['id'] = self.id
             environment['id3'] = self.id3
             environment['names'] = self.names
@@ -377,6 +385,9 @@ class Satellites(Mapping[str, Statement], Statement):
             ', '.join(repr(v) for v in self._satellites.values()))
 
     def eval(self, environment: MutableMapping[str, Any],
-             satellite: Optional[str] = None) -> None:
-        if satellite and satellite in self:
-            self[satellite].eval(environment, satellite)
+             selectors: Mapping[str, Any]) -> None:
+        try:
+            if selectors['id'] in self:
+                self[selectors['id']].eval(environment, selectors['id'])
+        except KeyError:
+            pass
