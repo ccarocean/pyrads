@@ -11,10 +11,6 @@ from .ast import (Assignment, SatelliteCondition, TrueCondition, Statement,
 T = TypeVar('T')
 
 
-def filter_none(elements: Iterable[Any]) -> Iterable[Any]:
-    return (x for x in elements if x is not None)
-
-
 def ignore(tag: Optional[str] = None) -> p.Parser:
     def process(_: Element) -> NullStatement:
         return NullStatement()
