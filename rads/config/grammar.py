@@ -219,7 +219,7 @@ def phase_statements() -> p.Parser:
         value(cycles, 'cycles') |
         value(repeat, 'repeat') |
         value(ref_pass, 'ref_pass') |
-        value(str, 'start_time') |
+        value(time, 'start_time') |
         value(str, 'subcycles')
     )
     return (p.start() + (statements ^ process) + p.end()
