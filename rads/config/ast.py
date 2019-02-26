@@ -151,7 +151,7 @@ class SatelliteCondition(Condition):
         try:
             return xor(selectors['id'] in self.satellites, self.invert)
         except KeyError:
-            return True
+            return False
 
 
 class Statement(ABC):
