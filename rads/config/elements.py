@@ -1,8 +1,10 @@
-from typing import Sequence, Mapping, Optional, Union
-from datetime import datetime
 from dataclasses import dataclass, field
-from cf_units import Unit  # type: ignore
+from datetime import datetime
+from typing import Sequence, Mapping, Optional, Union
+
 import numpy as np  # type: ignore
+from cf_units import Unit  # type: ignore
+
 from .._typing import Real, PathLike
 
 

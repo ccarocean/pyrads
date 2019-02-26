@@ -1,7 +1,7 @@
 """Type aliases."""
 
-import os
 import numbers
+import os
 from typing import Union, IO, Any, TYPE_CHECKING
 
 __all__ = ['PathLike', 'PathOrFile', 'Real']

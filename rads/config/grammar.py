@@ -2,11 +2,11 @@ from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
                     Iterable, TypeVar, List, cast)
 
 import rads.config.parsers as p
-from ..xml.base import Element
 from .ast import (Assignment, SatelliteCondition, TrueCondition, Statement,
                   CompoundStatement, Condition, If, NullStatement, SatelliteID,
                   Satellites, VariableAlias, Phase, ActionType, replace_action,
                   noreplace_action, append_action)
+from ..xml.base import Element
 
 T = TypeVar('T')
 

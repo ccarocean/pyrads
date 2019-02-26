@@ -2,7 +2,9 @@
 
 import os
 from typing import cast, IO, Optional, Any, Union
+
 from wrapt import ObjectProxy  # type: ignore
+
 from ._typing import PathOrFile, PathLike
 
 __all__ = ['ensure_open', 'filestring', 'xor']

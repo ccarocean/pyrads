@@ -1,8 +1,9 @@
 """XML tools for reading the RADS's configuration files."""
 
 import os
-from typing import Optional, AnyStr, Sequence, cast, Any
 from itertools import chain, tee, takewhile, dropwhile
+from typing import Optional, AnyStr, Sequence, cast, Any
+
 from .._typing import PathOrFile, PathLike
 from .._utility import ensure_open, filestring
 

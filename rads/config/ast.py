@@ -1,10 +1,10 @@
 """Abstract Syntax Tree elements for RADS configuration file."""
 
-from dataclasses import dataclass, field
+import typing
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 from typing import (Any, Optional, Container, Sequence, Union, MutableMapping,
                     Mapping, Collection, Iterator, Callable, cast)
-import typing
 
 from .._utility import xor
 

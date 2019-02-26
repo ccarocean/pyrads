@@ -1,8 +1,9 @@
 """XML tools using :mod:`xml.etree.ElementTree`."""
 
-from typing import Optional, Mapping, Iterator
 import xml.etree.ElementTree as etree
+from typing import Optional, Mapping, Iterator
 from xml.etree.ElementTree import XMLParser, parse, fromstring, fromstringlist
+
 from ..xml import base
 
 __all__ = ['Element', 'XMLParser', 'parse', 'fromstring', 'fromstringlist']
