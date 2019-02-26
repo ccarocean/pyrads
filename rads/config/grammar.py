@@ -1,43 +1,40 @@
 from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
                     Iterable, TypeVar, List, cast)
 
+import rads.config.ast as ast
 import rads.config.parsers as p
-from .ast import (Assignment, SatelliteCondition, TrueCondition, Statement,
-                  CompoundStatement, Condition, If, NullStatement, SatelliteID,
-                  Satellites, VariableAlias, Phase, ActionType, replace_action,
-                  noreplace_action, append_action)
 from ..xml.base import Element
 
 T = TypeVar('T')
 
 
 def ignore(tag: Optional[str] = None) -> p.Parser:
-    def process(_: Element) -> NullStatement:
-        return NullStatement()
+    def process(_: Element) -> ast.NullStatement:
+        return ast.NullStatement()
 
     if tag:
         return p.tag(tag) ^ process
     return p.any() ^ process
 
 
-def parse_condition(attr: Mapping[str, str]) -> Condition:
+def parse_condition(attr: Mapping[str, str]) -> ast.Condition:
     # currently the only condition RADS uses is based on the satellite
     try:
         sat = attr['sat'].strip()
-        return SatelliteCondition(
+        return ast.SatelliteCondition(
             satellites=set(sat.strip('!').split()), invert=sat.startswith('!'))
     except KeyError:
-        return TrueCondition()
+        return ast.TrueCondition()
 
 
-def parse_action(element: Element) -> ActionType:
+def parse_action(element: Element) -> ast.ActionType:
     action = element.attributes.get('action', 'replace')
     if action == 'replace':
-        return replace_action
+        return ast.replace_action
     if action == 'noreplace':
-        return noreplace_action
+        return ast.noreplace_action
     if action == 'append':
-        return append_action
+        return ast.append_action
     raise p.GlobalParseFailure(
         element.file, element.opening_line,
         'Invalid action="{:s}".'.format(action))
@@ -51,7 +48,7 @@ def list_of(parser: Callable[[str], T]) -> Callable[[str], List[T]]:
 
 
 def variable_alias() -> p.Parser:
-    def process(element: Element) -> VariableAlias:
+    def process(element: Element) -> ast.VariableAlias:
         def error(message: str) -> p.GlobalParseFailure:
             return p.GlobalParseFailure(
                 element.file, element.opening_line, message)
@@ -65,23 +62,23 @@ def variable_alias() -> p.Parser:
             raise error('<alias> cannot be empty')
         condition = parse_condition(element.attributes)
         action = parse_action(element)
-        return VariableAlias(alias, variables, condition, action)
+        return ast.VariableAlias(alias, variables, condition, action)
 
     return p.tag('alias') ^ process
 
 
 def value(parser: Callable[[str], Any], tag: Optional[str] = None,
           var: Optional[str] = None) -> p.Parser:
-    def process(element: Element) -> Assignment:
+    def process(element: Element) -> ast.Assignment:
         var_ = var if var else element.tag
         condition = parse_condition(element.attributes)
         action = parse_action(element)
         text = element.text if element.text else ''
         try:
-            return Assignment(condition=condition,
-                              name=var_,
-                              value=parser(text),
-                              action=action)
+            return ast.Assignment(condition=condition,
+                                  name=var_,
+                                  value=parser(text),
+                                  action=action)
         except ValueError as err:
             raise p.GlobalParseFailure(
                 element.file, element.opening_line, str(err))
@@ -92,22 +89,22 @@ def value(parser: Callable[[str], Any], tag: Optional[str] = None,
 
 
 def if_statement(internal: p.Parser) -> p.Parser:
-    def process(statements: Tuple[Element, Statement]) -> Statement:
+    def process(statements: Tuple[Element, ast.Statement]) -> ast.Statement:
         if_element, false_statement = statements
         condition = parse_condition(if_element.attributes)
         true_statement = internal(if_element.down())[0]
-        return If(condition, true_statement, false_statement)
+        return ast.If(condition, true_statement, false_statement)
 
     return p.tag('if') + p.opt(
         elseif_statement(internal) | else_statement(internal)) ^ process
 
 
 def elseif_statement(internal: p.Parser) -> p.Parser:
-    def process(statements: Iterable[Any]) -> Statement:
+    def process(statements: Iterable[Any]) -> ast.Statement:
         elseif_element, false_statement = statements
         condition = parse_condition(elseif_element.attributes)
         true_statement = internal(elseif_element.down())[0]
-        return If(condition, true_statement, false_statement)
+        return ast.If(condition, true_statement, false_statement)
 
     return p.Apply(p.tag('elseif') + p.opt(
         p.lazy(lambda: elseif_statement(internal)) | else_statement(
@@ -122,27 +119,27 @@ def else_statement(internal: p.Parser) -> p.Parser:
 
 
 def satellites() -> p.Parser:
-    def process(element: Element) -> Satellites:
+    def process(element: Element) -> ast.Satellites:
         if not element.text:
-            return Satellites()
+            return ast.Satellites()
         satellites_ = []
         for line in element.text.strip().splitlines():
             try:
                 id_, id3, *names = line.split()
             except ValueError:
                 raise TypeError('TODO')
-            satellites_.append(SatelliteID(id_, id3, set(names)))
-        return Satellites(*satellites_)
+            satellites_.append(ast.SatelliteID(id_, id3, set(names)))
+        return ast.Satellites(*satellites_)
 
     return p.tag('satellites') ^ process
 
 
 def phase_statements() -> p.Parser:
-    def process(statements: Sequence[Statement]) -> Statement:
+    def process(statements: Sequence[ast.Statement]) -> ast.Statement:
         # flatten if only a single statement
         if len(statements) == 1:
             return statements[0]
-        return CompoundStatement(*statements)
+        return ast.CompoundStatement(*statements)
 
     statements = p.star(
         value(str, 'mission') |
@@ -157,7 +154,7 @@ def phase_statements() -> p.Parser:
 
 
 def phase() -> p.Parser:
-    def process(element: Element) -> Phase:
+    def process(element: Element) -> ast.Phase:
         try:
             name = element.attributes['name']
         except KeyError:
@@ -165,21 +162,21 @@ def phase() -> p.Parser:
                 element.file, element.opening_line,
                 "<phase> has no 'name' attribute.")
         try:
-            statement = cast(Statement, phase_statements()(element.down())[0])
+            statement = cast(ast.Statement, phase_statements()(element.down())[0])
         except StopIteration:
-            statement = NullStatement()
+            statement = ast.NullStatement()
         condition = parse_condition(element.attributes)
-        return Phase(name, statement, condition)
+        return ast.Phase(name, statement, condition)
 
     return p.tag('phase') ^ process
 
 
 def root_statements() -> p.Parser:
-    def process(statements: Sequence[Statement]) -> Statement:
+    def process(statements: Sequence[ast.Statement]) -> ast.Statement:
         # flatten if only a single statement
         if len(statements) == 1:
             return statements[0]
-        return CompoundStatement(*statements)
+        return ast.CompoundStatement(*statements)
 
     statements = p.star(
         ignore('global_attributes') |
@@ -198,13 +195,13 @@ def root_statements() -> p.Parser:
             << 'Invalid configuration block or value.') ^ (lambda x: x[1])
 
 
-def parse(root: Element) -> Statement:
-    return cast(Statement, root_statements()(root.down())[0])
+def parse(root: Element) -> ast.Statement:
+    return cast(ast.Statement, root_statements()(root.down())[0])
 
 
-def preparse(root: Element) -> Statement:
+def preparse(root: Element) -> ast.Statement:
     def process(elements: Sequence[Element]) -> Element:
         return elements[-1]
 
     parser = p.until(p.tag('satellites')) + satellites() ^ process
-    return cast(Statement, parser(root.down())[0])
+    return cast(ast.Statement, parser(root.down())[0])
