@@ -391,3 +391,20 @@ class Satellites(Mapping[str, Statement], Statement):
                 self[selectors['id']].eval(environment, selectors['id'])
         except KeyError:
             pass
+
+
+@dataclass(frozen=True)
+class Phase(Statement):
+    name: str
+    inner_statement: Statement
+    condition: Condition = TrueCondition()
+
+    def eval(self, environment: MutableMapping[str, Any],
+             selectors: Mapping[str, Any]) -> None:
+        if self.condition.eval(selectors):
+            if 'phases' not in environment:
+                environment['phases'] = dict()
+            if self.name not in environment['phases']:
+                environment['phases'][self.name] = dict()
+            self.inner_statement.eval(
+                environment['phases'][self.name], selectors)

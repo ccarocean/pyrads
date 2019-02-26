@@ -5,7 +5,7 @@ import rads.config.parsers as p
 from ..xml.base import Element
 from .ast import (Assignment, SatelliteCondition, TrueCondition, Statement,
                   CompoundStatement, Condition, If, NullStatement, SatelliteID,
-                  Satellites, VariableAlias, ActionType, replace_action,
+                  Satellites, VariableAlias, Phase, ActionType, replace_action,
                   noreplace_action, append_action)
 
 T = TypeVar('T')
@@ -117,19 +117,57 @@ def else_statement(internal: p.Parser) -> p.Parser:
     return p.tag('else') ^ process
 
 
-def satellites_statement() -> p.Parser:
+def satellites() -> p.Parser:
     def process(element: Element) -> Satellites:
         if not element.text:
             return Satellites()
-        satellites = []
+        satellites_ = []
         for line in element.text.strip().splitlines():
             try:
                 id_, id3, *names = line.split()
             except ValueError:
                 raise TypeError('TODO')
-            satellites.append(SatelliteID(id_, id3, set(names)))
-        return Satellites(*satellites)
+            satellites_.append(SatelliteID(id_, id3, set(names)))
+        return Satellites(*satellites_)
+
     return p.tag('satellites') ^ process
+
+
+def phase_statements() -> p.Parser:
+    def process(statements: Sequence[Statement]) -> Statement:
+        # flatten if only a single statement
+        if len(statements) == 1:
+            return statements[0]
+        return CompoundStatement(*statements)
+
+    statements = p.star(
+        value(str, 'mission') |
+        value(str, 'cycles') |
+        value(str, 'repeat') |
+        value(str, 'ref_pass') |
+        value(str, 'start_time') |
+        value(str, 'subcycles')
+    )
+    return (p.start() + (statements ^ process) + p.end()
+            << 'Invalid configuration block or value.') ^ (lambda x: x[1])
+
+
+def phase() -> p.Parser:
+    def process(element: Element) -> Phase:
+        try:
+            name = element.attributes['name']
+        except KeyError:
+            raise p.GlobalParseFailure(
+                element.file, element.opening_line,
+                "<phase> has no 'name' attribute.")
+        try:
+            statement = cast(Statement, phase_statements()(element.down())[0])
+        except StopIteration:
+            statement = NullStatement()
+        condition = parse_condition(element.attributes)
+        return Phase(name, statement, condition)
+
+    return p.tag('phase') ^ process
 
 
 def root_statements() -> p.Parser:
@@ -138,18 +176,20 @@ def root_statements() -> p.Parser:
         if len(statements) == 1:
             return statements[0]
         return CompoundStatement(*statements)
-    statements = p.star(ignore('global_attributes') |
-                        satellites_statement() |
-                        ignore('var') |
-                        variable_alias() |
-                        ignore('phase') |
-                        value(str, 'satellite', var='name') |
-                        value(int, 'satid') |
-                        value(float, 'dt1hz') |
-                        value(float, 'inclination') |
-                        value(list_of(float), 'frequency') |
-                        value(list_of(float), 'xover_params') |
-                        if_statement(p.lazy(root_statements)))
+
+    statements = p.star(
+        ignore('global_attributes') |
+        satellites() |
+        ignore('var') |
+        variable_alias() |
+        value(str, 'satellite', var='name') |
+        value(int, 'satid') |
+        value(float, 'dt1hz') |
+        value(float, 'inclination') |
+        value(list_of(float), 'frequency') |
+        value(list_of(float), 'xover_params') |
+        phase() |
+        if_statement(p.lazy(root_statements)))
     return (p.start() + (statements ^ process) + p.end()
             << 'Invalid configuration block or value.') ^ (lambda x: x[1])
 
@@ -161,5 +201,6 @@ def parse(root: Element) -> Statement:
 def preparse(root: Element) -> Statement:
     def process(elements: Sequence[Element]) -> Element:
         return elements[-1]
-    parser = p.until(p.tag('satellites')) + satellites_statement() ^ process
+
+    parser = p.until(p.tag('satellites')) + satellites() ^ process
     return cast(Statement, parser(root.down())[0])
