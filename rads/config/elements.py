@@ -96,6 +96,12 @@ class ReferencePass:
 
 
 @dataclass
+class SubCycles:
+    lengths: Sequence[int]
+    start: Optional[int] = None
+
+
+@dataclass
 class Phase:
     id: str
     mission: str
@@ -103,6 +109,7 @@ class Phase:
     repeat: Repeat
     reference_pass: ReferencePass
     start_time: datetime
+    subcycles: Optional[SubCycles] = None
 
 
 @dataclass

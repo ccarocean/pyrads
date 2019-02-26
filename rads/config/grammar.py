@@ -4,7 +4,7 @@ from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
 
 import rads.config.ast as ast
 import rads.config.parsers as p
-from .elements import Cycles, Repeat, ReferencePass
+from .elements import Cycles, Repeat, ReferencePass, SubCycles
 from ..xml.base import Element
 
 T = TypeVar('T')
@@ -77,10 +77,11 @@ def value(parser: Callable[[str], Any], tag: Optional[str] = None,
         action = parse_action(element)
         text = element.text if element.text else ''
         try:
-            return ast.Assignment(condition=condition,
-                                  name=var_,
-                                  value=parser(text),
-                                  action=action)
+            return ast.Assignment(
+                condition=condition,
+                action=action,
+                name=var_,
+                value=parser(text))
         except (ValueError, TypeError) as err:
             raise p.GlobalParseFailure(
                 element.file, element.opening_line, str(err))
@@ -207,6 +208,29 @@ def ref_pass(ref_pass_string: str) -> ReferencePass:
         # absolute orbit number is defaulted in ReferencePass
 
 
+def subcycles() -> p.Parser:
+    def process(element: Element) -> ast.Statement:
+        start: Optional[int]
+        condition = parse_condition(element.attributes)
+        action = parse_action(element)
+        try:
+            start = int(element.attributes['start'])
+        except KeyError:
+            start = None
+        except ValueError as err:
+            raise p.GlobalParseFailure(
+                element.file, element.opening_line, str(err))
+        text = element.text if element.text else ''
+        lengths = [int(s) for s in text.split()]
+        return ast.Assignment(
+            condition=condition,
+            action=action,
+            name='subcycles',
+            value=SubCycles(lengths, start=start))
+
+    return p.tag('subcycles') ^ process
+
+
 def phase_statements() -> p.Parser:
     def process(statements: Sequence[ast.Statement]) -> ast.Statement:
         # flatten if only a single statement
@@ -220,7 +244,7 @@ def phase_statements() -> p.Parser:
         value(repeat, 'repeat') |
         value(ref_pass, 'ref_pass') |
         value(time, 'start_time') |
-        value(str, 'subcycles')
+        subcycles()
     )
     return (p.start() + (statements ^ process) + p.end()
             << 'Invalid configuration block or value.') ^ (lambda x: x[1])
