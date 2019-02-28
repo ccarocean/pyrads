@@ -7,6 +7,7 @@ from typing import (Any, Optional, Container, Sequence, Union, MutableMapping,
                     Mapping, Collection, Iterator, Callable, cast)
 
 from .._utility import xor
+import rads.config.tree as ctree
 
 ActionType = Callable[[MutableMapping[str, Any], str, Any], None]
 
