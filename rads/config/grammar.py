@@ -4,10 +4,17 @@ from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
 
 import rads.config.ast as ast
 import rads.config.parsers as p
-from .elements import Cycles, Repeat, ReferencePass, SubCycles
+from .tree import Cycles, Repeat, ReferencePass, SubCycles
 from ..xml.base import Element
 
 T = TypeVar('T')
+
+
+def error_at(element: Element) -> Callable[[str], p.GlobalParseFailure]:
+    def error(message: str) -> p.GlobalParseFailure:
+        return p.GlobalParseFailure(
+            element.file, element.opening_line, message)
+    return error
 
 
 def ignore(tag: Optional[str] = None) -> p.Parser:
@@ -37,9 +44,7 @@ def parse_action(element: Element) -> ast.ActionType:
         return ast.noreplace_action
     if action == 'append':
         return ast.append_action
-    raise p.GlobalParseFailure(
-        element.file, element.opening_line,
-        'Invalid action="{:s}".'.format(action))
+    raise error_at(element)('Invalid action="{:s}".'.format(action))
 
 
 def list_of(parser: Callable[[str], T]) -> Callable[[str], List[T]]:
@@ -51,17 +56,13 @@ def list_of(parser: Callable[[str], T]) -> Callable[[str], List[T]]:
 
 def variable_alias() -> p.Parser:
     def process(element: Element) -> ast.VariableAlias:
-        def error(message: str) -> p.GlobalParseFailure:
-            return p.GlobalParseFailure(
-                element.file, element.opening_line, message)
-
         try:
             alias = element.attributes['name']
         except KeyError:
-            raise error("'name' attribute missing from <alias>")
+            raise error_at(element)("'name' attribute missing from <alias>")
         variables = element.text.split() if element.text else []
         if not variables:
-            raise error('<alias> cannot be empty')
+            raise error_at(element)('<alias> cannot be empty')
         condition = parse_condition(element.attributes)
         action = parse_action(element)
         return ast.VariableAlias(alias, variables, condition, action)
@@ -83,8 +84,7 @@ def value(parser: Callable[[str], Any], tag: Optional[str] = None,
                 name=var_,
                 value=parser(text))
         except (ValueError, TypeError) as err:
-            raise p.GlobalParseFailure(
-                element.file, element.opening_line, str(err))
+            raise error_at(element)(str(err))
 
     if tag:
         return p.tag(tag) ^ process
@@ -218,8 +218,7 @@ def subcycles() -> p.Parser:
         except KeyError:
             start = None
         except ValueError as err:
-            raise p.GlobalParseFailure(
-                element.file, element.opening_line, str(err))
+            raise error_at(element)(str(err))
         text = element.text if element.text else ''
         lengths = [int(s) for s in text.split()]
         return ast.Assignment(
@@ -255,9 +254,7 @@ def phase() -> p.Parser:
         try:
             name = element.attributes['name']
         except KeyError:
-            raise p.GlobalParseFailure(
-                element.file, element.opening_line,
-                "<phase> has no 'name' attribute.")
+            raise error_at(element)("<phase> has no 'name' attribute.")
         try:
             statement = cast(ast.Statement, phase_statements()(
                 element.down())[0])
