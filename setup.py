@@ -3,6 +3,12 @@ import re
 from setuptools import setup, find_packages
 
 
+def read_version(filename):
+    return re.search(
+        r'^__version__\s*=\s*[\'"]([^\'"]*)[\'"]',
+read(filename), re.MULTILINE).group(1)
+
+
 def read(filename):
     with open(os.path.join(os.path.dirname(__file__), filename)) as infile:
         text = infile.read()
@@ -11,7 +17,7 @@ def read(filename):
 
 setup(
     name='rads',
-    version='4.0.1a1',
+    version=read_version('dataclass_builder/__init__.py'),
     author='Michael R. Shannon',
     author_email='mrshannon.aerospace@gmail.com',
     description='Python front end for the Radar Altimeter Database System.',
@@ -23,6 +29,7 @@ setup(
     install_requires=[
         'cached_property',
         'dataclasses;python_version=="3.6"',
+        'dataclass-builder>=1.0.0',
         'numpy',
         'scipy',
         'wrapt',
