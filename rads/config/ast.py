@@ -3,93 +3,99 @@
 import typing
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from dataclass_builder import (dataclass_builder, REQUIRED, OPTIONAL, MISSING,
+                               UndefinedFieldError)
 from typing import (Any, Optional, Container, Sequence, Union, MutableMapping,
                     Mapping, Collection, Iterator, Callable, cast)
 
 from .._utility import xor
 import rads.config.tree as ctree
 
-ActionType = Callable[[MutableMapping[str, Any], str, Any], None]
+ActionType = Callable[[Any, str, Any], None]
 
 
-def replace_action(
-        environment: MutableMapping[str, Any], key: str, value: Any) -> None:
-    """Set key/value pair in the given environment.
+# class ASTEvaluationError(Exception):
 
-    Sets :paramref:`key`/:paramref:`value` pair in the given
-    :paramref:`environment`.  If the :paramref:`key` already exists it will
-    be overwritten.
+
+
+
+
+def replace_action(environment: Any, attr: str, value: Any) -> None:
+    """Set value in the given environment.
+
+    Sets :paramref:`attr` to the given :paramref:`value` in the given
+    :paramref:`environment`.  If the :paramref:`attr` has already been set
+    it will be overwritten.
 
     Parameters
     ----------
     environment
-        Environment to apply the action to the value of key in.
-    key
+        Environment to apply the action to the value of :paramref:`attr` in.
+    attr
         Name of the value to change in the :paramref:`environment`.
     value
         New value to use for the action.
 
     """
-    environment[key] = value
+    setattr(environment, attr, value)
 
 
-def noreplace_action(
-        environment: MutableMapping[str, Any], key: str, value: Any) -> None:
-    """Set key/value pair in the given environment.
+def noreplace_action(environment: Any, attr: str, value: Any) -> None:
+    """Set value in the given environment.
 
-    Sets :paramref:`key`/:paramref:`value` pair in the given
-    :paramref:`environment`.  If the :paramref:`key` already exists then it
+    Sets :paramref:`attr` to the given :paramref:`value` in the given
+    :paramref:`environment`.  If the :paramref:`attr` has already ben set it
     will be left intact and the new value discarded.
 
     Parameters
     ----------
     environment
-        Environment to apply the action to the value of key in.
-    key
+        Environment to apply the action to the value of :paramref:`attr` in.
+    attr
         Name of the value to change in the :paramref:`environment`.
     value
         New value to use for the action.
 
     """
-    if key not in environment:
-        environment[key] = value
+    if getattr(environment, attr) == MISSING:
+        setattr(environment, attr, value)
 
 
 def append_action(
-        environment: MutableMapping[str, Any], key: str, value: Any) -> None:
+        environment: MutableMapping[str, Any], attr: str, value: Any) -> None:
     """Set key/value pair in the given environment.
 
-    Sets :paramref:`key`/:paramref:`value` pair in the given
-    :paramref:`environment`.  If the :paramref:`key` already exists the new
-    value will be appended, placing the original value in a list if
+    Sets :paramref:`attr` to the given :paramref:`value` in the given
+    :paramref:`environment`.  If the :paramref:`attr` has already ben set the
+    new value will be appended, placing the original value in a list if
     necessary.
 
     Parameters
     ----------
     environment
-        Environment to apply the action to the value of key in.
-    key
+        Environment to apply the action to the value of :paramref:`attr` in.
+    attr
         Name of the value to change in the :paramref:`environment`.
     value
         New value to use for the action.
 
     """
-    if key in environment:
-        if not hasattr(environment[key], 'append'):
-            environment[key] = [environment[key]]
-        try:
-            environment[key].extend(value)
-        except TypeError:
-            environment[key].append(value)
+    if getattr(environment, attr) == MISSING:
+        setattr(environment, attr, value)
     else:
-        environment[key] = [value]
+        if not hasattr(getattr(environment, attr), 'append'):
+            setattr(environment, attr, [getattr(environment, attr)])
+        try:
+            getattr(environment, attr).extend(value)
+        except TypeError:
+            getattr(environment, attr).append(value)
 
 
 class Condition(ABC):
     """Base class of AST node conditionals."""
 
     @abstractmethod
-    def eval(self, selectors: Mapping[str, Any]) -> bool:
+    def test(self, selectors: Mapping[str, Any]) -> bool:
         """Evaluate condition to determine match.
 
         This is used to determine whether or not a block should be executed.
@@ -111,7 +117,7 @@ class Condition(ABC):
 class TrueCondition(Condition):
     """Condition that is always true."""
 
-    def eval(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
+    def test(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
         return True
 
     def __repr__(self) -> str:
@@ -122,7 +128,7 @@ class TrueCondition(Condition):
 class FalseCondition(Condition):
     """Condition that is always false."""
 
-    def eval(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
+    def test(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
         return False
 
     def __repr__(self) -> str:
@@ -148,19 +154,25 @@ class SatelliteCondition(Condition):
     satellites: Container[str]
     invert: bool = False
 
-    def eval(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
+    def test(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
         try:
             return xor(selectors['id'] in self.satellites, self.invert)
         except KeyError:
             return False
 
 
+@dataclass(frozen=True)
+class Source:
+    line: int
+    file: str = None
+
+
+@dataclass(frozen=True)
 class Statement(ABC):
     """Base class of Abstract Syntax Tree nodes."""
 
     @abstractmethod
-    def eval(self, environment: MutableMapping[str, Any],
-             selectors: Mapping[str, Any]) -> None:
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         """Evaluate statement, adding to the environment dictionary.
 
         Parameters
@@ -175,10 +187,10 @@ class Statement(ABC):
         """
 
 
+@dataclass(frozen=True)
 class NullStatement(Statement):
 
-    def eval(self, environment: MutableMapping[str, Any],
-             selectors: Mapping[str, Any]) -> None:
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         pass
 
     def __repr__(self) -> str:
@@ -219,8 +231,7 @@ class CompoundStatement(Sequence[Statement], Statement):
         return 'CompoundStatement({:s})'.format(
             ', '.join(repr(s) for s in self._statements))
 
-    def eval(self, environment: MutableMapping[str, Any],
-             selectors: Mapping[str, Any]) -> None:
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         """Evaluate compound statement, adding to the environment dictionary.
 
         This will evaluate each statement in this compound statement in order.
@@ -261,8 +272,7 @@ class If(Statement):
     true_statement: Statement
     false_statement: Optional[Statement] = None
 
-    def eval(self, environment: MutableMapping[str, Any],
-             selectors: Mapping[str, Any]) -> None:
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         """Evaluate if/else statement, adding to the environment dictionary.
 
         If the satellite matches the condition then the :attr:`true_statement`
@@ -279,7 +289,7 @@ class If(Statement):
             of the configuration file.
 
         """
-        if self.condition.eval(selectors):
+        if self.condition.test(selectors):
             self.true_statement.eval(environment, selectors)
         elif self.false_statement is not None:
             self.false_statement.eval(environment, selectors)
@@ -310,8 +320,7 @@ class Assignment(Statement):
     #  fixed.
     action: Optional[ActionType] = replace_action
 
-    def eval(self, environment: MutableMapping[str, Any],
-             selectors: Mapping[str, Any]) -> None:
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         """Evaluate assignment, adding to the environment dictionary.
 
         Parameters
@@ -324,7 +333,7 @@ class Assignment(Statement):
             of the configuration file.
 
         """
-        if self.condition.eval(selectors):
+        if self.condition.test(selectors):
             action = cast(ActionType, self.action)
             # TODO: Remove pylint override if it ever registers correctly.
             # pylint: disable=too-many-function-args
@@ -340,9 +349,8 @@ class VariableAlias(Statement):
     #  fixed.
     action: Optional[ActionType] = replace_action
 
-    def eval(self, environment: MutableMapping[str, Any],
-             selectors: Mapping[str, Any]) -> None:
-        if self.condition.eval(selectors):
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
+        if self.condition.test(selectors):
             if 'variable_aliases' not in environment:
                 environment['variable_aliases'] = dict()
             action = cast(ActionType, self.action)
@@ -357,8 +365,7 @@ class SatelliteID(Statement):
     id3: str
     names: Collection[str] = field(default_factory=set)
 
-    def eval(self, environment: MutableMapping[str, Any],
-             selectors: Mapping[str, Any]) -> None:
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         if selectors == self.id:
             environment['id'] = self.id
             environment['id3'] = self.id3
@@ -385,7 +392,7 @@ class Satellites(Mapping[str, Statement], Statement):
         return 'Satellites({:s})'.format(
             ', '.join(repr(v) for v in self._satellites.values()))
 
-    def eval(self, environment: MutableMapping[str, Any],
+    def eval(self, environment: Any,
              selectors: Mapping[str, Any]) -> None:
         try:
             if selectors['id'] in self:
@@ -400,9 +407,8 @@ class Phase(Statement):
     inner_statement: Statement
     condition: Condition = TrueCondition()
 
-    def eval(self, environment: MutableMapping[str, Any],
-             selectors: Mapping[str, Any]) -> None:
-        if self.condition.eval(selectors):
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
+        if self.condition.test(selectors):
             if 'phases' not in environment:
                 environment['phases'] = dict()
             if self.name not in environment['phases']:
