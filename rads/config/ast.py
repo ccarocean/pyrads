@@ -14,13 +14,7 @@ import rads.config.tree as ctree
 ActionType = Callable[[Any, str, Any], None]
 
 
-# class ASTEvaluationError(Exception):
-
-
-
-
-
-def replace_action(environment: Any, attr: str, value: Any) -> None:
+def replace(environment: Any, attr: str, value: Any) -> None:
     """Set value in the given environment.
 
     Sets :paramref:`attr` to the given :paramref:`value` in the given
@@ -40,7 +34,7 @@ def replace_action(environment: Any, attr: str, value: Any) -> None:
     setattr(environment, attr, value)
 
 
-def noreplace_action(environment: Any, attr: str, value: Any) -> None:
+def keep(environment: Any, attr: str, value: Any) -> None:
     """Set value in the given environment.
 
     Sets :paramref:`attr` to the given :paramref:`value` in the given
@@ -61,7 +55,7 @@ def noreplace_action(environment: Any, attr: str, value: Any) -> None:
         setattr(environment, attr, value)
 
 
-def append_action(
+def append(
         environment: MutableMapping[str, Any], attr: str, value: Any) -> None:
     """Set key/value pair in the given environment.
 
@@ -94,6 +88,9 @@ def append_action(
 class Condition(ABC):
     """Base class of AST node conditionals."""
 
+    def __repr__(self) -> str:
+        return f'{self.__class__.__qualname__}()'
+
     @abstractmethod
     def test(self, selectors: Mapping[str, Any]) -> bool:
         """Evaluate condition to determine match.
@@ -120,10 +117,6 @@ class TrueCondition(Condition):
     def test(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
         return True
 
-    def __repr__(self) -> str:
-        """Get text representation 'TrueCondition()'."""
-        return 'TrueCondition()'
-
 
 class FalseCondition(Condition):
     """Condition that is always false."""
@@ -131,12 +124,8 @@ class FalseCondition(Condition):
     def test(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
         return False
 
-    def __repr__(self) -> str:
-        """Get text representation 'FalseCondition()'."""
-        return 'FalseCondition()'
 
 
-@dataclass(frozen=True)
 class SatelliteCondition(Condition):
     """Condition that matches based on the satellite `id`.
 
@@ -152,7 +141,15 @@ class SatelliteCondition(Condition):
     """
 
     satellites: Container[str]
-    invert: bool = False
+    invert: bool
+
+    def __init__(self, satellites: Container[str], invert: bool = False):
+        self.satellites = satellites
+        self.invert = invert
+
+    def __repr__(self):
+        return (f'{self.__class__.__qualname__}'
+                f'({repr(self.satellites)}, invert={repr(self.invert)})')
 
     def test(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
         try:
@@ -167,9 +164,16 @@ class Source:
     file: str = None
 
 
-@dataclass(frozen=True)
 class Statement(ABC):
     """Base class of Abstract Syntax Tree nodes."""
+
+    source: Optional[Source]
+
+    def __init__(self, *, source: Optional[Source] = None) -> None:
+        self.source = source
+
+    def __repr__(self) -> str:
+        return f'{self.__class__.__qualname__}()'
 
     @abstractmethod
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
@@ -187,14 +191,10 @@ class Statement(ABC):
         """
 
 
-@dataclass(frozen=True)
 class NullStatement(Statement):
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         pass
-
-    def __repr__(self) -> str:
-        return 'NullStatement()'
 
 
 class CompoundStatement(Sequence[Statement], Statement):
@@ -207,7 +207,9 @@ class CompoundStatement(Sequence[Statement], Statement):
 
     """
 
-    def __init__(self, *statements: Statement) -> None:
+    def __init__(self, *statements: Statement,
+                 source: Optional[Source] = None) -> None:
+        super().__init__(source=source)
         self._statements = statements
 
     @typing.overload
@@ -228,8 +230,8 @@ class CompoundStatement(Sequence[Statement], Statement):
         return len(self._statements)
 
     def __repr__(self) -> str:
-        return 'CompoundStatement({:s})'.format(
-            ', '.join(repr(s) for s in self._statements))
+        return (f'{self.__class__.__qualname__}'
+                f'({", ".join(repr(s) for s in self._statements)})')
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         """Evaluate compound statement, adding to the environment dictionary.
@@ -250,7 +252,6 @@ class CompoundStatement(Sequence[Statement], Statement):
             statement.eval(environment, selectors)
 
 
-@dataclass(frozen=True)
 class If(Statement):
     """If/else statement AST node.
 
@@ -270,7 +271,22 @@ class If(Statement):
 
     condition: Condition
     true_statement: Statement
-    false_statement: Optional[Statement] = None
+    false_statement: Optional[Statement]
+
+    def __init__(self, condition: Condition, true_statement: Statement,
+                 false_statement: Optional[Statement] = None,
+                 *, source: Optional[Source] = None) -> None:
+        super().__init__(source=source)
+        self.condition = condition
+        self.true_statement = true_statement
+        self.false_statement = false_statement
+
+    def __repr__(self) -> str:
+        prefix = (f'{self.__class__.__qualname__}'
+                  f'({repr(self.condition)}, {repr(self.true_statement)}')
+        if self.false_statement is None:
+            return prefix + ')'
+        return prefix + f', {repr(self.false_statement)})'
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         """Evaluate if/else statement, adding to the environment dictionary.
@@ -295,7 +311,6 @@ class If(Statement):
             self.false_statement.eval(environment, selectors)
 
 
-@dataclass(frozen=True)
 class Assignment(Statement):
     """Assignment statement (value to variable) AST node.
 
@@ -318,7 +333,28 @@ class Assignment(Statement):
     condition: Condition = TrueCondition()
     # TODO: Remove Optional when https://github.com/python/mypy/issues/708 is
     #  fixed.
-    action: Optional[ActionType] = replace_action
+    action: Optional[ActionType] = staticmethod(replace)
+
+    def __init__(self, name: Any, value: str,
+                 condition: Optional[Condition] = None,
+                 action: Optional[ActionType] = None,
+                 *, source: Optional[Source] = None) -> None:
+        super().__init__(source=source)
+        self.name = name
+        self.value = value
+        if condition is not None:
+            self.condition = condition
+        if action is not None:
+            self.action = action
+
+    def __repr__(self):
+        prefix = (f'{self.__class__.__qualname__}'
+                  f'({repr(self.name)}, {repr(self.value)}')
+        if not isinstance(self.condition, TrueCondition):
+            prefix += f', {repr(self.condition)}'
+        if self.action == replace:
+            return prefix + ')'
+        return prefix + f', {self.action.__qualname__})'
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         """Evaluate assignment, adding to the environment dictionary.
@@ -340,14 +376,34 @@ class Assignment(Statement):
             action(environment, self.name, self.value)
 
 
-@dataclass(frozen=True)
-class VariableAlias(Statement):
+class Alias(Statement):
     alias: str
     variables: Sequence[str]
     condition: Condition = TrueCondition()
     # TODO: Remove Optional when https://github.com/python/mypy/issues/708 is
     #  fixed.
-    action: Optional[ActionType] = replace_action
+    action: Optional[ActionType] = staticmethod(replace)
+
+    def __init__(self, alias: Any, variables: Sequence[str],
+                 condition: Optional[Condition] = None,
+                 action: Optional[ActionType] = None,
+                 *, source: Optional[Source] = None) -> None:
+        super().__init__(source=source)
+        self.alias = alias
+        self.variables = variables
+        if condition is not None:
+            self.condition = condition
+        if action is not None:
+            self.action = action
+
+    def __repr__(self):
+        prefix = (f'{self.__class__.__qualname__}'
+                  f'({repr(self.alias)}, {repr(self.variables)}')
+        if not isinstance(self.condition, TrueCondition):
+            prefix += f', {repr(self.condition)}'
+        if self.action == replace:
+            return prefix + ')'
+        return prefix + f', {self.action.__qualname__})'
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         if self.condition.test(selectors):
@@ -359,11 +415,28 @@ class VariableAlias(Statement):
             action(environment['variable_aliases'], self.alias, self.variables)
 
 
-@dataclass(frozen=True)
 class SatelliteID(Statement):
     id: str
     id3: str
-    names: Collection[str] = field(default_factory=set)
+    names: Collection[str]
+
+    def __init__(self, id: str, id3: str,
+                 names: Optional[Collection[str]] = None,
+                 *, source: Optional[Source] = None) -> None:
+        super().__init__(source=source)
+        self.id = id
+        self.id3 = id3
+        if names is None:
+            self.names = set()
+        else:
+            self.names = names
+
+    def __repr__(self) -> str:
+        prefix = (f'{self.__class__.__qualname__}'
+                  f'({repr(self.id)}, {repr(self.id3)}')
+        if self.names:
+            return prefix + f', {self.names})'
+        return prefix + ')'
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         if selectors == self.id:
@@ -374,7 +447,9 @@ class SatelliteID(Statement):
 
 class Satellites(Mapping[str, Statement], Statement):
 
-    def __init__(self, *satellites: SatelliteID):
+    def __init__(self, *satellites: SatelliteID,
+                 source: Optional[Source] = None) -> None:
+        super().__init__(source=source)
         self._satellites: MutableMapping[str, SatelliteID] = {}
         for satellite in satellites:
             self._satellites[satellite.id] = satellite
@@ -401,11 +476,26 @@ class Satellites(Mapping[str, Statement], Statement):
             pass
 
 
-@dataclass(frozen=True)
 class Phase(Statement):
     name: str
     inner_statement: Statement
     condition: Condition = TrueCondition()
+
+    def __init__(self, name: str, inner_statement,
+                 condition: Optional[Condition] = None,
+                 *, source: Optional[Source] = None):
+        super().__init__(source=source)
+        self.name = name
+        self.inner_statement = inner_statement
+        if condition is not None:
+            self.condition = condition
+
+    def __repr__(self):
+        prefix = (f'{self.__class__.__qualname__}'
+                  f'({repr(self.name)}, {repr(self.inner_statement)}')
+        if isinstance(self.condition, TrueCondition):
+            return prefix + ')'
+        return prefix + f', {self.condition})'
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         if self.condition.test(selectors):
