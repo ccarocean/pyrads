@@ -51,7 +51,7 @@ def keep(environment: Any, attr: str, value: Any) -> None:
         New value to use for the action.
 
     """
-    if getattr(environment, attr) == MISSING:
+    if not hasattr(environment, attr) or getattr(environment, attr) == MISSING:
         setattr(environment, attr, value)
 
 
@@ -74,7 +74,7 @@ def append(
         New value to use for the action.
 
     """
-    if getattr(environment, attr) == MISSING:
+    if not hasattr(environment, attr) or getattr(environment, attr) == MISSING:
         setattr(environment, attr, value)
     else:
         if not hasattr(getattr(environment, attr), 'append'):
