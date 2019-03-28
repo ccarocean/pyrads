@@ -18,6 +18,7 @@ def error_at(element: Element) -> Callable[[str], p.GlobalParseFailure]:
     def error(message: str) -> p.GlobalParseFailure:
         return p.GlobalParseFailure(
             element.file, element.opening_line, message)
+
     return error
 
 
@@ -133,17 +134,24 @@ def else_statement(internal: p.Parser) -> p.Parser:
 
 def satellites() -> p.Parser:
     def process(element: Element) -> ast.Satellites:
+        source = ast.Source(element.opening_line, element.file)
         if not element.text:
-            return ast.Satellites()
+            return ast.Satellites(source=source)
         satellites_ = []
-        for line in element.text.strip().splitlines():
-            try:
-                id_, id3, *names = line.split()
-            except ValueError:
-                # TODO: Fix this.
-                raise TypeError('TODO')
-            satellites_.append(ast.SatelliteID(id_, id3, set(names)))
-        return ast.Satellites(*satellites_)
+        for num, line in enumerate(element.text.strip().splitlines()):
+            line = line.strip()
+            if line:
+                id_source = ast.Source(
+                    element.opening_line + num + 1, element.file)
+                try:
+                    id_, id3, *names = line.split()
+                except ValueError:
+                    raise p.GlobalParseFailure(
+                        id_source.file, id_source.line,
+                        f"missing 3 character ID for satellite '{id_}'")
+                satellites_.append(
+                    ast.SatelliteID(id_, id3, set(names), source=id_source))
+        return ast.Satellites(*satellites_, source=source)
 
     return p.tag('satellites') ^ process
 
@@ -284,6 +292,7 @@ def root_statements() -> p.Parser:
         return ast.CompoundStatement(*statements)
 
     statements = p.star(
+        satellites() |
         value(str, 'satellite', var='name') |
         ignore('satid') |
         value(float, 'dt1hz') |

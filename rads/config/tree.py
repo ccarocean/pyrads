@@ -121,9 +121,9 @@ class Satellite:
     dt1hz: float
     inclination: float
     frequency: Sequence[float]
-    aliases: Mapping[str, Sequence[str]]
-    phases: Mapping[str, Phase]
-    variables: Mapping[str, Variable]
+    # aliases: Mapping[str, Sequence[str]]
+    # phases: Mapping[str, Phase]
+    # variables: Mapping[str, Variable]
 
 
 @dataclass

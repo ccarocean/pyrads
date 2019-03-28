@@ -394,7 +394,6 @@ class Assignment(Statement):
         """
         if self.condition.test(selectors):
             action = cast(ActionType, self.action)
-            # TODO: Remove pylint override if it ever registers correctly.
             try:
                 action(environment, self.name, self.value)
             except UndefinedFieldError as err:
@@ -469,9 +468,9 @@ class SatelliteID(Statement):
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         if selectors == self.id:
-            environment['id'] = self.id
-            environment['id3'] = self.id3
-            environment['names'] = self.names
+            setattr(environment, 'id', self.id)
+            setattr(environment, 'id3', self.id3)
+            setattr(environment, 'names', self.names)
 
 
 class Satellites(Mapping[str, Statement], Statement):
@@ -493,8 +492,8 @@ class Satellites(Mapping[str, Statement], Statement):
         return self._satellites.__len__()
 
     def __repr__(self) -> str:
-        return 'Satellites({:s})'.format(
-            ', '.join(repr(v) for v in self._satellites.values()))
+        return (f'{self.__class__.__qualname__}('
+                f'{", ".join(repr(v) for v in self._satellites.values())})')
 
     def eval(self, environment: Any,
              selectors: Mapping[str, Any]) -> None:
