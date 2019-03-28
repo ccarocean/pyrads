@@ -1,16 +1,16 @@
 """Abstract Syntax Tree elements for RADS configuration file."""
 
 import typing
-from difflib import get_close_matches
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, fields
-from dataclass_builder import (dataclass_builder, REQUIRED, OPTIONAL, MISSING,
-                               UndefinedFieldError)
+from difflib import get_close_matches
 from typing import (Any, Optional, Container, Sequence, Union, MutableMapping,
                     Mapping, Collection, Iterator, Callable, cast)
 
+from dataclass_builder import UndefinedFieldError, MissingFieldError, MISSING
+from dataclasses import dataclass, fields
+
 from .._utility import xor
-import rads.config.tree as ctree
+from ._builders import PhaseBuilder
 
 ActionType = Callable[[Any, str, Any], None]
 
@@ -169,7 +169,7 @@ class SatelliteCondition(Condition):
 @dataclass(frozen=True)
 class Source:
     line: int
-    file: str = None
+    file: Optional[str] = None
 
 
 class ASTEvaluationError(Exception):
@@ -526,10 +526,23 @@ class Phase(Statement):
         return prefix + f', {self.condition})'
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        if self.condition.test(selectors):
-            if 'phases' not in environment:
-                environment['phases'] = dict()
-            if self.name not in environment['phases']:
-                environment['phases'][self.name] = dict()
-            self.inner_statement.eval(
-                environment['phases'][self.name], selectors)
+
+        # initialize and/or retrieve phases
+        if (not hasattr(environment, 'phases') or
+                getattr(environment, 'phases') == MISSING):
+            setattr(environment, 'phases', {})
+        phases = getattr(environment, 'phases')
+
+        if self.name in phases:
+            # update current phase structure
+            self.inner_statement.eval(phases[self.name], selectors)
+        else:
+            # build in initial phase structure
+            builder = PhaseBuilder(id=self.name)
+            self.inner_statement.eval(builder, selectors)
+            try:
+                phases[self.name] = builder.build()
+            except MissingFieldError as err:
+                raise ASTEvaluationError(
+                    f"missing required attribute '{err.field.name}'",
+                    source=self.source)

@@ -14,6 +14,10 @@ def nop(value: T) -> T:
     return value
 
 
+def source_from_element(element: Element):
+    return ast.Source(line=element.opening_line, file=element.file)
+
+
 def error_at(element: Element) -> Callable[[str], p.GlobalParseFailure]:
     def error(message: str) -> p.GlobalParseFailure:
         return p.GlobalParseFailure(
@@ -68,8 +72,7 @@ def variable_alias() -> p.Parser:
 
 def ignore(tag: Optional[str] = None) -> p.Parser:
     def process(element: Element) -> ast.NullStatement:
-        return ast.NullStatement(
-            source=ast.Source(element.opening_line, element.file))
+        return ast.NullStatement(source=source_from_element(element))
 
     if tag:
         return p.tag(tag) ^ process
@@ -83,13 +86,14 @@ def value(parser: Callable[[str], Any] = nop, tag: Optional[str] = None,
         condition = parse_condition(element.attributes)
         action = parse_action(element)
         text = element.text if element.text else ''
+        source = source_from_element(element)
         try:
             return ast.Assignment(
                 name=var_,
                 value=parser(text),
                 condition=condition,
                 action=action,
-                source=ast.Source(element.opening_line, element.file))
+                source=source)
         except (ValueError, TypeError) as err:
             raise error_at(element)(str(err))
 
@@ -103,8 +107,10 @@ def if_statement(internal: p.Parser) -> p.Parser:
         if_element, false_statement = statements
         condition = parse_condition(if_element.attributes)
         true_statement = internal(if_element.down())[0]
-        source = ast.Source(if_element.opening_line, if_element.file)
-        return ast.If(condition, true_statement, false_statement,
+        source = source_from_element(if_element)
+        return ast.If(condition=condition,
+                      true_statement=true_statement,
+                      false_statement=false_statement,
                       source=source)
 
     return p.tag('if') + p.opt(
@@ -116,7 +122,7 @@ def elseif_statement(internal: p.Parser) -> p.Parser:
         elseif_element, false_statement = statements
         condition = parse_condition(elseif_element.attributes)
         true_statement = internal(elseif_element.down())[0]
-        source = ast.Source(elseif_element.opening_line, elseif_element.file)
+        source = source_from_element(elseif_element)
         return ast.If(condition, true_statement, false_statement,
                       source=source)
 
@@ -134,7 +140,7 @@ def else_statement(internal: p.Parser) -> p.Parser:
 
 def satellites() -> p.Parser:
     def process(element: Element) -> ast.Satellites:
-        source = ast.Source(element.opening_line, element.file)
+        source = source_from_element(element)
         if not element.text:
             return ast.Satellites(source=source)
         satellites_ = []
@@ -142,7 +148,8 @@ def satellites() -> p.Parser:
             line = line.strip()
             if line:
                 id_source = ast.Source(
-                    element.opening_line + num + 1, element.file)
+                    line=element.opening_line + num + 1,
+                    file=element.file)
                 try:
                     id_, id3, *names = line.split()
                 except ValueError:
@@ -171,9 +178,10 @@ def cycles(cycles_string: str) -> Cycles:
 
 def repeat(repeat_string: str) -> Repeat:
     parts = repeat_string.split()
-    if len(parts) > 2:
+    if len(parts) > 3:
         raise TypeError(
-            "too many values given, expected only 'days' and 'passes'")
+            "too many values given, expected only 'days', "
+            "'passes', and 'unknown'")
     try:
         return Repeat(*(f(s) for f, s in zip((float, int), parts)))
     except TypeError:
@@ -259,9 +267,14 @@ def phase_statements() -> p.Parser:
         value(str, 'mission') |
         value(cycles, 'cycles') |
         value(repeat, 'repeat') |
-        value(ref_pass, 'ref_pass') |
+        value(ref_pass, 'ref_pass', var='reference_pass') |
         value(time, 'start_time') |
-        subcycles()
+        value(time, 'end_time') |
+
+
+        # catch everything else
+        value()
+        # subcycles()
     )
     return (p.start() + (statements ^ process) + p.end()
             << 'Invalid configuration block or value.') ^ (lambda x: x[1])
@@ -274,12 +287,13 @@ def phase() -> p.Parser:
         except KeyError:
             raise error_at(element)("<phase> has no 'name' attribute.")
         try:
-            statement = cast(ast.Statement, phase_statements()(
-                element.down())[0])
+            statement = cast(
+                ast.Statement, phase_statements()(element.down())[0])
         except StopIteration:
             statement = ast.NullStatement()
         condition = parse_condition(element.attributes)
-        return ast.Phase(name, statement, condition)
+        source = source_from_element(element)
+        return ast.Phase(name, statement, condition, source=source)
 
     return p.tag('phase') ^ process
 
@@ -306,11 +320,15 @@ def root_statements() -> p.Parser:
         value(list_of(float), 'frequency') |
         ignore('xover_params') |
 
+        phase() |
+        # ignore('phase') |
+
         # if/elseif/else statements
         if_statement(p.lazy(root_statements)) |
 
         # catch everything else
-        value())
+        value()
+    )
     return (p.start() + (statements ^ process) + p.end()
             << 'Invalid configuration block or value.') ^ (lambda x: x[1])
 

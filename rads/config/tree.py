@@ -84,6 +84,7 @@ class Repeat:
     """Length of the repeat cycle."""
     days: float
     passes: int
+    unknown: Optional[float] = None
 
 
 @dataclass
@@ -109,6 +110,7 @@ class Phase:
     repeat: Repeat
     reference_pass: ReferencePass
     start_time: datetime
+    end_time: Optional[datetime] = None
     subcycles: Optional[SubCycles] = None
 
 
@@ -121,8 +123,8 @@ class Satellite:
     dt1hz: float
     inclination: float
     frequency: Sequence[float]
+    phases: Mapping[str, Phase]
     # aliases: Mapping[str, Sequence[str]]
-    # phases: Mapping[str, Phase]
     # variables: Mapping[str, Variable]
 
 
