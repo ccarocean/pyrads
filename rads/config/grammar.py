@@ -247,11 +247,13 @@ def subcycles() -> p.Parser:
             raise error_at(element)(str(err))
         text = element.text if element.text else ''
         lengths = [int(s) for s in text.split()]
+        source = source_from_element(element)
         return ast.Assignment(
+            name='subcycles',
+            value=SubCycles(lengths, start=start),
             condition=condition,
             action=action,
-            name='subcycles',
-            value=SubCycles(lengths, start=start))
+            source=source)
 
     return p.tag('subcycles') ^ process
 
@@ -270,11 +272,10 @@ def phase_statements() -> p.Parser:
         value(ref_pass, 'ref_pass', var='reference_pass') |
         value(time, 'start_time') |
         value(time, 'end_time') |
-
+        subcycles() |
 
         # catch everything else
         value()
-        # subcycles()
     )
     return (p.start() + (statements ^ process) + p.end()
             << 'Invalid configuration block or value.') ^ (lambda x: x[1])
