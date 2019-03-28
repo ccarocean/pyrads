@@ -292,15 +292,25 @@ def root_statements() -> p.Parser:
         return ast.CompoundStatement(*statements)
 
     statements = p.star(
+        # ignore the global attributes
+        ignore('global_attributes') |
+
+        # satellite id/names table
         satellites() |
+
+        # top level satellite parameters
         value(str, 'satellite', var='name') |
         ignore('satid') |
         value(float, 'dt1hz') |
         value(float, 'inclination') |
         value(list_of(float), 'frequency') |
         ignore('xover_params') |
+
+        # if/elseif/else statements
         if_statement(p.lazy(root_statements)) |
-        value())  # catch everything else
+
+        # catch everything else
+        value())
     return (p.start() + (statements ^ process) + p.end()
             << 'Invalid configuration block or value.') ^ (lambda x: x[1])
 
