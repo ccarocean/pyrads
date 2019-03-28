@@ -1,8 +1,9 @@
 """Abstract Syntax Tree elements for RADS configuration file."""
 
 import typing
+from difflib import get_close_matches
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields
 from dataclass_builder import (dataclass_builder, REQUIRED, OPTIONAL, MISSING,
                                UndefinedFieldError)
 from typing import (Any, Optional, Container, Sequence, Union, MutableMapping,
@@ -12,6 +13,14 @@ from .._utility import xor
 import rads.config.tree as ctree
 
 ActionType = Callable[[Any, str, Any], None]
+
+
+def suggest_field(dataclass: Any, attempt: str) -> Optional[str]:
+    matches = get_close_matches(
+        attempt, [f.name for f in fields(dataclass)], 1, 0.1)
+    if matches:
+        return matches[0]
+    return None
 
 
 def replace(environment: Any, attr: str, value: Any) -> None:
@@ -125,7 +134,6 @@ class FalseCondition(Condition):
         return False
 
 
-
 class SatelliteCondition(Condition):
     """Condition that matches based on the satellite `id`.
 
@@ -162,6 +170,21 @@ class SatelliteCondition(Condition):
 class Source:
     line: int
     file: str = None
+
+
+class ASTEvaluationError(Exception):
+    message: str
+    line: Optional[int] = None
+    file: Optional[str] = None
+
+    def __init__(self, message: str = 'evaluation failed',
+                 source: Optional[Source] = None):
+        if source:
+            self.line = source.line
+            self.file = source.file
+        file = self.file if self.file else ''
+        line = self.line if self.line else ''
+        super().__init__(f'{file}:{line}: {message}')
 
 
 class Statement(ABC):
@@ -372,8 +395,14 @@ class Assignment(Statement):
         if self.condition.test(selectors):
             action = cast(ActionType, self.action)
             # TODO: Remove pylint override if it ever registers correctly.
-            # pylint: disable=too-many-function-args
-            action(environment, self.name, self.value)
+            try:
+                action(environment, self.name, self.value)
+            except UndefinedFieldError as err:
+                message = f"invalid assignment to '{err.field}'"
+                suggested = suggest_field(err.dataclass, err.field)
+                if suggested:
+                    message += f", did you mean '{suggested}'"
+                raise ASTEvaluationError(message, source=self.source)
 
 
 class Alias(Statement):

@@ -10,20 +10,15 @@ from ..xml.base import Element
 T = TypeVar('T')
 
 
+def nop(value: T) -> T:
+    return value
+
+
 def error_at(element: Element) -> Callable[[str], p.GlobalParseFailure]:
     def error(message: str) -> p.GlobalParseFailure:
         return p.GlobalParseFailure(
             element.file, element.opening_line, message)
     return error
-
-
-def ignore(tag: Optional[str] = None) -> p.Parser:
-    def process(_: Element) -> ast.NullStatement:
-        return ast.NullStatement()
-
-    if tag:
-        return p.tag(tag) ^ process
-    return p.any() ^ process
 
 
 def parse_condition(attr: Mapping[str, str]) -> ast.Condition:
@@ -39,11 +34,11 @@ def parse_condition(attr: Mapping[str, str]) -> ast.Condition:
 def parse_action(element: Element) -> ast.ActionType:
     action = element.attributes.get('action', 'replace')
     if action == 'replace':
-        return ast.replace_action
+        return ast.replace
     if action == 'noreplace':
-        return ast.noreplace_action
+        return ast.keep
     if action == 'append':
-        return ast.append_action
+        return ast.append
     raise error_at(element)('Invalid action="{:s}".'.format(action))
 
 
@@ -70,7 +65,17 @@ def variable_alias() -> p.Parser:
     return p.tag('alias') ^ process
 
 
-def value(parser: Callable[[str], Any], tag: Optional[str] = None,
+def ignore(tag: Optional[str] = None) -> p.Parser:
+    def process(element: Element) -> ast.NullStatement:
+        return ast.NullStatement(
+            source=ast.Source(element.opening_line, element.file))
+
+    if tag:
+        return p.tag(tag) ^ process
+    return p.any() ^ process
+
+
+def value(parser: Callable[[str], Any] = nop, tag: Optional[str] = None,
           var: Optional[str] = None) -> p.Parser:
     def process(element: Element) -> ast.Assignment:
         var_ = var if var else element.tag
@@ -79,10 +84,11 @@ def value(parser: Callable[[str], Any], tag: Optional[str] = None,
         text = element.text if element.text else ''
         try:
             return ast.Assignment(
+                name=var_,
+                value=parser(text),
                 condition=condition,
                 action=action,
-                name=var_,
-                value=parser(text))
+                source=ast.Source(element.opening_line, element.file))
         except (ValueError, TypeError) as err:
             raise error_at(element)(str(err))
 
@@ -96,7 +102,9 @@ def if_statement(internal: p.Parser) -> p.Parser:
         if_element, false_statement = statements
         condition = parse_condition(if_element.attributes)
         true_statement = internal(if_element.down())[0]
-        return ast.If(condition, true_statement, false_statement)
+        source = ast.Source(if_element.opening_line, if_element.file)
+        return ast.If(condition, true_statement, false_statement,
+                      source=source)
 
     return p.tag('if') + p.opt(
         elseif_statement(internal) | else_statement(internal)) ^ process
@@ -107,7 +115,9 @@ def elseif_statement(internal: p.Parser) -> p.Parser:
         elseif_element, false_statement = statements
         condition = parse_condition(elseif_element.attributes)
         true_statement = internal(elseif_element.down())[0]
-        return ast.If(condition, true_statement, false_statement)
+        source = ast.Source(elseif_element.opening_line, elseif_element.file)
+        return ast.If(condition, true_statement, false_statement,
+                      source=source)
 
     return p.Apply(p.tag('elseif') + p.opt(
         p.lazy(lambda: elseif_statement(internal)) | else_statement(
@@ -274,18 +284,14 @@ def root_statements() -> p.Parser:
         return ast.CompoundStatement(*statements)
 
     statements = p.star(
-        ignore('global_attributes') |
-        satellites() |
-        ignore('var') |
-        variable_alias() |
         value(str, 'satellite', var='name') |
-        value(int, 'satid') |
+        ignore('satid') |
         value(float, 'dt1hz') |
         value(float, 'inclination') |
         value(list_of(float), 'frequency') |
-        value(list_of(float), 'xover_params') |
-        phase() |
-        if_statement(p.lazy(root_statements)))
+        ignore('xover_params') |
+        if_statement(p.lazy(root_statements)) |
+        value())  # catch everything else
     return (p.start() + (statements ^ process) + p.end()
             << 'Invalid configuration block or value.') ^ (lambda x: x[1])
 
