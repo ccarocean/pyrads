@@ -54,8 +54,8 @@ def list_of(parser: Callable[[str], T]) -> Callable[[str], List[T]]:
     return _parser
 
 
-def variable_alias() -> p.Parser:
-    def process(element: Element) -> ast.VariableAlias:
+def alias() -> p.Parser:
+    def process(element: Element) -> ast.Alias:
         try:
             alias = element.attributes['name']
         except KeyError:
@@ -65,7 +65,8 @@ def variable_alias() -> p.Parser:
             raise error_at(element)('<alias> cannot be empty')
         condition = parse_condition(element.attributes)
         action = parse_action(element)
-        return ast.VariableAlias(alias, variables, condition, action)
+        source = source_from_element(element)
+        return ast.Alias(alias, variables, condition, action, source=source)
 
     return p.tag('alias') ^ process
 
@@ -321,8 +322,11 @@ def root_statements() -> p.Parser:
         value(list_of(float), 'frequency') |
         ignore('xover_params') |
 
+        # satellite phase
         phase() |
-        # ignore('phase') |
+
+        # variable aliases
+        alias() |
 
         # if/elseif/else statements
         if_statement(p.lazy(root_statements)) |

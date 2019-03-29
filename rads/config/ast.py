@@ -2,25 +2,51 @@
 
 import typing
 from abc import ABC, abstractmethod
+from dataclasses import dataclass, fields
 from difflib import get_close_matches
 from typing import (Any, Optional, Container, Sequence, Union, MutableMapping,
                     Mapping, Collection, Iterator, Callable, cast)
 
 from dataclass_builder import UndefinedFieldError, MissingFieldError, MISSING
-from dataclasses import dataclass, fields
 
-from .._utility import xor
 from ._builders import PhaseBuilder
+from .._utility import xor
 
 ActionType = Callable[[Any, str, Any], None]
 
 
-def suggest_field(dataclass: Any, attempt: str) -> Optional[str]:
+def _get_mapping(environment: Any, attr: str):
+    if (not hasattr(environment, attr) or
+            getattr(environment, attr) == MISSING):
+        setattr(environment, attr, {})
+    return getattr(environment, attr)
+
+
+def _suggest_field(dataclass: Any, attempt: str) -> Optional[str]:
     matches = get_close_matches(
         attempt, [f.name for f in fields(dataclass)], 1, 0.1)
     if matches:
         return matches[0]
     return None
+
+
+def _has(o: Any, attr: str) -> bool:
+    if isinstance(o, Mapping):
+        return attr in o
+    return hasattr(o, attr)
+
+
+def _get(o: Any, attr: str) -> Any:
+    if isinstance(o, Mapping):
+        return o[attr]
+    return getattr(o, attr)
+
+
+def _set(o: Any, attr: str, value: Any) -> None:
+    if isinstance(o, Mapping):
+        o[attr] = value
+    else:
+        setattr(o, attr, value)
 
 
 def replace(environment: Any, attr: str, value: Any) -> None:
@@ -40,7 +66,7 @@ def replace(environment: Any, attr: str, value: Any) -> None:
         New value to use for the action.
 
     """
-    setattr(environment, attr, value)
+    _set(environment, attr, value)
 
 
 def keep(environment: Any, attr: str, value: Any) -> None:
@@ -60,8 +86,8 @@ def keep(environment: Any, attr: str, value: Any) -> None:
         New value to use for the action.
 
     """
-    if not hasattr(environment, attr) or getattr(environment, attr) == MISSING:
-        setattr(environment, attr, value)
+    if not _has(environment, attr) or _get(environment, attr) == MISSING:
+        _set(environment, attr, value)
 
 
 def append(
@@ -83,15 +109,15 @@ def append(
         New value to use for the action.
 
     """
-    if not hasattr(environment, attr) or getattr(environment, attr) == MISSING:
-        setattr(environment, attr, value)
+    if not _has(environment, attr) or _get(environment, attr) == MISSING:
+        _set(environment, attr, value)
     else:
-        if not hasattr(getattr(environment, attr), 'append'):
-            setattr(environment, attr, [getattr(environment, attr)])
+        if not _has(_get(environment, attr), 'append'):
+            _set(environment, attr, [_get(environment, attr)])
         try:
-            getattr(environment, attr).extend(value)
+            _get(environment, attr).extend(value)
         except TypeError:
-            getattr(environment, attr).append(value)
+            _get(environment, attr).append(value)
 
 
 class Condition(ABC):
@@ -156,8 +182,10 @@ class SatelliteCondition(Condition):
         self.invert = invert
 
     def __repr__(self):
-        return (f'{self.__class__.__qualname__}'
-                f'({repr(self.satellites)}, invert={repr(self.invert)})')
+        prefix = f'{self.__class__.__qualname__}({repr(self.satellites)}'
+        if self.invert:
+            return prefix + f', invert={repr(self.invert)})'
+        return prefix + ')'
 
     def test(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
         try:
@@ -398,7 +426,7 @@ class Assignment(Statement):
                 action(environment, self.name, self.value)
             except UndefinedFieldError as err:
                 message = f"invalid assignment to '{err.field}'"
-                suggested = suggest_field(err.dataclass, err.field)
+                suggested = _suggest_field(err.dataclass, err.field)
                 if suggested:
                     message += f", did you mean '{suggested}'"
                 raise ASTEvaluationError(message, source=self.source)
@@ -435,12 +463,9 @@ class Alias(Statement):
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         if self.condition.test(selectors):
-            if 'variable_aliases' not in environment:
-                environment['variable_aliases'] = dict()
             action = cast(ActionType, self.action)
-            # TODO: Remove pylint override if it ever registers correctly.
-            # pylint: disable=too-many-function-args
-            action(environment['variable_aliases'], self.alias, self.variables)
+            aliases = _get_mapping(environment, 'aliases')
+            action(aliases, self.alias, self.variables)
 
 
 class SatelliteID(Statement):
@@ -526,12 +551,8 @@ class Phase(Statement):
         return prefix + f', {self.condition})'
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-
         # initialize and/or retrieve phases
-        if (not hasattr(environment, 'phases') or
-                getattr(environment, 'phases') == MISSING):
-            setattr(environment, 'phases', {})
-        phases = getattr(environment, 'phases')
+        phases = _get_mapping(environment, 'phases')
 
         if self.name in phases:
             # update current phase structure

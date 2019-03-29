@@ -124,7 +124,7 @@ class Satellite:
     inclination: float
     frequency: Sequence[float]
     phases: Mapping[str, Phase]
-    # aliases: Mapping[str, Sequence[str]]
+    aliases: Mapping[str, Sequence[str]] = field(default_factory=dict)
     # variables: Mapping[str, Variable]
 
 
