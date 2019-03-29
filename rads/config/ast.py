@@ -529,7 +529,7 @@ class Satellites(Mapping[str, Statement], Statement):
             pass
 
 
-class Phase(Statement):
+class NamedBlock(Statement):
     name: str
     inner_statement: Statement
     condition: Condition = TrueCondition()
@@ -550,20 +550,27 @@ class Phase(Statement):
             return prefix + ')'
         return prefix + f', {self.condition})'
 
-    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        # initialize and/or retrieve phases
-        phases = _get_mapping(environment, 'phases')
+    def _eval_runner(self, mapping: str, builder: Any,
+                     environment: Any, selectors: Mapping[str, Any]):
+        # initialize and/or retrieve mapping
+        mapping_ = _get_mapping(environment, mapping)
 
-        if self.name in phases:
-            # update current phase structure
-            self.inner_statement.eval(phases[self.name], selectors)
+        if self.name in mapping_:
+            # update current structure
+            self.inner_statement.eval(mapping_[self.name], selectors)
         else:
-            # build in initial phase structure
-            builder = PhaseBuilder(id=self.name)
-            self.inner_statement.eval(builder, selectors)
+            # build initial structure
+            builder_ = builder(id=self.name)
+            self.inner_statement.eval(builder_, selectors)
             try:
-                phases[self.name] = builder.build()
+                mapping_[self.name] = builder_.build()
             except MissingFieldError as err:
                 raise ASTEvaluationError(
                     f"missing required attribute '{err.field.name}'",
                     source=self.source)
+
+
+class Phase(NamedBlock):
+
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
+        self._eval_runner('phases', PhaseBuilder, environment, selectors)
