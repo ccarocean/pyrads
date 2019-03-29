@@ -259,30 +259,35 @@ def subcycles() -> p.Parser:
     return p.tag('subcycles') ^ process
 
 
-def phase_statements() -> p.Parser:
+def block(
+        parser: p.Parser,
+        error_msg: str = 'Invalid configuration block or value.') -> p.Parser:
     def process(statements: Sequence[ast.Statement]) -> ast.Statement:
         # flatten if only a single statement
         if len(statements) == 1:
             return statements[0]
         return ast.CompoundStatement(*statements)
 
-    statements = p.star(
+    def recursive_parser() -> p.Parser:
+        return block(parser, error_msg)
+
+    block_parser = p.star(
+        parser | if_statement(p.lazy(recursive_parser)) | value())
+    return (p.start() + (block_parser ^ process) + p.end()
+            << error_msg) ^ (lambda x: x[1])
+
+
+def phase() -> p.Parser:
+    phase_block = block(
         value(str, 'mission') |
         value(cycles, 'cycles') |
         value(repeat, 'repeat') |
         value(ref_pass, 'ref_pass', var='reference_pass') |
         value(time, 'start_time') |
         value(time, 'end_time') |
-        subcycles() |
-
-        # catch everything else
-        value()
+        subcycles()
     )
-    return (p.start() + (statements ^ process) + p.end()
-            << 'Invalid configuration block or value.') ^ (lambda x: x[1])
 
-
-def phase() -> p.Parser:
     def process(element: Element) -> ast.Phase:
         try:
             name = element.attributes['name']
@@ -290,7 +295,7 @@ def phase() -> p.Parser:
             raise error_at(element)("<phase> has no 'name' attribute.")
         try:
             statement = cast(
-                ast.Statement, phase_statements()(element.down())[0])
+                ast.Statement, phase_block(element.down())[0])
         except StopIteration:
             statement = ast.NullStatement()
         condition = parse_condition(element.attributes)
@@ -300,14 +305,8 @@ def phase() -> p.Parser:
     return p.tag('phase') ^ process
 
 
-def root_statements() -> p.Parser:
-    def process(statements: Sequence[ast.Statement]) -> ast.Statement:
-        # flatten if only a single statement
-        if len(statements) == 1:
-            return statements[0]
-        return ast.CompoundStatement(*statements)
-
-    statements = p.star(
+def parse(root: Element) -> ast.Statement:
+    root_block = block(
         # ignore the global attributes
         ignore('global_attributes') |
 
@@ -326,20 +325,9 @@ def root_statements() -> p.Parser:
         phase() |
 
         # variable aliases
-        alias() |
-
-        # if/elseif/else statements
-        if_statement(p.lazy(root_statements)) |
-
-        # catch everything else
-        value()
+        alias()
     )
-    return (p.start() + (statements ^ process) + p.end()
-            << 'Invalid configuration block or value.') ^ (lambda x: x[1])
-
-
-def parse(root: Element) -> ast.Statement:
-    return cast(ast.Statement, root_statements()(root.down())[0])
+    return cast(ast.Statement, root_block(root.down())[0])
 
 
 def preparse(root: Element) -> ast.Statement:
