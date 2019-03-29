@@ -84,7 +84,7 @@ class Repeat:
     """Length of the repeat cycle."""
     days: float
     passes: int
-    unknown: Optional[float] = None
+    unknown: Optional[float] = field(default=None, repr=False)
 
 
 @dataclass
