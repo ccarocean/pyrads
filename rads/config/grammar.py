@@ -309,6 +309,27 @@ def phase() -> p.Parser:
     return p.tag('phase') ^ process
 
 
+def variable() -> p.Parser:
+    variable_block = block(
+        value(str, 'long_name', var='name') |
+        ignore('standard_name') |
+        ignore('source') |
+        ignore('comment') |
+        ignore('units') |
+        ignore('flag_values') |
+        ignore('limits') |
+        ignore('plot_range') |
+        ignore('parameters') |
+        ignore('data') |
+        ignore('quality_flag') |
+        ignore('dimension') |
+        ignore('format') |
+        ignore('compress')
+    )
+    process = named_block_processor('var', variable_block, ast.Variable)
+    return p.tag('var') ^ process
+
+
 def parse(root: Element) -> ast.Statement:
     root_block = block(
         # ignore the global attributes
@@ -329,7 +350,10 @@ def parse(root: Element) -> ast.Statement:
         phase() |
 
         # variable aliases
-        alias()
+        alias() |
+
+        # variables
+        variable()
     )
     return cast(ast.Statement, root_block(root.down())[0])
 

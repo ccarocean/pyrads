@@ -9,7 +9,7 @@ from typing import (Any, Optional, Container, Sequence, Union, MutableMapping,
 
 from dataclass_builder import UndefinedFieldError, MissingFieldError, MISSING
 
-from ._builders import PhaseBuilder
+from ._builders import PhaseBuilder, VariableBuilder
 from .._utility import xor
 
 ActionType = Callable[[Any, str, Any], None]
@@ -574,3 +574,10 @@ class Phase(NamedBlock):
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         self._eval_runner('phases', PhaseBuilder, environment, selectors)
+
+
+class Variable(NamedBlock):
+
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
+        self._eval_runner(
+            'variables', VariableBuilder, environment, selectors)

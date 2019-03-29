@@ -54,22 +54,22 @@ class Compress:
 
 @dataclass
 class Variable:
+    id: str
     name: str
-    long_name: str
-    standard_name: str
-    source: str
-    comment: str
-    units: Union[Unit, str]
-    data: Union[DataExpression, GridData, ConstantData]
-    flag_values: Sequence[str] = field(default_factory=list)
-    flag_mask: Sequence[str] = field(default_factory=list)
-    limits: Optional[Limits] = None
-    plot_range: Optional[Range] = None
-    parameters: Optional[str] = None
-    quality_flag: Sequence[str] = field(default_factory=list)
-    dimension: int = 1  # not currently used
-    format: Optional[str] = None
-    compress: Optional[Compress] = None
+    # standard_name: str
+    # source: str
+    # comment: str
+    # units: Union[Unit, str]
+    # data: Union[DataExpression, GridData, ConstantData]
+    # flag_values: Sequence[str] = field(default_factory=list)
+    # flag_mask: Sequence[str] = field(default_factory=list)
+    # limits: Optional[Limits] = None
+    # plot_range: Optional[Range] = None
+    # parameters: Optional[str] = None
+    # quality_flag: Sequence[str] = field(default_factory=list)
+    # dimension: int = 1  # not currently used
+    # format: Optional[str] = None
+    # compress: Optional[Compress] = None
 
 
 @dataclass
@@ -123,9 +123,9 @@ class Satellite:
     dt1hz: float
     inclination: float
     frequency: Sequence[float]
-    phases: Mapping[str, Phase]
+    phases: Mapping[str, Phase] = field(default_factory=dict)
     aliases: Mapping[str, Sequence[str]] = field(default_factory=dict)
-    # variables: Mapping[str, Variable]
+    variables: Mapping[str, Variable] = field(default_factory=dict)
 
 
 @dataclass
