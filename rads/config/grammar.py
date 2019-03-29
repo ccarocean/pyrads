@@ -277,6 +277,24 @@ def block(
             << error_msg) ^ (lambda x: x[1])
 
 
+def named_block_processor(tag: str, parser: p.Parser, node: ast.NamedBlock) \
+        -> Callable[[Element], ast.NamedBlock]:
+    def process(element: Element) -> ast.NamedBlock:
+        try:
+            name = element.attributes['name']
+        except KeyError:
+            raise error_at(element)(f"<{tag}> is missing 'name' attribute.")
+        try:
+            statement = cast(
+                ast.Statement, parser(element.down())[0])
+        except StopIteration:
+            statement = ast.NullStatement()
+        condition = parse_condition(element.attributes)
+        source = source_from_element(element)
+        return node(name, statement, condition, source=source)
+
+    return process
+
 def phase() -> p.Parser:
     phase_block = block(
         value(str, 'mission') |
@@ -287,21 +305,7 @@ def phase() -> p.Parser:
         value(time, 'end_time') |
         subcycles()
     )
-
-    def process(element: Element) -> ast.Phase:
-        try:
-            name = element.attributes['name']
-        except KeyError:
-            raise error_at(element)("<phase> has no 'name' attribute.")
-        try:
-            statement = cast(
-                ast.Statement, phase_block(element.down())[0])
-        except StopIteration:
-            statement = ast.NullStatement()
-        condition = parse_condition(element.attributes)
-        source = source_from_element(element)
-        return ast.Phase(name, statement, condition, source=source)
-
+    process = named_block_processor('phase', phase_block, ast.Phase)
     return p.tag('phase') ^ process
 
 
