@@ -317,14 +317,16 @@ def variable() -> p.Parser:
         ignore('comment') |
         ignore('units') |
         ignore('flag_values') |
+        ignore('flag_masks') |
         ignore('limits') |
         ignore('plot_range') |
         ignore('parameters') |
         ignore('data') |
         ignore('quality_flag') |
-        ignore('dimension') |
+        ignore('dimensions') |
         ignore('format') |
-        ignore('compress')
+        ignore('compress') |
+        ignore('default')
     )
     process = named_block_processor('var', variable_block, ast.Variable)
     return p.tag('var') ^ process
