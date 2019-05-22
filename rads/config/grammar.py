@@ -312,7 +312,7 @@ def phase() -> p.Parser:
 def variable() -> p.Parser:
     variable_block = block(
         value(str, 'long_name', var='name') |
-        ignore('standard_name') |
+        value(str, 'standard_name') |
         ignore('source') |
         ignore('comment') |
         ignore('units') |

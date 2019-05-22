@@ -56,7 +56,7 @@ class Compress:
 class Variable:
     id: str
     name: str
-    # standard_name: str
+    standard_name: Optional[str] = None
     # source: str
     # comment: str
     # units: Union[Unit, str]
