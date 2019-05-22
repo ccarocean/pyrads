@@ -60,8 +60,8 @@ class Variable:
     standard_name: Optional[str] = None
     source: str = ''
     comment: str = ''
+    flag_values: Optional[Sequence[str]] = None
     # data: Union[DataExpression, GridData, ConstantData]
-    # flag_values: Sequence[str] = field(default_factory=list)
     # flag_mask: Sequence[str] = field(default_factory=list)
     # limits: Optional[Limits] = None
     # plot_range: Optional[Range] = None

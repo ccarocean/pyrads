@@ -324,7 +324,7 @@ def variable() -> p.Parser:
         value(str, 'source') |
         value(str, 'comment') |
         value(unit, 'units') |
-        ignore('flag_values') |
+        value(list_of(str), 'flag_values') |
         ignore('flag_masks') |
         ignore('limits') |
         ignore('plot_range') |
