@@ -335,7 +335,7 @@ def variable() -> p.Parser:
         value(list_of(str), 'flag_values') |
         value(list_of(str), 'flag_masks') |
         value(range_of(float), 'limits') |
-        ignore('plot_range') |
+        value(range_of(float), 'plot_range') |
         ignore('parameters') |
         ignore('data') |
         ignore('quality_flag') |

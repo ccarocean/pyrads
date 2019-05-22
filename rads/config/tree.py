@@ -58,8 +58,8 @@ class Variable:
     flag_values: Optional[Sequence[str]] = None
     flag_masks: Optional[Sequence[str]] = None
     limits: Optional[Range] = None
+    plot_range: Optional[Range] = None
     # data: Union[DataExpression, GridData, ConstantData]
-    # plot_range: Optional[Range] = None
     # parameters: Optional[str] = None
     # quality_flag: Sequence[str] = field(default_factory=list)
     # dimension: int = 1  # not currently used
