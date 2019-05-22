@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Sequence, Mapping, Optional, Union
+from numbers import Number
 
 import numpy as np  # type: ignore
 from cf_units import Unit  # type: ignore
@@ -34,15 +35,9 @@ class ConstantData:
 
 
 @dataclass
-class Limits:
-    lower: Real
-    upper: Real
-
-
-@dataclass
 class Range:
-    min: Real
-    max: Real
+    min: Number
+    max: Number
 
 
 @dataclass
@@ -61,9 +56,9 @@ class Variable:
     source: str = ''
     comment: str = ''
     flag_values: Optional[Sequence[str]] = None
+    flag_masks: Optional[Sequence[str]] = None
+    limits: Optional[Range] = None
     # data: Union[DataExpression, GridData, ConstantData]
-    # flag_mask: Sequence[str] = field(default_factory=list)
-    # limits: Optional[Limits] = None
     # plot_range: Optional[Range] = None
     # parameters: Optional[str] = None
     # quality_flag: Sequence[str] = field(default_factory=list)

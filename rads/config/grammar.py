@@ -1,10 +1,11 @@
 from datetime import datetime
 from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
                     Iterable, TypeVar, List, cast)
+from numbers import Number
 
 import rads.config.ast as ast
 import rads.config.parsers as p
-from .tree import Cycles, Repeat, ReferencePass, SubCycles, Unit
+from .tree import Cycles, Repeat, ReferencePass, SubCycles, Unit, Range
 from ..xml.base import Element
 
 T = TypeVar('T')
@@ -243,6 +244,13 @@ def unit(unit_string) -> Unit:
         return unit_string.strip()
 
 
+def range_of(parser: Callable[[str], Number]) -> Callable[[str], Range]:
+    def _parser(string: str) -> Range:
+        min, max = [parser(s) for s in string.split()]
+        return Range(min, max)
+    return _parser
+
+
 def subcycles() -> p.Parser:
     def process(element: Element) -> ast.Statement:
         start: Optional[int]
@@ -325,8 +333,8 @@ def variable() -> p.Parser:
         value(str, 'comment') |
         value(unit, 'units') |
         value(list_of(str), 'flag_values') |
-        ignore('flag_masks') |
-        ignore('limits') |
+        value(list_of(str), 'flag_masks') |
+        value(range_of(float), 'limits') |
         ignore('plot_range') |
         ignore('parameters') |
         ignore('data') |
