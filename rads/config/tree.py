@@ -58,9 +58,8 @@ class Variable:
     name: str
     units: Union[Unit, str] = Unit('-')
     standard_name: Optional[str] = None
-    # source: str
-    # comment: str
-    # units: Union[Unit, str]
+    source: str = ''
+    comment: str = ''
     # data: Union[DataExpression, GridData, ConstantData]
     # flag_values: Sequence[str] = field(default_factory=list)
     # flag_mask: Sequence[str] = field(default_factory=list)

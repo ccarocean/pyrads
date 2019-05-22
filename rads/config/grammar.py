@@ -321,6 +321,8 @@ def variable() -> p.Parser:
     variable_block = block(
         value(str, 'long_name', var='name') |
         value(str, 'standard_name') |
+        value(str, 'source') |
+        value(str, 'comment') |
         value(unit, 'units') |
         ignore('flag_values') |
         ignore('flag_masks') |
