@@ -4,7 +4,7 @@ from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
 
 import rads.config.ast as ast
 import rads.config.parsers as p
-from .tree import Cycles, Repeat, ReferencePass, SubCycles
+from .tree import Cycles, Repeat, ReferencePass, SubCycles, Unit
 from ..xml.base import Element
 
 T = TypeVar('T')
@@ -235,6 +235,14 @@ def ref_pass(ref_pass_string: str) -> ReferencePass:
         # absolute orbit number is defaulted in ReferencePass
 
 
+def unit(unit_string) -> Unit:
+    try:
+        return Unit(unit_string)
+    except ValueError:
+        # TODO: Need better handling for dB and yymmddhhmmss units.
+        return unit_string.strip()
+
+
 def subcycles() -> p.Parser:
     def process(element: Element) -> ast.Statement:
         start: Optional[int]
@@ -313,9 +321,7 @@ def variable() -> p.Parser:
     variable_block = block(
         value(str, 'long_name', var='name') |
         value(str, 'standard_name') |
-        ignore('source') |
-        ignore('comment') |
-        ignore('units') |
+        value(unit, 'units') |
         ignore('flag_values') |
         ignore('flag_masks') |
         ignore('limits') |

@@ -9,7 +9,7 @@ from .._typing import Real, PathLike
 
 __all__ = ['DataExpression', 'GridData', 'ConstantData', 'Limits', 'Range',
            'Compress', 'Variable', 'Cycles', 'Repeat', 'ReferencePass',
-           'Phase', 'Satellite', 'RadsConfig']
+           'Phase', 'Satellite', 'RadsConfig', 'Unit']
 
 
 # TODO: Change the AST module to directly return these.
@@ -56,6 +56,7 @@ class Compress:
 class Variable:
     id: str
     name: str
+    units: Union[Unit, str] = Unit('-')
     standard_name: Optional[str] = None
     # source: str
     # comment: str
