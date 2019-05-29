@@ -8,7 +8,7 @@ from cf_units import Unit  # type: ignore
 
 from .._typing import Real, PathLike
 
-__all__ = ['DataExpression', 'GridData', 'ConstantData', 'Limits', 'Range',
+__all__ = ['DataExpression', 'GridData', 'ConstantData', 'Range',
            'Compress', 'Variable', 'Cycles', 'Repeat', 'ReferencePass',
            'Phase', 'Satellite', 'RadsConfig', 'Unit']
 
@@ -61,7 +61,7 @@ class Variable:
     plot_range: Optional[Range] = None
     # data: Union[DataExpression, GridData, ConstantData]
     # parameters: Optional[str] = None
-    # quality_flag: Sequence[str] = field(default_factory=list)
+    quality_flag: Optional[Sequence[str]] = None
     # dimension: int = 1  # not currently used
     # format: Optional[str] = None
     # compress: Optional[Compress] = None

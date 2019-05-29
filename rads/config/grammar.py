@@ -336,9 +336,10 @@ def variable() -> p.Parser:
         value(list_of(str), 'flag_masks') |
         value(range_of(float), 'limits') |
         value(range_of(float), 'plot_range') |
+        # used by rads for database generation, has no effect on end users
         ignore('parameters') |
-        ignore('data') |
-        ignore('quality_flag') |
+        ignore('data') |  # TODO: Complex field.
+        value(list_of(str), 'quality_flag') |
         ignore('dimensions') |
         ignore('format') |
         ignore('compress') |
