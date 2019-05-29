@@ -62,7 +62,7 @@ class Variable:
     # data: Union[DataExpression, GridData, ConstantData]
     # parameters: Optional[str] = None
     quality_flag: Optional[Sequence[str]] = None
-    # dimension: int = 1  # not currently used
+    dimensions: int = 1  # not currently used
     # format: Optional[str] = None
     # compress: Optional[Compress] = None
 

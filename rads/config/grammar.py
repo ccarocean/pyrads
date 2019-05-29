@@ -340,7 +340,8 @@ def variable() -> p.Parser:
         ignore('parameters') |
         ignore('data') |  # TODO: Complex field.
         value(list_of(str), 'quality_flag') |
-        ignore('dimensions') |
+        # not currently used
+        value(int, 'dimensions') |
         ignore('format') |
         ignore('compress') |
         ignore('default')
