@@ -492,7 +492,7 @@ class SatelliteID(Statement):
         return prefix + ')'
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        if selectors == self.id:
+        if 'id' in selectors and selectors['id'] == self.id:
             setattr(environment, 'id', self.id)
             setattr(environment, 'id3', self.id3)
             setattr(environment, 'names', self.names)
@@ -524,7 +524,7 @@ class Satellites(Mapping[str, Statement], Statement):
              selectors: Mapping[str, Any]) -> None:
         try:
             if selectors['id'] in self:
-                self[selectors['id']].eval(environment, selectors['id'])
+                self[selectors['id']].eval(environment, selectors)
         except KeyError:
             pass
 
@@ -552,6 +552,9 @@ class NamedBlock(Statement):
 
     def _eval_runner(self, mapping: str, builder: Any,
                      environment: Any, selectors: Mapping[str, Any]):
+        if self.condition and not self.condition.test(selectors):
+            return
+
         # initialize and/or retrieve mapping
         mapping_ = _get_mapping(environment, mapping)
 
