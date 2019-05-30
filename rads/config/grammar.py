@@ -185,7 +185,7 @@ def repeat(repeat_string: str) -> Repeat:
             "too many values given, expected only 'days', "
             "'passes', and 'unknown'")
     try:
-        return Repeat(*(f(s) for f, s in zip((float, int), parts)))
+        return Repeat(*(f(s) for f, s in zip((float, int, float), parts)))
     except TypeError:
         if parts:
             raise TypeError("missing length of repeat cycle in 'passes'")
