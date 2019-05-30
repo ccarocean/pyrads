@@ -18,6 +18,23 @@ def nop(value: T) -> T:
     return value
 
 
+def types(parsers: Sequence[Callable[[str], Any]]) \
+        -> Callable[[str], Any]:
+    parser_types = ', '.join(parser.__qualname__ for parser in parsers)
+
+    def _parser(string: str) -> Any:
+        for parser in parsers:
+            try:
+                return parser(string)
+            except (TypeError, ValueError):
+                pass
+
+        raise TypeError(f"cannot convert '{string}' to any of the following "
+                        f"types: {parser_types}")
+
+    return _parser
+
+
 def source_from_element(element: Element):
     return ast.Source(line=element.opening_line, file=element.file)
 
@@ -374,7 +391,7 @@ def variable() -> p.Parser:
         value(int, 'dimensions') |
         ignore('format') |  # TODO: Complex field.
         value(compress, 'compress') |
-        ignore('default')
+        value(types((int, float)), 'default')
     )
     process = named_block_processor('var', variable_block, ast.Variable)
     return p.tag('var') ^ process

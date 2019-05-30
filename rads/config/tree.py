@@ -65,6 +65,7 @@ class Variable:
     dimensions: int = 1  # not currently used
     # format: Optional[str] = None
     compress: Optional[Compress] = None
+    default: Number = None
 
 
 @dataclass
