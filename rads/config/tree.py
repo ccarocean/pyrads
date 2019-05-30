@@ -43,8 +43,8 @@ class Range:
 @dataclass
 class Compress:
     type: np.dtype
-    scale_factor: Optional[float] = None
-    add_offset: Optional[float] = None
+    scale_factor: Number = 1
+    add_offset: Number = 0
 
 
 @dataclass
@@ -64,7 +64,7 @@ class Variable:
     quality_flag: Optional[Sequence[str]] = None
     dimensions: int = 1  # not currently used
     # format: Optional[str] = None
-    # compress: Optional[Compress] = None
+    compress: Optional[Compress] = None
 
 
 @dataclass

@@ -3,9 +3,12 @@ from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
                     Iterable, TypeVar, List, cast)
 from numbers import Number
 
+import numpy as np
+
 import rads.config.ast as ast
 import rads.config.parsers as p
-from .tree import Cycles, Repeat, ReferencePass, SubCycles, Unit, Range
+from .tree import (Cycles, Compress, Repeat, ReferencePass, SubCycles,
+                   Unit, Range)
 from ..xml.base import Element
 
 T = TypeVar('T')
@@ -275,6 +278,33 @@ def subcycles() -> p.Parser:
     return p.tag('subcycles') ^ process
 
 
+def rads_type(type_string: str) -> type:
+    switch = {
+        'int1': np.int8,
+        'int2': np.int16,
+        'int4': np.int32,
+        'real': np.float32,
+        'dble': np.float64
+    }
+    try:
+        return switch[type_string.lower()]
+    except KeyError:
+        raise TypeError(f"invalid type string '{type_string}'")
+
+
+def compress(compress_string: str) -> Compress:
+    parts = compress_string.split()
+    if len(parts) > 3:
+        raise TypeError(
+            "too many values given, expected only 'type', "
+            "'scale_factor', and 'add_offset'")
+    try:
+        return Compress(
+            *(f(s)for f, s in zip((rads_type, float, float), parts)))
+    except TypeError:
+        raise TypeError("'missing 'type'")
+
+
 def block(
         parser: p.Parser,
         error_msg: str = 'Invalid configuration block or value.') -> p.Parser:
@@ -342,8 +372,8 @@ def variable() -> p.Parser:
         value(list_of(str), 'quality_flag') |
         # not currently used
         value(int, 'dimensions') |
-        ignore('format') |
-        ignore('compress') |
+        ignore('format') |  # TODO: Complex field.
+        value(compress, 'compress') |
         ignore('default')
     )
     process = named_block_processor('var', variable_block, ast.Variable)
