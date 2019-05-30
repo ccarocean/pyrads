@@ -107,7 +107,10 @@ def filestring(file: PathOrFile) -> Optional[str]:
     if isinstance(file, int):
         return None
     if hasattr(file, 'read'):
-        return cast(IO[Any], file).name
+        try:
+            return cast(IO[Any], file).name
+        except AttributeError:
+            return None
     if isinstance(file, str):
         return file
     if isinstance(file, bytes):
