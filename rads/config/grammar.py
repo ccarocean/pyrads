@@ -381,8 +381,8 @@ def variable() -> p.Parser:
         value(unit, 'units') |
         value(list_of(str), 'flag_values') |
         value(list_of(str), 'flag_masks') |
-        value(range_of(float), 'limits') |
-        value(range_of(float), 'plot_range') |
+        value(range_of(types((int, float))), 'limits') |
+        value(range_of(types((int, float))), 'plot_range') |
         # used by rads for database generation, has no effect on end users
         ignore('parameters') |
         ignore('data') |  # TODO: Complex field.
