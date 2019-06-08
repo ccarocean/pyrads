@@ -29,7 +29,7 @@ setup(
     install_requires=[
         'cached_property',
         'dataclasses;python_version=="3.6"',
-        'dataclass-builder>=1.1.1',
+        'dataclass-builder>=1.1.2',
         'numpy',
         'scipy',
         'wrapt',
