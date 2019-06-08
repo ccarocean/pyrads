@@ -63,7 +63,7 @@ class Variable:
     # parameters: Optional[str] = None
     quality_flag: Optional[Sequence[str]] = None
     dimensions: int = 1  # not currently used
-    # format: Optional[str] = None
+    format: Optional[str] = None
     compress: Optional[Compress] = None
     default: Number = None
 

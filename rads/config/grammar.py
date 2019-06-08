@@ -4,6 +4,7 @@ from typing import (Any, Optional, Callable, Mapping, Sequence, Tuple,
 from numbers import Number
 
 import numpy as np
+import fortran_format_converter as ffc
 
 import rads.config.ast as ast
 import rads.config.parsers as p
@@ -389,7 +390,7 @@ def variable() -> p.Parser:
         value(list_of(str), 'quality_flag') |
         # not currently used
         value(int, 'dimensions') |
-        ignore('format') |  # TODO: Complex field.
+        value(ffc.convert, 'format') |
         value(compress, 'compress') |
         value(types((int, float)), 'default')
     )

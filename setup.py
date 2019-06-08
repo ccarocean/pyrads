@@ -30,6 +30,7 @@ setup(
         'cached_property',
         'dataclasses;python_version=="3.6"',
         'dataclass-builder>=1.1.2',
+        'fortran_format_converter'
         'numpy',
         'scipy',
         'wrapt',
