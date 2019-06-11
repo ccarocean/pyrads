@@ -121,6 +121,34 @@ def append(
             _get(environment, attr).append(value)
 
 
+def add(
+        environment: MutableMapping[str, Any], attr: str, value: Any) -> None:
+    """Set key/value pair in the given environment.
+
+    Sets :paramref:`attr` to the given :paramref:`value` in the given
+    :paramref:`environment`.  If the :paramref:`attr` has already ben set the
+    new value will be added.  For strings '. ' will be inserted between the
+    addition.
+
+    Parameters
+    ----------
+    environment
+        Environment to apply the action to the value of :paramref:`attr` in.
+    attr
+        Name of the value to change in the :paramref:`environment`.
+    value
+        New value to use for the action.
+
+    """
+    if not _has(environment, attr) or _get(environment, attr) == MISSING:
+        _set(environment, attr, value)
+    else:
+        if isinstance(_get(environment, attr), str) and isinstance(value, str):
+            _set(environment, attr, _get(environment, attr) + '. ' + value)
+        else:
+            _set(environment, attr, _get(environment, attr) + value)
+
+
 class Condition(ABC):
     """Base class of AST node conditionals."""
 
@@ -431,6 +459,8 @@ class Assignment(Statement):
                 if suggested:
                     message += f", did you mean '{suggested}'"
                 raise ASTEvaluationError(message, source=self.source)
+            except TypeError as err:
+                raise ASTEvaluationError(str(err), source=self.source)
 
 
 class Alias(Statement):

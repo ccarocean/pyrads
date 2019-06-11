@@ -59,13 +59,21 @@ def parse_condition(attr: Mapping[str, str]) -> ast.Condition:
 
 
 def parse_action(element: Element) -> ast.ActionType:
-    action = element.attributes.get('action', 'replace')
+    # edit is a special type of action for strings
+    if 'edit' in element.attributes:
+        action = element.attributes.get('edit', 'replace')
+        if action == 'append':
+            action = 'add'
+    else:
+        action = element.attributes.get('action', 'replace')
     if action == 'replace':
         return ast.replace
     if action == 'noreplace':
         return ast.keep
     if action == 'append':
         return ast.append
+    if action == 'add':
+        return ast.add
     raise error_at(element)('Invalid action="{:s}".'.format(action))
 
 
