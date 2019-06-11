@@ -1,6 +1,7 @@
 """Abstract Syntax Tree elements for RADS configuration file."""
 
 import typing
+from copy import deepcopy
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, fields
 from difflib import get_close_matches
@@ -423,7 +424,7 @@ class Assignment(Statement):
         if self.condition.test(selectors):
             action = cast(ActionType, self.action)
             try:
-                action(environment, self.name, self.value)
+                action(environment, self.name, deepcopy(self.value))
             except UndefinedFieldError as err:
                 message = f"invalid assignment to '{err.field}'"
                 suggested = _suggest_field(err.dataclass, err.field)
@@ -465,7 +466,7 @@ class Alias(Statement):
         if self.condition.test(selectors):
             action = cast(ActionType, self.action)
             aliases = _get_mapping(environment, 'aliases')
-            action(aliases, self.alias, self.variables)
+            action(aliases, self.alias, deepcopy(self.variables))
 
 
 class SatelliteID(Statement):
