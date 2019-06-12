@@ -11,7 +11,7 @@ from typing import (Any, Optional, Container, Sequence, Union, MutableMapping,
 from dataclass_builder import UndefinedFieldError, MissingFieldError, MISSING
 
 from ._builders import PhaseBuilder, VariableBuilder
-from .._utility import xor
+from .._utility import xor, delete_sublist, merge_sublist
 
 ActionType = Callable[[Any, str, Any], None]
 
@@ -44,10 +44,16 @@ def _get(o: Any, attr: str) -> Any:
 
 
 def _set(o: Any, attr: str, value: Any) -> None:
-    if isinstance(o, Mapping):
+    if isinstance(o, MutableMapping):
         o[attr] = value
     else:
         setattr(o, attr, value)
+
+
+def _del(o: Any, attr: str) -> None:
+    if isinstance(o, MutableMapping):
+        del o[attr]
+    return delattr(o, attr)
 
 
 def replace(environment: Any, attr: str, value: Any) -> None:
@@ -93,12 +99,17 @@ def keep(environment: Any, attr: str, value: Any) -> None:
 
 def append(
         environment: MutableMapping[str, Any], attr: str, value: Any) -> None:
-    """Set key/value pair in the given environment.
+    """Set/append key/value pair in the given environment.
 
     Sets :paramref:`attr` to the given :paramref:`value` in the given
     :paramref:`environment`.  If the :paramref:`attr` has already ben set the
     new value will be appended, placing the original value in a list if
     necessary.
+
+    .. note::
+
+        If both the current value and :paramref:`value` are strings then
+        string concatenation will be used instead.
 
     Parameters
     ----------
@@ -110,8 +121,14 @@ def append(
         New value to use for the action.
 
     """
+    # no current value
     if not _has(environment, attr) or _get(environment, attr) == MISSING:
         _set(environment, attr, value)
+        return
+    # has current value
+    if (isinstance(_get(environment, attr), (str, bytes)) and
+            isinstance(value, (str, bytes))):
+        _set(environment, attr, _get(environment, attr) + ' ' + value)
     else:
         if not _has(_get(environment, attr), 'append'):
             _set(environment, attr, [_get(environment, attr)])
@@ -121,14 +138,89 @@ def append(
             _get(environment, attr).append(value)
 
 
-def add(
+def delete(
+        environment: MutableMapping[str, Any], attr: str, value: Any) -> None:
+    """Remove/edit key/value pair in the given environment.
+
+    Removes :paramref:`value` from the existing :paramref:`attr` in the given
+    :paramref:`environement`.  If both the existing value and
+    :paramref:`value` are strings then only parts of the current string that
+    match :paramref:`value` are removed.  If both are lists then only matching
+    portions of the list are removed.  Otherwise, if the existing value
+    matches the new value the entire attribute will be removed from the
+    environment.
+
+    Parameters
+    ----------
+    environment
+        Environment to apply the action to the value of :paramref:`attr` in.
+    attr
+        Name of the value to change in the :paramref:`environment`.
+    value
+        New value to use for the action.
+
+    """
+    # no current value
+    if not _has(environment, attr) or _get(environment, attr) == MISSING:
+        return
+    # has current value
+    current_value = _get(environment, attr)
+    if isinstance(current_value, str) and isinstance(value, str):
+        _set(environment, attr, current_value.replace(value, ''))
+    elif isinstance(current_value, list):
+        if isinstance(value, list):
+            _set(environment, attr, delete_sublist(current_value, value))
+        else:
+            _set(environment, attr, [v for v in current_value if v != value])
+    elif current_value == value:
+        _del(environment, attr)
+
+
+def merge(
         environment: MutableMapping[str, Any], attr: str, value: Any) -> None:
     """Set key/value pair in the given environment.
 
     Sets :paramref:`attr` to the given :paramref:`value` in the given
     :paramref:`environment`.  If the :paramref:`attr` has already ben set the
-    new value will be added.  For strings '. ' will be inserted between the
-    addition.
+    new value will be merged.  Merging of strings will is the same as
+    :func:`append` if :paramref:`value` not a substring of the existing
+    string, if it is a substring then nothing will be done.  A similar merging
+    is used for lists.  For all other types, merging is the same as
+    :func:`append` if the current value and new value's differ.
+
+    Parameters
+    ----------
+    environment
+        Environment to apply the action to the value of :paramref:`attr` in.
+    attr
+        Name of the value to change in the :paramref:`environment`.
+    value
+        New value to use for the action.
+
+    """
+    # no current value
+    if not _has(environment, attr) or _get(environment, attr) == MISSING:
+        _set(environment, attr, value)
+    # has current value
+    current_value = _get(environment, attr)
+    if isinstance(current_value, str) and isinstance(value, str):
+        if value not in current_value:
+            _set(environment, attr, current_value + value)
+    elif isinstance(current_value, list):
+        if isinstance(value, list):
+            _set(environment, attr, merge_sublist(current_value, value))
+        elif value not in current_value:
+            append(environment, attr, value)
+    elif current_value != value:
+        append(environment, attr, value)
+
+
+def add(environment: MutableMapping[str, Any], attr: str, value: Any) -> None:
+    """Set key/value pair in the given environment.
+
+    Sets :paramref:`attr` to the given :paramref:`value` in the given
+    :paramref:`environment`.  If the :paramref:`attr` has already ben set the
+    new value will be added.
 
     Parameters
     ----------
@@ -143,10 +235,31 @@ def add(
     if not _has(environment, attr) or _get(environment, attr) == MISSING:
         _set(environment, attr, value)
     else:
-        if isinstance(_get(environment, attr), str) and isinstance(value, str):
-            _set(environment, attr, _get(environment, attr) + '. ' + value)
-        else:
-            _set(environment, attr, _get(environment, attr) + value)
+        _set(environment, attr, _get(environment, attr) + value)
+
+
+def edit_append(
+        environment: MutableMapping[str, Any], attr: str, string: str) -> None:
+    """Set key/value pair in the given environment.
+
+    Sets :paramref:`attr` to the given :paramref:`string` in the given
+    :paramref:`environment`.  If the :paramref:`attr` has already ben set the
+    new string will be append after '. '.
+
+    Parameters
+    ----------
+    environment
+        Environment to apply the action to the value of :paramref:`attr` in.
+    attr
+        Name of the value to change in the :paramref:`environment`.
+    string
+        New string to use for the action.
+
+    """
+    if not _has(environment, attr) or _get(environment, attr) == MISSING:
+        _set(environment, attr, string)
+    else:
+        _set(environment, attr, _get(environment, attr) + '. ' + string)
 
 
 class Condition(ABC):

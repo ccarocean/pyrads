@@ -7,7 +7,8 @@ from wrapt import ObjectProxy  # type: ignore
 
 from ._typing import PathOrFile, PathLike
 
-__all__ = ['ensure_open', 'filestring', 'xor']
+__all__ = ['ensure_open', 'filestring', 'xor',
+           'contains_sublist', 'merge_sublist', 'delete_sublist']
 
 
 class _NoCloseIOWrapper(ObjectProxy):  # type: ignore
@@ -156,3 +157,76 @@ def xor(a: bool, b: bool) -> bool:
 
     """
     return (a and not b) or (not a and b)
+
+
+def contains_sublist(list_: list, sublist: list) -> bool:
+    """Determine if a :paramref:`list` contains a :paramref:`sublist`.
+
+    Parameters
+    ----------
+    list_
+        list to search for the :paramref:`sublist` in.
+    sublist
+        Sub list to search for.
+
+    Returns
+    -------
+    bool
+        True if :paramref:`list` contains :paramref:`sublist`.
+
+    """
+    # Adapted from: https://stackoverflow.com/a/12576755
+    if not sublist:
+        return False
+    for i in range(len(list_)):
+        if (list_[i] == sublist[0] and
+                list_[i:i + len(sublist)] == sublist):
+            return True
+    return False
+
+
+def merge_sublist(list_: list, sublist: list) -> list:
+    """Merge a :paramref:`sublist` into a given :paramref:`list_`.
+
+    Parameters
+    ----------
+    list_
+        List to merge :paramref:`sublist` into.
+    sublist
+        Sublist to merge into :paramref:`list_`
+
+    Returns
+    -------
+    list
+        A copy of :paramref:`list_` with :paramref:`sublist` at the end if
+        :paramref:`sublist` is not a sublist of :paramref:`list_`.  Otherwise,
+        a copy of :paramref:`list_` is returned unchanged.
+
+    """
+    if contains_sublist(list_, sublist):
+        return list_[:]
+    return list_ + sublist
+
+
+def delete_sublist(list_: list, sublist: list) -> list:
+    """Remove a :paramref:`sublist` from the given :paramref:`list_`.
+
+    Parameters
+    ----------
+    list_
+        List to remove the :paramref:`sublist` from.
+    sublist
+        Sublist to remove from :paramref:`list_`.
+
+    Returns
+    -------
+        A copy of :paramref:`list_` with the :paramref:`sublist` removed.
+
+    """
+    if not sublist:
+        return list_[:]
+    for i in range(len(list_)):
+        if (list_[i] == sublist[0] and
+                list_[i:i + len(sublist)] == sublist):
+            return list_[:i] + list_[i + len(sublist):]
+    return list_[:]
