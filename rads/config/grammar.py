@@ -126,7 +126,7 @@ def value(parser: Callable[[str], Any] = nop, tag: Optional[str] = None,
                 action=action,
                 source=source)
         except (ValueError, TypeError) as err:
-            raise error_at(element)(str(err))
+           raise error_at(element)(str(err)) from err
 
     if tag:
         return p.tag(tag) ^ process
@@ -275,8 +275,18 @@ def unit(unit_string) -> Unit:
 
 def range_of(parser: Callable[[str], Number]) -> Callable[[str], Range]:
     def _parser(string: str) -> Range:
-        min, max = [parser(s) for s in string.split()]
-        return Range(min, max)
+        minmax = [parser(s) for s in string.split()]
+        if len(minmax) == 0:
+            raise ValueError(
+                'ranges require exactly 2 values, but none were given')
+        elif len(minmax) == 1:
+            raise ValueError(
+                'ranges require exactly 2 values, but only 1 was given')
+        elif len(minmax) > 2:
+            raise ValueError(
+                'ranges require exactly 2 values, '
+                f'but {len(minmax)} were given')
+        return Range(*minmax)
     return _parser
 
 
