@@ -16,10 +16,11 @@ from .._utility import xor, delete_sublist, merge_sublist
 ActionType = Callable[[Any, str, Any], None]
 
 
-def _get_mapping(environment: Any, attr: str):
+def _get_mapping(environment: Any, attr: str,
+                 mapping: Callable[[], Mapping] = dict):
     if (not hasattr(environment, attr) or
             getattr(environment, attr) == MISSING):
-        setattr(environment, attr, {})
+        setattr(environment, attr, mapping())
     return getattr(environment, attr)
 
 
@@ -673,7 +674,7 @@ class Satellites(Mapping[str, Statement], Statement):
             pass
 
 
-class NamedBlock(Statement):
+class NamedBlock(Statement, ABC):
     name: str
     inner_statement: Statement
     condition: Condition = TrueCondition()
@@ -693,6 +694,28 @@ class NamedBlock(Statement):
         if isinstance(self.condition, TrueCondition):
             return prefix + ')'
         return prefix + f', {self.condition})'
+
+    def _eval_runner(self, mapping: str, builder: Any,
+                     environment: Any, selectors: Mapping[str, Any]):
+        if self.condition and not self.condition.test(selectors):
+            return
+
+        # initialize and/or retrieve mapping
+        mapping_ = _get_mapping(environment, mapping)
+
+        builder_ = builder(id=self.name)
+        self.inner_statement.eval(builder_, selectors)
+        try:
+            if self.name not in mapping_:
+                mapping_[self.name] = []
+            mapping_[self.name].append(builder_.build())
+        except MissingFieldError as err:
+            raise ASTEvaluationError(
+                f"missing required attribute '{err.field.name}'",
+                source=self.source)
+
+
+class UniqueNamedBlock(NamedBlock, ABC):
 
     def _eval_runner(self, mapping: str, builder: Any,
                      environment: Any, selectors: Mapping[str, Any]):
@@ -723,7 +746,7 @@ class Phase(NamedBlock):
         self._eval_runner('phases', PhaseBuilder, environment, selectors)
 
 
-class Variable(NamedBlock):
+class Variable(UniqueNamedBlock):
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         self._eval_runner(
