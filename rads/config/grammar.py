@@ -382,6 +382,7 @@ def phase() -> p.Parser:
 
 
 def variable() -> p.Parser:
+    # NOTE: These must be duplicated in the variable_overrides below.
     variable_block = block(
         value(str, 'long_name', var='name') |
         value(str, 'standard_name') |
@@ -404,6 +405,48 @@ def variable() -> p.Parser:
     )
     process = named_block_processor('var', variable_block, ast.Variable)
     return p.tag('var') ^ process
+
+
+def variable_override(parser: Callable[[str], Any], tag: str,
+          var: Optional[str] = None) -> p.Parser:
+    def process(element: Element) -> ast.Variable:
+        try:
+            name = element.attributes['var']
+        except KeyError:
+            raise error_at(element)(f"<{tag}> is missing 'var' attribute.")
+        var_ = var if var else element.tag
+        condition = parse_condition(element.attributes)
+        action = parse_action(element)
+        text = element.text if element.text else ''
+        source = source_from_element(element)
+        statement = ast.Assignment(
+            name=var_, value=parser(text), action=action, source=source)
+        return ast.Variable(name, statement, condition, source=source)
+
+    return p.tag(tag) ^ process
+
+
+def variable_overrides():
+    overrides = (
+        variable_override(str, 'long_name', var='name') |
+        variable_override(str, 'standard_name') |
+        variable_override(str, 'source') |
+        variable_override(str, 'comment') |
+        variable_override(unit, 'units') |
+        variable_override(list_of(str), 'flag_variable_overrides') |
+        variable_override(list_of(str), 'flag_masks') |
+        variable_override(range_of(types((int, float))), 'limits') |
+        variable_override(range_of(types((int, float))), 'plot_range') |
+        # used by rads for database generation, has no effect on end users
+        ignore('parameters') |
+        ignore('data') |  # TODO: Complex field.
+        variable_override(list_of(str), 'quality_flag') |
+        # not currently used
+        variable_override(int, 'dimensions') |
+        variable_override(ffc.convert, 'format') |
+        variable_override(compress, 'compress') |
+        variable_override(types((int, float)), 'default'))
+    return overrides
 
 
 def parse(root: Element) -> ast.Statement:
@@ -429,7 +472,8 @@ def parse(root: Element) -> ast.Statement:
         alias() |
 
         # variables
-        variable()
+        variable() |
+        variable_overrides()
     )
     return cast(ast.Statement, root_block(root.down())[0])
 
