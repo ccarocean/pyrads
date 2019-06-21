@@ -1,8 +1,7 @@
-import pytest  # type: ignore
 from rads.datetime64util import (year, month, day, hour, minute, second,
                                  microsecond, ymdhmsus)
 
-import numpy as np
+import numpy as np  # type: ignore
 
 
 DATE = np.datetime64('2002-02-03T13:56:03.172')
