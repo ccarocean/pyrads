@@ -31,7 +31,7 @@ setup(
         'dataclasses;python_version=="3.6"',
         'dataclass-builder>=1.1.2',
         'fortran_format_converter>=0.1.2',
-        'numpy',
+        'numpy>=1.11.0',
         'scipy',
         'wrapt',
         'yzal',
