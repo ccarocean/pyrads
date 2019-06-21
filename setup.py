@@ -17,7 +17,7 @@ def read(filename):
 
 setup(
     name='rads',
-    version=read_version('dataclass_builder/__init__.py'),
+    version=read_version('rads/__init__.py'),
     author='Michael R. Shannon',
     author_email='mrshannon.aerospace@gmail.com',
     description='Python front end for the Radar Altimeter Database System.',
