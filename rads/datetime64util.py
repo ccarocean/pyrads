@@ -1,11 +1,11 @@
 """Additional utility for numpy.datetime64."""
 
-from typing import Tuple
+from typing import Tuple, overload
 
 import numpy as np  # type: ignore
 
 
-def year(datetime64: np.datetime64) -> np.int:
+def year(datetime64: np.datetime64) -> np.generic:
     """Get year from NumPy datetime64 value/array.
 
     Parameters
@@ -23,7 +23,7 @@ def year(datetime64: np.datetime64) -> np.int:
     return datetime64.astype('datetime64[Y]').astype(int) + 1970
 
 
-def month(datetime64: np.datetime64) -> np.int:
+def month(datetime64: np.datetime64) -> np.generic:
     """Get month from NumPy datetime64 value/array.
 
     Parameters
@@ -41,7 +41,7 @@ def month(datetime64: np.datetime64) -> np.int:
     return datetime64.astype('datetime64[M]').astype(int) % 12 + 1
 
 
-def day(datetime64: np.datetime64) -> np.int:
+def day(datetime64: np.datetime64) -> np.generic:
     """Get day of month from NumPy datetime64 value/array.
 
     Parameters
@@ -60,7 +60,7 @@ def day(datetime64: np.datetime64) -> np.int:
             datetime64.astype('datetime64[M]')).astype(int) + 1
 
 
-def hour(datetime64: np.datetime64) -> np.int:
+def hour(datetime64: np.datetime64) -> np.generic:
     """Get hour from NumPy datetime64 value/array.
 
     Parameters
@@ -77,7 +77,7 @@ def hour(datetime64: np.datetime64) -> np.int:
     return datetime64.astype('datetime64[h]').astype(int) % 24
 
 
-def minute(datetime64: np.datetime64) -> np.int:
+def minute(datetime64: np.datetime64) -> np.generic:
     """Get minute from NumPy datetime64 value/array.
 
     Parameters
@@ -94,7 +94,7 @@ def minute(datetime64: np.datetime64) -> np.int:
     return datetime64.astype('datetime64[m]').astype(int) % 60
 
 
-def second(datetime64: np.datetime64) -> np.int:
+def second(datetime64: np.datetime64) -> np.generic:
     """Get second from NumPy datetime64 value/array.
 
     Parameters
@@ -111,7 +111,7 @@ def second(datetime64: np.datetime64) -> np.int:
     return datetime64.astype('datetime64[s]').astype(int) % 60
 
 
-def microsecond(datetime64: np.datetime64) -> np.int:
+def microsecond(datetime64: np.datetime64) -> np.generic:
     """Get microsecond from NumPy datetime64 value/array.
 
     Parameters
@@ -129,7 +129,8 @@ def microsecond(datetime64: np.datetime64) -> np.int:
 
 
 def ymdhmsus(datetime64: np.datetime64) -> \
-        Tuple[np.int, np.int, np.int, np.int, np.int, np.int, np.int]:
+        Tuple[np.generic, np.generic, np.generic, np.generic,
+              np.generic,np.generic, np.generic]:
     """Get time components from NumPy datetime64 value/array.
 
     Parameters
