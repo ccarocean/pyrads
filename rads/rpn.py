@@ -1,4 +1,4 @@
-"""Reverse Polish Notation calculator.
+r"""Reverse Polish Notation calculator.
 
 Constants
 ---------
@@ -386,7 +386,7 @@ class _ABSType(Operator):
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
-        """Absolute value of number/array.
+        r"""Absolute value of number/array.
 
         x ABS a
             a = \|x\|
@@ -2248,7 +2248,7 @@ x NEG a
 """
 
 ABS = _ABSType('ABS')
-"""Absolute value of number/array.
+r"""Absolute value of number/array.
 
 x ABS a
     a = \|x\|
