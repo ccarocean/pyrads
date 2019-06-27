@@ -101,6 +101,7 @@ from astropy.convolution import (  # type: ignore
     Box1DKernel, Gaussian1DKernel, convolve)
 
 from . import EPOCH
+from ._utility import fortran_float
 from .datetime64util import ymdhmsus
 
 NumberOrArray = Union[int, float, np.generic, np.ndarray]
@@ -2937,6 +2938,39 @@ _KEYWORDS = {
     'BOXCAR': BOXCAR,
     'GAUSS': GAUSS
 }
+
+
+def token(string: str) -> Token:
+    """Parse string token into a :class:`Token`.
+
+    There are three types of tokens that can result from this function:
+
+        * :class:`Literal` - a literal integer or float
+        * :class:`Variable` - a variable to looked up in the environment
+        * :class:`Operator` - an operator to modify the stack
+
+    Parameters
+    ----------
+    string
+
+    Returns
+    -------
+    Token
+        Parsed token.
+
+    """
+    if string in _KEYWORDS:
+        return _KEYWORDS[string]
+    try:
+        return Literal(int(string))
+    except ValueError:
+        pass
+    try:
+        return Literal(fortran_float(string))
+    except ValueError:
+        if string.isidentifier():
+            return Variable(string)
+        raise ValueError(f"invalid RPN token '{string}'")
 
 
 def _is_integer(x: NumberOrArray) -> bool:

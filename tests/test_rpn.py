@@ -14,7 +14,7 @@ from rads.rpn import (NumberOrArray, StackUnderflowError, Literal, PI, E,
                       CEIL, CEILING, FLOOR, D2R, R2D, YMDHMS, SUM, DIF, DUP,
                       DIV, POW, FMOD, MIN, MAX, ATAN2, HYPOT, R2, EQ, NE, LT,
                       LE, GT, GE, NAN, AND, OR, IAND, IOR, BTEST, AVG, DXDY,
-                      EXCH, INRANGE, BOXCAR, GAUSS)
+                      EXCH, INRANGE, BOXCAR, GAUSS, token)
 
 GOLDEN_RATIO = math.log((1 + math.sqrt(5)) / 2)
 
@@ -1625,3 +1625,36 @@ class TestOperator:
             GAUSS([1], {})
         with pytest.raises(StackUnderflowError):
             GAUSS([1, 2], {})
+
+
+def test_token_keywords():
+    assert token('SUB') == SUB
+    assert token('ADD') == ADD
+    assert token('MUL') == MUL
+    assert token('PI') == PI
+    assert token('E') == E
+
+
+def test_token_literals():
+    assert token('3') == Literal(3)
+    assert token('3.14e10') == Literal(3.14e10)
+    assert token('3.14E10') == Literal(3.14e10)
+    assert token('3.14d10') == Literal(3.14e10)
+    assert token('3.14D10') == Literal(3.14e10)
+    assert token('3.14e+10') == Literal(3.14e10)
+    assert token('3.14E+10') == Literal(3.14e10)
+    assert token('3.14d+10') == Literal(3.14e10)
+    assert token('3.14D+10') == Literal(3.14e10)
+    assert token('3.14e-10') == Literal(3.14e-10)
+    assert token('3.14E-10') == Literal(3.14e-10)
+    assert token('3.14d-10') == Literal(3.14e-10)
+    assert token('3.14D-10') == Literal(3.14e-10)
+    assert token('3.14+100') == Literal(3.14e100)
+    assert token('3.14-100') == Literal(3.14e-100)
+
+
+def test_token_variables():
+    assert token('alt') == Variable('alt')
+    assert token('ref_frame_offset') == Variable('ref_frame_offset')
+    with pytest.raises(ValueError):
+        token('3name')
