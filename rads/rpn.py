@@ -83,7 +83,7 @@ Keyword          Description
 :data:`AVG`      a = 0.5*(x+y) [when x or y is NaN a returns the other value]
 :data:`DXDY`     a[i] = (x[i+1]-x[i-1])/(y[i+1]-y[i-1]); a[1] = a[n] = NaN
 :data:`EXCH`     exchange the top two stack elements
-:data:`INRANGE`  a = 1 if x is between y and z; a = 0 otherwise
+:data:`INRANGE`  a = 1 if x is between y and z (inclusive); a = 0 otherwise
 :data:`BOXCAR`   filter x along dimension y with boxcar of length z
 :data:`GAUSS`    filter x along dimension y with Gaussian of width sigma z
 ===============  ==============================================================
@@ -92,7 +92,8 @@ Keyword          Description
 # pylint: disable=too-many-lines
 
 from abc import ABC, abstractmethod
-from numbers import Integral
+from datetime import timedelta
+from numbers import Complex, Integral
 from typing import Any, Union, MutableSequence, Mapping, cast
 
 import numpy as np  # type: ignore
@@ -154,6 +155,11 @@ class Literal(Token):
     value
         Value of the literal.
 
+    Raises
+    ------
+    ValueError
+        If :paramref:`value` is not a number.
+
     """
 
     @property
@@ -161,7 +167,9 @@ class Literal(Token):
         """Value of the literal."""
         return self._value
 
-    def __init__(self, value: NumberOrArray) -> None:
+    def __init__(self, value: Complex) -> None:
+        if not isinstance(value, Complex):
+            raise TypeError("'value' must be a number")
         self._value = value
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
@@ -180,10 +188,36 @@ class Literal(Token):
         stack.append(self.value)
 
     def __eq__(self, other: Any) -> bool:
-        return isinstance(other, Literal) and other.value == self.value
+        return isinstance(other, Literal) and self.value == other.value
+
+    def __ne__(self, other: Any) -> bool:
+        return not isinstance(other, Literal) or self.value != other.value
+
+    def __lt__(self, other: Any) -> bool:
+        if not isinstance(other, Literal):
+            return NotImplemented
+        return self.value < other.value
+
+    def __le__(self, other: Any) -> bool:
+        if not isinstance(other, Literal):
+            return NotImplemented
+        return self.value <= other.value
+
+    def __gt__(self, other: Any) -> bool:
+        if not isinstance(other, Literal):
+            return NotImplemented
+        return self.value > other.value
+
+    def __ge__(self, other: Any) -> bool:
+        if not isinstance(other, Literal):
+            return NotImplemented
+        return self.value >= other.value
 
     def __repr__(self) -> str:
         return f'{self.__class__.__qualname__}({repr(self._value)})'
+
+    def __str__(self) -> str:
+        return str(self._value)
 
 
 class Variable(Token):
@@ -206,6 +240,11 @@ class Variable(Token):
         return self._name
 
     def __init__(self, name: str) -> None:
+        if not isinstance(name, str):
+            raise TypeError(f"'name' must be a string, got '{type(name)}'")
+        if not name.isidentifier():
+            raise ValueError(
+                f"'name' must be a valid identifier, got '{name}'")
         self._name = name
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
@@ -219,14 +258,26 @@ class Variable(Token):
         environment
             The dictionary like object to lookup the variable's value from.
 
+        Raises
+        ------
+        KeyError
+            If the variable cannot be found in the given
+            paramref:`environment`.
+
         """
         stack.append(environment[self.name])
 
     def __eq__(self, other: Any) -> bool:
         return isinstance(other, Variable) and other.name == self.name
 
+    def __ne__(self, other: Any) -> bool:
+        return not isinstance(other, Variable) or other.name != self.name
+
     def __repr__(self) -> str:
         return f'{self.__class__.__qualname__}({repr(self._name)})'
+
+    def __str__(self) -> str:
+        return str(self._name)
 
 
 class Operator(Token, ABC):
@@ -717,7 +768,7 @@ class _TANDType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.cos(np.deg2rad(stack.pop())))
+        stack.append(np.tan(np.deg2rad(stack.pop())))
 
 
 class _SINHType(Operator):
@@ -1257,11 +1308,18 @@ class _YMDHMSType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        time = np.datetime64(EPOCH) + np.timedelta64(stack.pop(), 's')
-        year, month, day, hour, minute, second, microsecond = ymdhmsus(time)
-        ymdhms = ((year % 100) * 1e10 + month * 1e8 + day * 1e6 +
+        x = stack.pop()
+        if isinstance(x, np.ndarray):
+            time = np.datetime64(EPOCH) + (x*1e6).astype('timedelta64[us]')
+            year, month, day, hour, minute, second, microsecond = ymdhmsus(time)
+            a = ((year % 100) * 1e10 + month * 1e8 + day * 1e6 +
                   hour * 1e4 + minute * 1e2 + second + microsecond * 1e-6)
-        stack.append(ymdhms)
+        else:
+            time = (EPOCH + timedelta(seconds=x))
+            a = ((time.year % 100) * 1e10 + time.month * 1e8 + time.day * 1e6 +
+                  time.hour * 1e4 + time.minute * 1e2 + time.second +
+                  time.microsecond * 1e-6)
+        stack.append(a)
 
 
 class _SUMType(Operator):
@@ -1789,7 +1847,11 @@ class _NANType(Operator):
         x = stack.pop()
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
-            a = np.copy(x)
+            # upgrade integers to doubles
+            if np.issubdtype(x.dtype, np.integer):
+                a = np.copy(x).astype('double')
+            else:
+                a = np.copy(x)
             a[x == y] = np.nan
             stack.append(a)
         else:
@@ -1858,7 +1920,11 @@ class _ORType(Operator):
         x = stack.pop()
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
-            a = np.copy(x)
+            # upgrade integers to doubles
+            if np.issubdtype(x.dtype, np.integer):
+                a = np.copy(x).astype('double')
+            else:
+                a = np.copy(x)
             a[np.isnan(y)] = np.nan
             isnan = np.isnan(x)
             a[isnan] = y[isnan]
@@ -1952,7 +2018,7 @@ class _BTESTType(Operator):
             raise TypeError("'x' must be an integer type")
         if not _is_integer(y):
             raise TypeError("'y' must be an integer type")
-        stack.append(np.bitwise_and(cast(int, x), 1 << cast(int, y)))
+        stack.append(np.bitwise_and(cast(int, x), 1 << cast(int, y)) != 0)
 
 
 class _AVGType(Operator):
@@ -1982,7 +2048,9 @@ class _AVGType(Operator):
         x = stack.pop()
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
-            stack.append(np.nansum(np.stack((x, y)), axis=0))
+            stacked = np.stack((x, y))
+            non_nan = np.sum(~np.isnan(stacked), axis=0)
+            stack.append(np.nansum(stacked, axis=0)/non_nan)
         else:
             if np.isnan(x):
                 stack.append(y)
@@ -2017,15 +2085,18 @@ class _DXDYType(Operator):
         """
         y = stack.pop()
         x = stack.pop()
-        x, y = np.broadcast_arrays(x, y)
-        x = np.ravel(x)
-        y = np.ravel(y)
-        if np.size(x) < 3:
-            a = np.empty(np.shape(x))
-            a[:] = np.nan
+        if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
+            x, y = np.broadcast_arrays(x, y)
+            x = np.ravel(x)
+            y = np.ravel(y)
+            if np.size(x) < 3:
+                a = np.empty(np.shape(x))
+                a[:] = np.nan
+            else:
+                dxdy = (x[2:] - x[:-2]) / (y[2:] - y[:-2])
+                a = np.concatenate(([np.nan], dxdy, [np.nan]))
         else:
-            dxdy = (x[1:] - x[:-1]) / (y[1:] - y[:-1])
-            a = np.concatenate((np.nan, dxdy, np.nan))
+            a = float('nan')
         stack.append(a)
 
 
@@ -2065,7 +2136,7 @@ class _INRANGEType(Operator):
         """Determine if number/array is between two numbers [element wise].
 
         x y z INRANGE a
-            a = 1 if x is between y and z
+            a = 1 if x is between y and z (inclusive)
             a = 0 otherwise (also in case of any NaN)
 
         Parameters
@@ -2102,6 +2173,11 @@ class _BOXCARType(Operator):
         x y z BOXCAR a
             a = filter x along monotonic dimension y with boxcar of length z
             (NaNs are skipped)
+
+        .. note::
+
+            This may behave slightly differently than the official RADS
+            software at boundaries and at NaN values.
 
         Parameters
         ----------
@@ -2271,7 +2347,7 @@ x SQRT a
 
 """
 
-SQR = _SQRTType('SQR')
+SQR = _SQRType('SQR')
 """Square number/array.
 
 x SQR a
@@ -2495,7 +2571,7 @@ x CEILING a
 
 """
 
-FLOOR = _CEILType('FLOOR')
+FLOOR = _FLOORType('FLOOR')
 """Round number/array down to nearest integer.
 
 x FLOOR a
@@ -2739,7 +2815,7 @@ INRANGE = _INRANGEType('INRANGE')
 """Determine if number/array is between two numbers [element wise].
 
 x y z INRANGE a
-    a = 1 if x is between y and z
+    a = 1 if x is between y and z (inclusive)
     a = 0 otherwise (also in case of any NaN)
 
 """
