@@ -6,14 +6,15 @@ from typing import MutableSequence
 import pytest
 import numpy as np
 
-from rads.rpn import (NumberOrArray, Literal, PI, E, Variable, Operator, SUB,
-                      ADD, MUL, POP, NEG, ABS, INV, SQRT, SQR, EXP, LOG, LOG10,
-                      SIN, COS, TAN, SIND, COSD, TAND, SINH, COSH, TANH, ASIN,
-                      ACOS, ATAN, ASIND, ACOSD, ATAND, ASINH, ACOSH, ATANH,
-                      ISNAN, ISAN, RINT, NINT, CEIL, CEILING, FLOOR, D2R, R2D,
-                      YMDHMS, SUM, DIF, DUP, DIV, POW, FMOD, MIN, MAX, ATAN2,
-                      HYPOT, R2, EQ, NE, LT, LE, GT, GE, NAN, AND, OR, IAND,
-                      IOR, BTEST, AVG, DXDY, EXCH, INRANGE, BOXCAR, GAUSS)
+from rads.rpn import (NumberOrArray, StackUnderflowError, Literal, PI, E,
+                      Variable, Operator, SUB, ADD, MUL, POP, NEG, ABS, INV,
+                      SQRT, SQR, EXP, LOG, LOG10, SIN, COS, TAN, SIND, COSD,
+                      TAND, SINH, COSH, TANH, ASIN, ACOS, ATAN, ASIND, ACOSD,
+                      ATAND, ASINH, ACOSH, ATANH, ISNAN, ISAN, RINT, NINT,
+                      CEIL, CEILING, FLOOR, D2R, R2D, YMDHMS, SUM, DIF, DUP,
+                      DIV, POW, FMOD, MIN, MAX, ATAN2, HYPOT, R2, EQ, NE, LT,
+                      LE, GT, GE, NAN, AND, OR, IAND, IOR, BTEST, AVG, DXDY,
+                      EXCH, INRANGE, BOXCAR, GAUSS)
 
 
 GOLDEN_RATIO = math.log((1+math.sqrt(5))/2)
@@ -239,9 +240,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(SUB, [0, 2, 4], [0, -2])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             SUB([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             SUB([1], {})
 
     def test_add(self):
@@ -254,9 +255,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(ADD, [0, 2, 4], [0, 6])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ADD([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ADD([1], {})
 
     def test_mul(self):
@@ -269,9 +270,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(MUL, [0, 2, 4], [0, 8])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             MUL([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             MUL([1], {})
 
     def test_pop(self):
@@ -279,7 +280,7 @@ class TestOperator:
         assert_operator(POP, [1], [])
         assert_operator(POP, [1, 2], [1])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             POP([], {})
 
     def test_neg(self):
@@ -291,7 +292,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(NEG, [0, 2], [0, -2])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             NEG([], {})
 
     def test_abs(self):
@@ -303,7 +304,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(ABS, [0, -2], [0, 2])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ABS([], {})
 
     def test_inv(self):
@@ -315,7 +316,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(INV, [0, 2], [0, 0.5])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             INV([], {})
 
     def test_sqrt(self):
@@ -325,7 +326,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(SQRT, [0, 4], [0, 2])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             SQRT([], {})
 
     def test_sqr(self):
@@ -337,7 +338,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(SQR, [0, -2], [0, 4])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             SQR([], {})
 
     def test_exp(self):
@@ -350,7 +351,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(EXP, [0, np.log(1)], [0, 1.0], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             EXP([], {})
 
     def test_log(self):
@@ -367,7 +368,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(LOG, [0, np.e], [0, 1.0], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             LOG([], {})
 
     def test_log10(self):
@@ -384,7 +385,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(LOG10, [0, 10], [0, 1.0], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             LOG10([], {})
 
     def test_sin(self):
@@ -407,7 +408,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(SIN, [0, math.pi/2], [0, 1.0], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             SIN([], {})
 
     def test_cos(self):
@@ -430,7 +431,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(COS, [0, math.pi/2], [0, 0.0], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             COS([], {})
 
     def test_tan(self):
@@ -452,7 +453,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(TAN, [0, math.pi/4], [0, 1.0], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             TAN([], {})
 
     def test_sind(self):
@@ -475,7 +476,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(SIND, [0, 90], [0, 1.0], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             SIND([], {})
 
     def test_cosd(self):
@@ -498,7 +499,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(COSD, [0, 90], [0, 0.0], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             COSD([], {})
 
     def test_tand(self):
@@ -520,7 +521,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(TAND, [0, 45], [0, 1.0], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             TAND([], {})
 
     def test_sinh(self):
@@ -535,7 +536,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(SINH, [0, GOLDEN_RATIO], [0, 0.5], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             SINH([], {})
 
     def test_cosh(self):
@@ -551,7 +552,7 @@ class TestOperator:
         assert_operator(
             COSH, [0, GOLDEN_RATIO], [0, math.sqrt(5)/2], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             COSH([], {})
 
     def test_tanh(self):
@@ -567,7 +568,7 @@ class TestOperator:
         assert_operator(
             TANH, [0, GOLDEN_RATIO], [0, math.sqrt(5)/5], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             TANH([], {})
 
     def test_asin(self):
@@ -590,7 +591,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(ASIN, [0, 1.0], [0, math.pi/2], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ASIN([], {})
 
     def test_acos(self):
@@ -608,7 +609,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(ACOS, [0, 0.0], [0, math.pi/2], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ACOS([], {})
 
     def test_atan(self):
@@ -630,7 +631,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(ATAN, [0, 1.0], [0, math.pi/4], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ATAN([], {})
 
     def test_asind(self):
@@ -653,7 +654,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(ASIND, [0, 1.0], [0, 90], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ASIND([], {})
 
     def test_acosd(self):
@@ -671,7 +672,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(ACOSD, [0, 0.0], [0, 90], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ACOSD([], {})
 
     def test_atand(self):
@@ -693,7 +694,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(ATAND, [0, 1.0], [0, 45], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ATAND([], {})
 
     def test_asinh(self):
@@ -708,7 +709,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(ASINH, [0, 0.5], [0, GOLDEN_RATIO], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ASINH([], {})
 
     def test_acosh(self):
@@ -724,7 +725,7 @@ class TestOperator:
         assert_operator(
             ACOSH, [0, math.sqrt(5)/2], [0, GOLDEN_RATIO], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ACOSH([], {})
 
     def test_atanh(self):
@@ -740,7 +741,7 @@ class TestOperator:
         assert_operator(
             ATANH, [0, math.sqrt(5)/5], [0, GOLDEN_RATIO], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ATANH([], {})
 
     def test_isnan(self):
@@ -754,7 +755,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(ISNAN, [0, float('nan')], [0, True])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ISNAN([], {})
 
     def test_isan(self):
@@ -768,7 +769,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(ISAN, [0, 2], [0, True])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ISAN([], {})
 
     def test_rint(self):
@@ -782,7 +783,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(RINT, [0, 1.6], [0, 2])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             RINT([], {})
 
     def test_nint(self):
@@ -796,7 +797,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(NINT, [0, 1.6], [0, 2])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             NINT([], {})
 
     def test_ceil(self):
@@ -810,7 +811,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(CEIL, [0, 1.2], [0, 2])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             CEIL([], {})
 
     def test_ceiling(self):
@@ -824,7 +825,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(CEILING, [0, 1.2], [0, 2])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             CEILING([], {})
 
     def test_floor(self):
@@ -838,7 +839,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(FLOOR, [0, 1.8], [0, 1])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             FLOOR([], {})
 
     def test_d2r(self):
@@ -861,7 +862,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(D2R, [0, 90], [0, math.pi/2], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             D2R([], {})
 
     def test_r2d(self):
@@ -884,7 +885,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(R2D, [0, math.pi/2], [0, 90], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             R2D([], {})
 
     def test_ymdhms(self):
@@ -905,7 +906,7 @@ class TestOperator:
         assert_operator(
             YMDHMS, [0, seconds1], [0, 80704121919.570865], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             YMDHMS([], {})
 
     def test_sum(self):
@@ -920,7 +921,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(SUM, [0, 2], [0, 2])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             SUM([], {})
 
     def test_diff(self):
@@ -934,7 +935,7 @@ class TestOperator:
             [np.array([np.nan, np.nan, np.nan])])
         # extra stack elements
         assert_operator(DIF, [0, 2], [0, np.array([np.nan])])
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             DIF([], {})
 
     def test_dup(self):
@@ -944,7 +945,7 @@ class TestOperator:
             DUP, [np.array([4, -1])], [np.array([4, -1]), np.array([4, -1])])
         # extra stack elements
         assert_operator(DUP, [0, 2], [0, 2, 2])
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             DUP([], {})
 
     def test_div(self):
@@ -957,9 +958,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(DIV, [0, 10, 2], [0, 5])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             DIV([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             DIV([1], {})
 
     def test_pow(self):
@@ -974,9 +975,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(POW, [0, 2, 4], [0, 16])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             POW([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             POW([1], {})
 
     def test_fmod(self):
@@ -991,9 +992,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(FMOD, [0, 12, 10], [0, 2])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             FMOD([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             FMOD([1], {})
 
     def test_min(self):
@@ -1007,9 +1008,9 @@ class TestOperator:
         # # extra stack elements
         assert_operator(MIN, [0, 2, 3], [0, 2])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             MIN([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             MIN([1], {})
 
     def test_max(self):
@@ -1023,9 +1024,9 @@ class TestOperator:
         # # extra stack elements
         assert_operator(MAX, [0, 2, 3], [0, 3])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             MAX([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             MAX([1], {})
 
     def test_atan2(self):
@@ -1054,7 +1055,7 @@ class TestOperator:
         # extra stack elements
         assert_operator(ATAN2, [0, 1, 1], [0, math.pi/4], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             ATAN2([], {})
 
     def test_hypot(self):
@@ -1079,9 +1080,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(HYPOT, [0, math.sqrt(3), 1], [0, 2], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             HYPOT([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             HYPOT([1], {})
 
     def test_r2(self):
@@ -1094,9 +1095,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(R2, [0, 2, 3], [0, 13], approx=True)
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             R2([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             R2([1], {})
 
     def test_eq(self):
@@ -1118,9 +1119,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(EQ, [0, 2, 2], [0, True])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             EQ([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             EQ([1], {})
 
     def test_ne(self):
@@ -1142,9 +1143,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(NE, [0, 2, 2], [0, False])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             NE([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             NE([1], {})
 
     def test_lt(self):
@@ -1163,9 +1164,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(LT, [0, 2, 3], [0, True])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             LT([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             LT([1], {})
 
     def test_le(self):
@@ -1184,9 +1185,9 @@ class TestOperator:
         # # extra stack elements
         assert_operator(LE, [0, 2, 3], [0, True])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             LE([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             LE([1], {})
 
     def test_gt(self):
@@ -1205,9 +1206,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(GT, [0, 2, 3], [0, False])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             GT([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             GT([1], {})
 
     def test_ge(self):
@@ -1226,9 +1227,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(GE, [0, 2, 3], [0, False])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             GE([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             GE([1], {})
 
     def test_nan(self):
@@ -1250,9 +1251,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(NAN, [0, 2, 2], [0, float('nan')])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             NAN([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             NAN([1], {})
 
     def test_and(self):
@@ -1269,9 +1270,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(AND, [0, float('nan'), 3], [0, 3])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             AND([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             AND([1], {})
 
     def test_or(self):
@@ -1294,9 +1295,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(OR, [0, 2, float('nan')], [0, float('nan')])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             OR([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             OR([1], {})
 
     def test_iand(self):
@@ -1324,9 +1325,9 @@ class TestOperator:
         with pytest.raises(TypeError):
             IAND([np.array([2.0, 3.0]), 1], {})
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             IAND([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             IAND([1], {})
 
     def test_ior(self):
@@ -1354,9 +1355,9 @@ class TestOperator:
         with pytest.raises(TypeError):
             IOR([np.array([2.0, 3.0]), 1], {})
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             IOR([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             IOR([1], {})
 
     def test_btest(self):
@@ -1388,9 +1389,9 @@ class TestOperator:
         with pytest.raises(TypeError):
             BTEST([np.array([2.0, 3.0]), 1], {})
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             BTEST([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             BTEST([1], {})
 
     def test_avg(self):
@@ -1413,9 +1414,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(AVG, [0, 5, 11], [0, 8])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             AVG([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             AVG([1], {})
 
     def test_dxdy(self):
@@ -1448,9 +1449,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(DXDY, [0, 5, 11], [0, float('nan')])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             DXDY([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             DXDY([1], {})
 
     def test_exch(self):
@@ -1467,9 +1468,9 @@ class TestOperator:
         # extra stack elements
         assert_operator(EXCH, [0, 5, 11], [0, 11, 5])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             EXCH([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             EXCH([1], {})
 
     def test_inrange(self):
@@ -1498,11 +1499,11 @@ class TestOperator:
         # extra stack elements
         assert_operator(INRANGE, [0, 2, 1, 3], [0, True])
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             INRANGE([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             INRANGE([1], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             INRANGE([1, 2], {})
 
     def test_boxcar(self):
@@ -1554,11 +1555,11 @@ class TestOperator:
         with pytest.raises(IndexError):
             BOXCAR([np.array([1, 2, 3]), 1, 3], {})
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             BOXCAR([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             BOXCAR([1], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             BOXCAR([1, 2], {})
 
     def test_gauss(self):
@@ -1609,9 +1610,9 @@ class TestOperator:
         with pytest.raises(IndexError):
             GAUSS([np.array([1, 2, 3]), 1, 3], {})
         # not enough stack elements
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             GAUSS([], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             GAUSS([1], {})
-        with pytest.raises(IndexError):
+        with pytest.raises(StackUnderflowError):
             GAUSS([1, 2], {})

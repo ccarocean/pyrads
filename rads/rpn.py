@@ -94,7 +94,7 @@ Keyword          Description
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from numbers import Complex, Integral
-from typing import Any, Union, MutableSequence, Mapping, cast
+from typing import Any, Union, MutableSequence, Mapping, Tuple, cast
 
 import numpy as np  # type: ignore
 from astropy.convolution import (  # type: ignore
@@ -104,6 +104,16 @@ from . import EPOCH
 from .datetime64util import ymdhmsus
 
 NumberOrArray = Union[int, float, np.generic, np.ndarray]
+
+
+class StackUnderflowError(Exception):
+    """Raised when the stack is too small for the operation.
+
+    When this is raised the stack will exist in the state that it was before
+    the operation was attempted.  Therefore, it is not necessary to repair the
+    stack.
+
+    """
 
 
 class Token(ABC):
@@ -324,8 +334,7 @@ class _SUBType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(x - y)
 
 
@@ -352,7 +361,8 @@ class _ADDType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        stack.append(stack.pop() + stack.pop())
+        x, y = _get_xy(stack)
+        stack.append(x + y)
 
 
 class _MULType(Operator):
@@ -378,7 +388,8 @@ class _MULType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        stack.append(stack.pop() * stack.pop())
+        x, y = _get_xy(stack)
+        stack.append(x * y)
 
 
 class _POPType(Operator):
@@ -404,7 +415,7 @@ class _POPType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.pop()
+        _get_x(stack)
 
 
 class _NEGType(Operator):
@@ -430,7 +441,8 @@ class _NEGType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(-stack.pop())
+        x = _get_x(stack)
+        stack.append(-x)
 
 
 class _ABSType(Operator):
@@ -456,7 +468,8 @@ class _ABSType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.absolute(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.absolute(x))
 
 
 class _INVType(Operator):
@@ -482,7 +495,8 @@ class _INVType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(1 / stack.pop())
+        x = _get_x(stack)
+        stack.append(1 / x)
 
 
 class _SQRTType(Operator):
@@ -508,7 +522,8 @@ class _SQRTType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.sqrt(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.sqrt(x))
 
 
 class _SQRType(Operator):
@@ -534,7 +549,8 @@ class _SQRType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.square(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.square(x))
 
 
 class _EXPType(Operator):
@@ -560,7 +576,8 @@ class _EXPType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.exp(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.exp(x))
 
 
 class _LOGType(Operator):
@@ -586,7 +603,8 @@ class _LOGType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.log(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.log(x))
 
 
 class _LOG10Type(Operator):
@@ -612,7 +630,8 @@ class _LOG10Type(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.log10(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.log10(x))
 
 
 class _SINType(Operator):
@@ -638,7 +657,8 @@ class _SINType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.sin(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.sin(x))
 
 
 class _COSType(Operator):
@@ -664,7 +684,8 @@ class _COSType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.cos(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.cos(x))
 
 
 class _TANType(Operator):
@@ -690,7 +711,8 @@ class _TANType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.tan(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.tan(x))
 
 
 class _SINDType(Operator):
@@ -716,7 +738,8 @@ class _SINDType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.sin(np.deg2rad(stack.pop())))
+        x = _get_x(stack)
+        stack.append(np.sin(np.deg2rad(x)))
 
 
 class _COSDType(Operator):
@@ -742,7 +765,8 @@ class _COSDType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.cos(np.deg2rad(stack.pop())))
+        x = _get_x(stack)
+        stack.append(np.cos(np.deg2rad(x)))
 
 
 class _TANDType(Operator):
@@ -768,7 +792,8 @@ class _TANDType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.tan(np.deg2rad(stack.pop())))
+        x = _get_x(stack)
+        stack.append(np.tan(np.deg2rad(x)))
 
 
 class _SINHType(Operator):
@@ -794,7 +819,8 @@ class _SINHType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.sinh(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.sinh(x))
 
 
 class _COSHType(Operator):
@@ -820,7 +846,8 @@ class _COSHType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.cosh(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.cosh(x))
 
 
 class _TANHType(Operator):
@@ -846,7 +873,8 @@ class _TANHType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.tanh(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.tanh(x))
 
 
 class _ASINType(Operator):
@@ -872,7 +900,8 @@ class _ASINType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.arcsin(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.arcsin(x))
 
 
 class _ACOSType(Operator):
@@ -898,7 +927,8 @@ class _ACOSType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.arccos(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.arccos(x))
 
 
 class _ATANType(Operator):
@@ -924,7 +954,8 @@ class _ATANType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.arctan(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.arctan(x))
 
 
 class _ASINDType(Operator):
@@ -950,7 +981,8 @@ class _ASINDType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.rad2deg(np.arcsin(stack.pop())))
+        x = _get_x(stack)
+        stack.append(np.rad2deg(np.arcsin(x)))
 
 
 class _ACOSDType(Operator):
@@ -976,7 +1008,8 @@ class _ACOSDType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.rad2deg(np.arccos(stack.pop())))
+        x = _get_x(stack)
+        stack.append(np.rad2deg(np.arccos(x)))
 
 
 class _ATANDType(Operator):
@@ -1002,7 +1035,8 @@ class _ATANDType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.rad2deg(np.arctan(stack.pop())))
+        x = _get_x(stack)
+        stack.append(np.rad2deg(np.arctan(x)))
 
 
 class _ASINHType(Operator):
@@ -1028,7 +1062,8 @@ class _ASINHType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.arcsinh(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.arcsinh(x))
 
 
 class _ACOSHType(Operator):
@@ -1054,7 +1089,8 @@ class _ACOSHType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.arccosh(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.arccosh(x))
 
 
 class _ATANHType(Operator):
@@ -1080,7 +1116,8 @@ class _ATANHType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.arctanh(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.arctanh(x))
 
 
 class _ISNANType(Operator):
@@ -1111,7 +1148,8 @@ class _ISNANType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.isnan(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.isnan(x))
 
 
 class _ISANType(Operator):
@@ -1142,7 +1180,8 @@ class _ISANType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.logical_not(np.isnan(stack.pop())))
+        x = _get_x(stack)
+        stack.append(np.logical_not(np.isnan(x)))
 
 
 class _RINTType(Operator):
@@ -1168,7 +1207,8 @@ class _RINTType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.round(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.round(x))
 
 
 class _CEILType(Operator):
@@ -1194,7 +1234,8 @@ class _CEILType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.ceil(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.ceil(x))
 
 
 class _FLOORType(Operator):
@@ -1220,7 +1261,8 @@ class _FLOORType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.floor(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.floor(x))
 
 
 class _D2RType(Operator):
@@ -1246,7 +1288,8 @@ class _D2RType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.deg2rad(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.deg2rad(x))
 
 
 class _R2DType(Operator):
@@ -1272,7 +1315,8 @@ class _R2DType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.rad2deg(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.rad2deg(x))
 
 
 class _YMDHMSType(Operator):
@@ -1308,7 +1352,7 @@ class _YMDHMSType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        x = stack.pop()
+        x = _get_x(stack)
         if isinstance(x, np.ndarray):
             time = np.datetime64(EPOCH) + (x*1e6).astype('timedelta64[us]')
             year, month, day, hour, minute, second, microsecond = ymdhmsus(time)
@@ -1345,7 +1389,8 @@ class _SUMType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.nansum(stack.pop()))
+        x = _get_x(stack)
+        stack.append(np.nansum(x))
 
 
 class _DIFType(Operator):
@@ -1371,7 +1416,8 @@ class _DIFType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        stack.append(np.diff(np.ravel(stack.pop()), prepend=np.nan))
+        x = _get_x(stack)
+        stack.append(np.diff(np.ravel(x), prepend=np.nan))
 
 
 class _DUPType(Operator):
@@ -1401,7 +1447,7 @@ class _DUPType(Operator):
             If :paramref:`stack` does not have at least 1 element.
 
         """
-        x = stack.pop()
+        x = _get_x(stack)
         stack.append(x)
         stack.append(x)
 
@@ -1429,8 +1475,7 @@ class _DIVType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(x / y)
 
 
@@ -1457,8 +1502,7 @@ class _POWType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(np.power(x, y))
 
 
@@ -1485,8 +1529,7 @@ class _FMODType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(np.fmod(x, y))
 
 
@@ -1513,7 +1556,8 @@ class _MINType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        stack.append(np.minimum(stack.pop(), stack.pop()))
+        x, y = _get_xy(stack)
+        stack.append(np.minimum(x, y))
 
 
 class _MAXType(Operator):
@@ -1539,7 +1583,8 @@ class _MAXType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        stack.append(np.maximum(stack.pop(), stack.pop()))
+        x, y = _get_xy(stack)
+        stack.append(np.maximum(x, y))
 
 
 class _ATAN2Type(Operator):
@@ -1565,8 +1610,7 @@ class _ATAN2Type(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(np.arctan2(x, y))
 
 
@@ -1593,7 +1637,8 @@ class _HYPOTType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        stack.append(np.hypot(stack.pop(), stack.pop()))
+        x, y = _get_xy(stack)
+        stack.append(np.hypot(x, y))
 
 
 class _R2Type(Operator):
@@ -1619,7 +1664,8 @@ class _R2Type(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        stack.append(stack.pop() ** 2 + stack.pop() ** 2)
+        x, y = _get_xy(stack)
+        stack.append(x**2 + y**2)
 
 
 class _EQType(Operator):
@@ -1650,8 +1696,7 @@ class _EQType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(x == y)
 
 
@@ -1683,8 +1728,7 @@ class _NEType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(x != y)
 
 
@@ -1716,8 +1760,7 @@ class _LTType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(x < y)
 
 
@@ -1749,8 +1792,7 @@ class _LEType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(x <= y)
 
 
@@ -1782,8 +1824,7 @@ class _GTType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(x > y)
 
 
@@ -1815,8 +1856,7 @@ class _GEType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(x >= y)
 
 
@@ -1843,8 +1883,7 @@ class _NANType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
             # upgrade integers to doubles
@@ -1881,8 +1920,7 @@ class _ANDType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
             a = np.copy(x)
@@ -1916,8 +1954,7 @@ class _ORType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
             # upgrade integers to doubles
@@ -1956,8 +1993,7 @@ class _IANDType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(np.bitwise_and(x, y))
 
 
@@ -1984,8 +2020,7 @@ class _IORType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(np.bitwise_or(x, y))
 
 
@@ -2012,8 +2047,7 @@ class _BTESTType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         if not _is_integer(x):
             raise TypeError("'x' must be an integer type")
         if not _is_integer(y):
@@ -2044,8 +2078,7 @@ class _AVGType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
             stacked = np.stack((x, y))
@@ -2083,8 +2116,7 @@ class _DXDYType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
             x = np.ravel(x)
@@ -2123,8 +2155,7 @@ class _EXCHType(Operator):
             If :paramref:`stack` does not have at least 2 elements.
 
         """
-        y = stack.pop()
-        x = stack.pop()
+        x, y = _get_xy(stack)
         stack.append(y)
         stack.append(x)
 
@@ -2153,9 +2184,7 @@ class _INRANGEType(Operator):
             If :paramref:`stack` does not have at least 3 elements.
 
         """
-        z = stack.pop()
-        y = stack.pop()
-        x = stack.pop()
+        x, y, z = _get_xyz(stack)
         if any(isinstance(v, np.ndarray) for v in [x, y, z]):
             x, y, z = np.broadcast_arrays(x, y, z)
             a = np.logical_and(y <= x, x <= z)
@@ -2197,9 +2226,7 @@ class _BOXCARType(Operator):
             If y or z is not a scalar.
 
         """
-        z = stack.pop()
-        y = stack.pop()
-        x = stack.pop()
+        x, y, z = _get_xyz(stack)
         if np.size(x) == 1:
             a = x
         else:
@@ -2251,9 +2278,7 @@ class _GAUSSType(Operator):
             If y or z is not a scalar.
 
         """
-        z = stack.pop()
-        y = stack.pop()
-        x = stack.pop()
+        x, y, z = _get_xyz(stack)
         if np.size(x) == 1:
             a = x
         else:
@@ -2930,3 +2955,40 @@ def _is_integer(x: NumberOrArray) -> bool:
     if isinstance(x, (np.ndarray, np.generic)):
         return issubclass(x.dtype.type, Integral)
     return isinstance(x, Integral)
+
+
+def _get_x(stack: MutableSequence[NumberOrArray]) -> NumberOrArray:
+    if not stack:
+        raise StackUnderflowError(
+            "attempted to get element from the 'stack' but the stack is empty")
+    return stack.pop()
+
+
+def _get_xy(stack: MutableSequence[NumberOrArray]) \
+        -> Tuple[NumberOrArray, NumberOrArray]:
+    if not stack:
+        raise StackUnderflowError(
+            "attempted to get 2 elements from the 'stack' but the stack "
+            "is empty")
+    if len(stack) < 2:
+        raise StackUnderflowError(
+            f"attempted to get 2 elements from the 'stack' but the stack has "
+            f"only {len(stack)} elements")
+    y = stack.pop()
+    x = stack.pop()
+    return x, y
+
+def _get_xyz(stack: MutableSequence[NumberOrArray]) \
+        -> Tuple[NumberOrArray, NumberOrArray, NumberOrArray]:
+    if not stack:
+        raise StackUnderflowError(
+            "attempted to get 3 elements from the 'stack' but the stack "
+            "is empty")
+    if len(stack) < 3:
+        raise StackUnderflowError(
+            f"attempted to get 3 elements from the 'stack' but the stack has "
+            f"only {len(stack)} elements")
+    z = stack.pop()
+    y = stack.pop()
+    x = stack.pop()
+    return x, y, z
