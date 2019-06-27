@@ -6,7 +6,7 @@ install:
   - pip install codecov
   - pip install -r dev-requirements.txt
 script:
-  - make test
+  - python -m pytest -v --cov=$(module) --cov-branch
 python:
   - '3.6'
   - '3.7'
