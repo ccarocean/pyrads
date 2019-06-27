@@ -1,4 +1,4 @@
-import pytest
+import pytest  # type: ignore
 from rads._utility import fortran_float
 
 

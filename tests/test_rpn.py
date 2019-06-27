@@ -1,10 +1,10 @@
-import math
 import warnings
 from datetime import datetime
-from typing import MutableSequence
+from typing import MutableSequence, MutableMapping
 
-import pytest
-import numpy as np
+import math
+import numpy as np  # type: ignore
+import pytest  # type: ignore
 
 from rads.rpn import (NumberOrArray, StackUnderflowError, Literal, PI, E,
                       Variable, Operator, SUB, ADD, MUL, POP, NEG, ABS, INV,
@@ -16,8 +16,7 @@ from rads.rpn import (NumberOrArray, StackUnderflowError, Literal, PI, E,
                       LE, GT, GE, NAN, AND, OR, IAND, IOR, BTEST, AVG, DXDY,
                       EXCH, INRANGE, BOXCAR, GAUSS)
 
-
-GOLDEN_RATIO = math.log((1+math.sqrt(5))/2)
+GOLDEN_RATIO = math.log((1 + math.sqrt(5)) / 2)
 
 
 class TestLiteral:
@@ -26,15 +25,15 @@ class TestLiteral:
         Literal(3)
         Literal(3.14)
         with pytest.raises(TypeError):
-            Literal('not a number')
+            Literal('not a number')  # type: ignore
 
     def test_value(self):
         assert Literal(3).value == 3
         assert Literal(3.14).value == 3.14
 
     def test_call(self):
-        stack = []
-        environment = {}
+        stack: MutableSequence[NumberOrArray] = []
+        environment: MutableMapping[str, NumberOrArray] = {}
         assert Literal(3.14)(stack, environment) is None
         assert Literal(2.71)(stack, environment) is None
         assert stack == [3.14, 2.71]
@@ -108,15 +107,15 @@ class TestVariable:
         with pytest.raises(ValueError):
             Variable('3name')
         with pytest.raises(TypeError):
-            Variable(3)
+            Variable(3)  # type: ignore
         with pytest.raises(TypeError):
-            Variable(3.14)
+            Variable(3.14)  # type: ignore
 
     def test_name(self):
         assert Variable('alt').name == 'alt'
 
     def test_call(self):
-        stack = []
+        stack: MutableSequence[NumberOrArray] = []
         environment = {
             'alt': np.array([1, 2, 3]),
             'dry_tropo': 4,
@@ -357,13 +356,13 @@ class TestOperator:
     def test_log(self):
         assert repr(LOG) == 'LOG'
         assert_operator(LOG, [math.e], [1.0], approx=True)
-        assert_operator(LOG, [math.e**2], [2.0], approx=True)
-        assert_operator(LOG, [math.e**-2], [-2.0], approx=True)
+        assert_operator(LOG, [math.e ** 2], [2.0], approx=True)
+        assert_operator(LOG, [math.e ** -2], [-2.0], approx=True)
         assert_operator(
-            LOG, [np.array([np.e**4, np.e**-1])], [np.array([4.0, -1.0])],
+            LOG, [np.array([np.e ** 4, np.e ** -1])], [np.array([4.0, -1.0])],
             approx=True)
         assert_operator(
-            LOG, [np.array([np.e**-4, np.e**1])], [np.array([-4.0, 1.0])],
+            LOG, [np.array([np.e ** -4, np.e ** 1])], [np.array([-4.0, 1.0])],
             approx=True)
         # extra stack elements
         assert_operator(LOG, [0, np.e], [0, 1.0], approx=True)
@@ -374,13 +373,13 @@ class TestOperator:
     def test_log10(self):
         assert repr(LOG10) == 'LOG10'
         assert_operator(LOG10, [10], [1.0], approx=True)
-        assert_operator(LOG10, [10**2], [2.0], approx=True)
-        assert_operator(LOG10, [10**-2], [-2.0], approx=True)
+        assert_operator(LOG10, [10 ** 2], [2.0], approx=True)
+        assert_operator(LOG10, [10 ** -2], [-2.0], approx=True)
         assert_operator(
-            LOG10, [np.array([10**4, 10**-1])], [np.array([4.0, -1.0])],
+            LOG10, [np.array([10 ** 4, 10 ** -1])], [np.array([4.0, -1.0])],
             approx=True)
         assert_operator(
-            LOG10, [np.array([10**-4, 10**1])], [np.array([-4.0, 1.0])],
+            LOG10, [np.array([10 ** -4, 10 ** 1])], [np.array([-4.0, 1.0])],
             approx=True)
         # extra stack elements
         assert_operator(LOG10, [0, 10], [0, 1.0], approx=True)
@@ -391,22 +390,22 @@ class TestOperator:
     def test_sin(self):
         assert repr(SIN) == 'SIN'
         assert_operator(SIN, [0.0], [0.0], approx=True)
-        assert_operator(SIN, [math.pi/6], [1/2], approx=True)
-        assert_operator(SIN, [math.pi/4], [1/math.sqrt(2)], approx=True)
-        assert_operator(SIN, [math.pi/3], [math.sqrt(3)/2], approx=True)
-        assert_operator(SIN, [math.pi/2], [1.0], approx=True)
+        assert_operator(SIN, [math.pi / 6], [1 / 2], approx=True)
+        assert_operator(SIN, [math.pi / 4], [1 / math.sqrt(2)], approx=True)
+        assert_operator(SIN, [math.pi / 3], [math.sqrt(3) / 2], approx=True)
+        assert_operator(SIN, [math.pi / 2], [1.0], approx=True)
         assert_operator(
             SIN,
-            [np.array([0.0, np.pi/6, np.pi/4, np.pi/3, np.pi/2])],
-            [np.array([0.0, 1/2, 1/np.sqrt(2), np.sqrt(3)/2, 1.0])],
+            [np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2])],
+            [np.array([0.0, 1 / 2, 1 / np.sqrt(2), np.sqrt(3) / 2, 1.0])],
             approx=True)
         assert_operator(
             SIN,
-            [-np.array([0.0, np.pi/6, np.pi/4, np.pi/3, np.pi/2])],
-            [-np.array([0.0, 1/2, 1/np.sqrt(2), np.sqrt(3)/2, 1.0])],
+            [-np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2])],
+            [-np.array([0.0, 1 / 2, 1 / np.sqrt(2), np.sqrt(3) / 2, 1.0])],
             approx=True)
         # extra stack elements
-        assert_operator(SIN, [0, math.pi/2], [0, 1.0], approx=True)
+        assert_operator(SIN, [0, math.pi / 2], [0, 1.0], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             SIN([], {})
@@ -414,22 +413,22 @@ class TestOperator:
     def test_cos(self):
         assert repr(COS) == 'COS'
         assert_operator(COS, [0.0], [1.0], approx=True)
-        assert_operator(COS, [math.pi/6], [math.sqrt(3)/2], approx=True)
-        assert_operator(COS, [math.pi/4], [1/math.sqrt(2)], approx=True)
-        assert_operator(COS, [math.pi/3], [1/2], approx=True)
-        assert_operator(COS, [math.pi/2], [0.0], approx=True)
+        assert_operator(COS, [math.pi / 6], [math.sqrt(3) / 2], approx=True)
+        assert_operator(COS, [math.pi / 4], [1 / math.sqrt(2)], approx=True)
+        assert_operator(COS, [math.pi / 3], [1 / 2], approx=True)
+        assert_operator(COS, [math.pi / 2], [0.0], approx=True)
         assert_operator(
             COS,
-            [np.array([0.0, np.pi/6, np.pi/4, np.pi/3, np.pi/2])],
-            [np.array([1.0, np.sqrt(3)/2, 1/np.sqrt(2), 1/2, 0.0])],
+            [np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2])],
+            [np.array([1.0, np.sqrt(3) / 2, 1 / np.sqrt(2), 1 / 2, 0.0])],
             approx=True)
         assert_operator(
             COS,
-            [-np.array([0.0, np.pi/6, np.pi/4, np.pi/3, np.pi/2])],
-            [np.array([1.0, np.sqrt(3)/2, 1/np.sqrt(2), 1/2, 0.0])],
+            [-np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2])],
+            [np.array([1.0, np.sqrt(3) / 2, 1 / np.sqrt(2), 1 / 2, 0.0])],
             approx=True)
         # extra stack elements
-        assert_operator(COS, [0, math.pi/2], [0, 0.0], approx=True)
+        assert_operator(COS, [0, math.pi / 2], [0, 0.0], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             COS([], {})
@@ -437,21 +436,21 @@ class TestOperator:
     def test_tan(self):
         assert repr(TAN) == 'TAN'
         assert_operator(TAN, [0.0], [0.0], approx=True)
-        assert_operator(TAN, [math.pi/6], [1/math.sqrt(3)], approx=True)
-        assert_operator(TAN, [math.pi/4], [1.0], approx=True)
-        assert_operator(TAN, [math.pi/3], [math.sqrt(3)], approx=True)
+        assert_operator(TAN, [math.pi / 6], [1 / math.sqrt(3)], approx=True)
+        assert_operator(TAN, [math.pi / 4], [1.0], approx=True)
+        assert_operator(TAN, [math.pi / 3], [math.sqrt(3)], approx=True)
         assert_operator(
             TAN,
-            [np.array([0.0, np.pi/6, np.pi/4, np.pi/3])],
-            [np.array([0.0, 1/np.sqrt(3), 1.0, np.sqrt(3)])],
+            [np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3])],
+            [np.array([0.0, 1 / np.sqrt(3), 1.0, np.sqrt(3)])],
             approx=True)
         assert_operator(
             TAN,
-            [-np.array([0.0, np.pi/6, np.pi/4, np.pi/3])],
-            [-np.array([0.0, 1/np.sqrt(3), 1.0, np.sqrt(3)])],
+            [-np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3])],
+            [-np.array([0.0, 1 / np.sqrt(3), 1.0, np.sqrt(3)])],
             approx=True)
         # extra stack elements
-        assert_operator(TAN, [0, math.pi/4], [0, 1.0], approx=True)
+        assert_operator(TAN, [0, math.pi / 4], [0, 1.0], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             TAN([], {})
@@ -459,19 +458,19 @@ class TestOperator:
     def test_sind(self):
         assert repr(SIND) == 'SIND'
         assert_operator(SIND, [0], [0.0], approx=True)
-        assert_operator(SIND, [30], [1/2], approx=True)
-        assert_operator(SIND, [45], [1/math.sqrt(2)], approx=True)
-        assert_operator(SIND, [60], [math.sqrt(3)/2], approx=True)
+        assert_operator(SIND, [30], [1 / 2], approx=True)
+        assert_operator(SIND, [45], [1 / math.sqrt(2)], approx=True)
+        assert_operator(SIND, [60], [math.sqrt(3) / 2], approx=True)
         assert_operator(SIND, [90], [1.0], approx=True)
         assert_operator(
             SIND,
             [np.array([0, 30, 45, 60, 90])],
-            [np.array([0.0, 1/2, 1/np.sqrt(2), np.sqrt(3)/2, 1.0])],
+            [np.array([0.0, 1 / 2, 1 / np.sqrt(2), np.sqrt(3) / 2, 1.0])],
             approx=True)
         assert_operator(
             SIND,
             [-np.array([0, 30, 45, 60, 90])],
-            [-np.array([0.0, 1/2, 1/np.sqrt(2), np.sqrt(3)/2, 1.0])],
+            [-np.array([0.0, 1 / 2, 1 / np.sqrt(2), np.sqrt(3) / 2, 1.0])],
             approx=True)
         # extra stack elements
         assert_operator(SIND, [0, 90], [0, 1.0], approx=True)
@@ -482,19 +481,19 @@ class TestOperator:
     def test_cosd(self):
         assert repr(COSD) == 'COSD'
         assert_operator(COSD, [0], [1.0], approx=True)
-        assert_operator(COSD, [30], [math.sqrt(3)/2], approx=True)
-        assert_operator(COSD, [45], [1/math.sqrt(2)], approx=True)
-        assert_operator(COSD, [60], [1/2], approx=True)
+        assert_operator(COSD, [30], [math.sqrt(3) / 2], approx=True)
+        assert_operator(COSD, [45], [1 / math.sqrt(2)], approx=True)
+        assert_operator(COSD, [60], [1 / 2], approx=True)
         assert_operator(COSD, [90], [0.0], approx=True)
         assert_operator(
             COSD,
             [np.array([0, 30, 45, 60, 90])],
-            [np.array([1.0, np.sqrt(3)/2, 1/np.sqrt(2), 1/2, 0.0])],
+            [np.array([1.0, np.sqrt(3) / 2, 1 / np.sqrt(2), 1 / 2, 0.0])],
             approx=True)
         assert_operator(
             COSD,
             [-np.array([0, 30, 45, 60, 90])],
-            [np.array([1.0, np.sqrt(3)/2, 1/np.sqrt(2), 1/2, 0.0])],
+            [np.array([1.0, np.sqrt(3) / 2, 1 / np.sqrt(2), 1 / 2, 0.0])],
             approx=True)
         # extra stack elements
         assert_operator(COSD, [0, 90], [0, 0.0], approx=True)
@@ -505,18 +504,18 @@ class TestOperator:
     def test_tand(self):
         assert repr(TAND) == 'TAND'
         assert_operator(TAND, [0], [0], approx=True)
-        assert_operator(TAND, [30], [1/math.sqrt(3)], approx=True)
+        assert_operator(TAND, [30], [1 / math.sqrt(3)], approx=True)
         assert_operator(TAND, [45], [1.0], approx=True)
         assert_operator(TAND, [60], [math.sqrt(3)], approx=True)
         assert_operator(
             TAND,
             [np.array([0, 30, 45, 60])],
-            [np.array([0.0, 1/np.sqrt(3), 1.0, np.sqrt(3)])],
+            [np.array([0.0, 1 / np.sqrt(3), 1.0, np.sqrt(3)])],
             approx=True)
         assert_operator(
             TAND,
             [-np.array([0, 30, 45, 60])],
-            [-np.array([0.0, 1/np.sqrt(3), 1.0, np.sqrt(3)])],
+            [-np.array([0.0, 1 / np.sqrt(3), 1.0, np.sqrt(3)])],
             approx=True)
         # extra stack elements
         assert_operator(TAND, [0, 45], [0, 1.0], approx=True)
@@ -542,15 +541,15 @@ class TestOperator:
     def test_cosh(self):
         assert repr(COSH) == 'COSH'
         assert_operator(COSH, [0.0], [1.0], approx=True)
-        assert_operator(COSH, [GOLDEN_RATIO], [math.sqrt(5)/2], approx=True)
+        assert_operator(COSH, [GOLDEN_RATIO], [math.sqrt(5) / 2], approx=True)
         assert_operator(
             COSH,
             [np.array([0.0, GOLDEN_RATIO])],
-            [np.array([1.0, np.sqrt(5)/2])],
+            [np.array([1.0, np.sqrt(5) / 2])],
             approx=True)
         # extra stack elements
         assert_operator(
-            COSH, [0, GOLDEN_RATIO], [0, math.sqrt(5)/2], approx=True)
+            COSH, [0, GOLDEN_RATIO], [0, math.sqrt(5) / 2], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             COSH([], {})
@@ -558,15 +557,15 @@ class TestOperator:
     def test_tanh(self):
         assert repr(TANH) == 'TANH'
         assert_operator(TANH, [0.0], [0.0], approx=True)
-        assert_operator(TANH, [GOLDEN_RATIO], [math.sqrt(5)/5], approx=True)
+        assert_operator(TANH, [GOLDEN_RATIO], [math.sqrt(5) / 5], approx=True)
         assert_operator(
             TANH,
             [np.array([0.0, GOLDEN_RATIO])],
-            [np.array([0.0, np.sqrt(5)/5])],
+            [np.array([0.0, np.sqrt(5) / 5])],
             approx=True)
         # extra stack elements
         assert_operator(
-            TANH, [0, GOLDEN_RATIO], [0, math.sqrt(5)/5], approx=True)
+            TANH, [0, GOLDEN_RATIO], [0, math.sqrt(5) / 5], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             TANH([], {})
@@ -574,22 +573,22 @@ class TestOperator:
     def test_asin(self):
         assert repr(ASIN) == 'ASIN'
         assert_operator(ASIN, [0.0], [0.0], approx=True)
-        assert_operator(ASIN, [1/2], [math.pi/6], approx=True)
-        assert_operator(ASIN, [1/math.sqrt(2)], [math.pi/4], approx=True)
-        assert_operator(ASIN, [math.sqrt(3)/2], [math.pi/3], approx=True)
-        assert_operator(ASIN, [1.0], [math.pi/2], approx=True)
+        assert_operator(ASIN, [1 / 2], [math.pi / 6], approx=True)
+        assert_operator(ASIN, [1 / math.sqrt(2)], [math.pi / 4], approx=True)
+        assert_operator(ASIN, [math.sqrt(3) / 2], [math.pi / 3], approx=True)
+        assert_operator(ASIN, [1.0], [math.pi / 2], approx=True)
         assert_operator(
             ASIN,
-            [np.array([0.0, 1/2, 1/np.sqrt(2), np.sqrt(3)/2, 1.0])],
-            [np.array([0.0, np.pi/6, np.pi/4, np.pi/3, np.pi/2])],
+            [np.array([0.0, 1 / 2, 1 / np.sqrt(2), np.sqrt(3) / 2, 1.0])],
+            [np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2])],
             approx=True)
         assert_operator(
             ASIN,
-            [-np.array([0.0, 1/2, 1/np.sqrt(2), np.sqrt(3)/2, 1.0])],
-            [-np.array([0.0, np.pi/6, np.pi/4, np.pi/3, np.pi/2])],
+            [-np.array([0.0, 1 / 2, 1 / np.sqrt(2), np.sqrt(3) / 2, 1.0])],
+            [-np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2])],
             approx=True)
         # extra stack elements
-        assert_operator(ASIN, [0, 1.0], [0, math.pi/2], approx=True)
+        assert_operator(ASIN, [0, 1.0], [0, math.pi / 2], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             ASIN([], {})
@@ -597,17 +596,17 @@ class TestOperator:
     def test_acos(self):
         assert repr(ACOS) == 'ACOS'
         assert_operator(ACOS, [1.0], [0.0], approx=True)
-        assert_operator(ACOS, [math.sqrt(3)/2], [math.pi/6], approx=True)
-        assert_operator(ACOS, [1/math.sqrt(2)], [math.pi/4], approx=True)
-        assert_operator(ACOS, [1/2], [math.pi/3], approx=True)
-        assert_operator(ACOS, [0.0], [math.pi/2], approx=True)
+        assert_operator(ACOS, [math.sqrt(3) / 2], [math.pi / 6], approx=True)
+        assert_operator(ACOS, [1 / math.sqrt(2)], [math.pi / 4], approx=True)
+        assert_operator(ACOS, [1 / 2], [math.pi / 3], approx=True)
+        assert_operator(ACOS, [0.0], [math.pi / 2], approx=True)
         assert_operator(
             ACOS,
-            [np.array([1.0, np.sqrt(3)/2, 1/np.sqrt(2), 1/2, 0.0])],
-            [np.array([0.0, np.pi/6, np.pi/4, np.pi/3, np.pi/2])],
+            [np.array([1.0, np.sqrt(3) / 2, 1 / np.sqrt(2), 1 / 2, 0.0])],
+            [np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2])],
             approx=True)
         # extra stack elements
-        assert_operator(ACOS, [0, 0.0], [0, math.pi/2], approx=True)
+        assert_operator(ACOS, [0, 0.0], [0, math.pi / 2], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             ACOS([], {})
@@ -615,21 +614,21 @@ class TestOperator:
     def test_atan(self):
         assert repr(ATAN) == 'ATAN'
         assert_operator(ATAN, [0.0], [0.0], approx=True)
-        assert_operator(ATAN, [1/math.sqrt(3)], [math.pi/6], approx=True)
-        assert_operator(ATAN, [1.0], [math.pi/4], approx=True)
-        assert_operator(ATAN, [math.sqrt(3)], [math.pi/3], approx=True)
+        assert_operator(ATAN, [1 / math.sqrt(3)], [math.pi / 6], approx=True)
+        assert_operator(ATAN, [1.0], [math.pi / 4], approx=True)
+        assert_operator(ATAN, [math.sqrt(3)], [math.pi / 3], approx=True)
         assert_operator(
             ATAN,
-            [np.array([0.0, 1/np.sqrt(3), 1.0, np.sqrt(3)])],
-            [np.array([0.0, np.pi/6, np.pi/4, np.pi/3])],
+            [np.array([0.0, 1 / np.sqrt(3), 1.0, np.sqrt(3)])],
+            [np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3])],
             approx=True)
         assert_operator(
             ATAN,
-            [-np.array([0.0, 1/np.sqrt(3), 1.0, np.sqrt(3)])],
-            [-np.array([0.0, np.pi/6, np.pi/4, np.pi/3])],
+            [-np.array([0.0, 1 / np.sqrt(3), 1.0, np.sqrt(3)])],
+            [-np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3])],
             approx=True)
         # extra stack elements
-        assert_operator(ATAN, [0, 1.0], [0, math.pi/4], approx=True)
+        assert_operator(ATAN, [0, 1.0], [0, math.pi / 4], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             ATAN([], {})
@@ -637,18 +636,18 @@ class TestOperator:
     def test_asind(self):
         assert repr(ASIND) == 'ASIND'
         assert_operator(ASIND, [0.0], [0], approx=True)
-        assert_operator(ASIND, [1/2], [30], approx=True)
-        assert_operator(ASIND, [1/math.sqrt(2)], [45], approx=True)
-        assert_operator(ASIND, [math.sqrt(3)/2], [60], approx=True)
+        assert_operator(ASIND, [1 / 2], [30], approx=True)
+        assert_operator(ASIND, [1 / math.sqrt(2)], [45], approx=True)
+        assert_operator(ASIND, [math.sqrt(3) / 2], [60], approx=True)
         assert_operator(ASIND, [1.0], [90], approx=True)
         assert_operator(
             ASIND,
-            [np.array([0.0, 1/2, 1/np.sqrt(2), np.sqrt(3)/2, 1.0])],
+            [np.array([0.0, 1 / 2, 1 / np.sqrt(2), np.sqrt(3) / 2, 1.0])],
             [np.array([0, 30, 45, 60, 90])],
             approx=True)
         assert_operator(
             ASIND,
-            [-np.array([0.0, 1/2, 1/np.sqrt(2), np.sqrt(3)/2, 1.0])],
+            [-np.array([0.0, 1 / 2, 1 / np.sqrt(2), np.sqrt(3) / 2, 1.0])],
             [-np.array([0, 30, 45, 60, 90])],
             approx=True)
         # extra stack elements
@@ -660,13 +659,13 @@ class TestOperator:
     def test_acosd(self):
         assert repr(ACOSD) == 'ACOSD'
         assert_operator(ACOSD, [1.0], [0], approx=True)
-        assert_operator(ACOSD, [math.sqrt(3)/2], [30], approx=True)
-        assert_operator(ACOSD, [1/math.sqrt(2)], [45], approx=True)
-        assert_operator(ACOSD, [1/2], [60], approx=True)
+        assert_operator(ACOSD, [math.sqrt(3) / 2], [30], approx=True)
+        assert_operator(ACOSD, [1 / math.sqrt(2)], [45], approx=True)
+        assert_operator(ACOSD, [1 / 2], [60], approx=True)
         assert_operator(ACOSD, [0.0], [90], approx=True)
         assert_operator(
             ACOSD,
-            [np.array([1.0, np.sqrt(3)/2, 1/np.sqrt(2), 1/2, 0.0])],
+            [np.array([1.0, np.sqrt(3) / 2, 1 / np.sqrt(2), 1 / 2, 0.0])],
             [np.array([0, 30, 45, 60, 90])],
             approx=True)
         # extra stack elements
@@ -678,17 +677,17 @@ class TestOperator:
     def test_atand(self):
         assert repr(ATAND) == 'ATAND'
         assert_operator(ATAND, [0.0], [0], approx=True)
-        assert_operator(ATAND, [1/math.sqrt(3)], [30], approx=True)
+        assert_operator(ATAND, [1 / math.sqrt(3)], [30], approx=True)
         assert_operator(ATAND, [1.0], [45], approx=True)
         assert_operator(ATAND, [math.sqrt(3)], [60], approx=True)
         assert_operator(
             ATAND,
-            [np.array([0.0, 1/np.sqrt(3), 1.0, np.sqrt(3)])],
+            [np.array([0.0, 1 / np.sqrt(3), 1.0, np.sqrt(3)])],
             [np.array([0, 30, 45, 60])],
             approx=True)
         assert_operator(
             ATAND,
-            [-np.array([0.0, 1/np.sqrt(3), 1.0, np.sqrt(3)])],
+            [-np.array([0.0, 1 / np.sqrt(3), 1.0, np.sqrt(3)])],
             [-np.array([0, 30, 45, 60])],
             approx=True)
         # extra stack elements
@@ -715,15 +714,15 @@ class TestOperator:
     def test_acosh(self):
         assert repr(ACOSH) == 'ACOSH'
         assert_operator(ACOSH, [1.0], [0.0], approx=True)
-        assert_operator(ACOSH, [math.sqrt(5)/2], [GOLDEN_RATIO], approx=True)
+        assert_operator(ACOSH, [math.sqrt(5) / 2], [GOLDEN_RATIO], approx=True)
         assert_operator(
             ACOSH,
-            [np.array([1.0, np.sqrt(5)/2])],
+            [np.array([1.0, np.sqrt(5) / 2])],
             [np.array([0.0, GOLDEN_RATIO])],
             approx=True)
         # extra stack elements
         assert_operator(
-            ACOSH, [0, math.sqrt(5)/2], [0, GOLDEN_RATIO], approx=True)
+            ACOSH, [0, math.sqrt(5) / 2], [0, GOLDEN_RATIO], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             ACOSH([], {})
@@ -731,15 +730,15 @@ class TestOperator:
     def test_atanh(self):
         assert repr(ATANH) == 'ATANH'
         assert_operator(ATANH, [0.0], [0.0], approx=True)
-        assert_operator(ATANH, [math.sqrt(5)/5], [GOLDEN_RATIO], approx=True)
+        assert_operator(ATANH, [math.sqrt(5) / 5], [GOLDEN_RATIO], approx=True)
         assert_operator(
             ATANH,
-            [np.array([0.0, np.sqrt(5)/5])],
+            [np.array([0.0, np.sqrt(5) / 5])],
             [np.array([0.0, GOLDEN_RATIO])],
             approx=True)
         # extra stack elements
         assert_operator(
-            ATANH, [0, math.sqrt(5)/5], [0, GOLDEN_RATIO], approx=True)
+            ATANH, [0, math.sqrt(5) / 5], [0, GOLDEN_RATIO], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             ATANH([], {})
@@ -821,7 +820,8 @@ class TestOperator:
         assert_operator(CEILING, [-1.6], [-1])
         assert_operator(CEILING, [-2.4], [-2])
         assert_operator(CEILING, [np.array([1.6, 2.4])], [np.array([2, 3])])
-        assert_operator(CEILING, [np.array([-1.6, -2.4])], [np.array([-1, -2])])
+        assert_operator(
+            CEILING, [np.array([-1.6, -2.4])], [np.array([-1, -2])])
         # extra stack elements
         assert_operator(CEILING, [0, 1.2], [0, 2])
         # not enough stack elements
@@ -845,22 +845,22 @@ class TestOperator:
     def test_d2r(self):
         assert repr(D2R) == 'D2R'
         assert_operator(D2R, [0], [0.0], approx=True)
-        assert_operator(D2R, [30], [math.pi/6], approx=True)
-        assert_operator(D2R, [45], [math.pi/4], approx=True)
-        assert_operator(D2R, [60], [math.pi/3], approx=True)
-        assert_operator(D2R, [90], [math.pi/2], approx=True)
+        assert_operator(D2R, [30], [math.pi / 6], approx=True)
+        assert_operator(D2R, [45], [math.pi / 4], approx=True)
+        assert_operator(D2R, [60], [math.pi / 3], approx=True)
+        assert_operator(D2R, [90], [math.pi / 2], approx=True)
         assert_operator(
             D2R,
             [np.array([0, 30, 45, 60, 90])],
-            [np.array([0.0, np.pi/6, np.pi/4, np.pi/3, np.pi/2])],
+            [np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2])],
             approx=True)
         assert_operator(
             D2R,
             [-np.array([0, 30, 45, 60, 90])],
-            [-np.array([0.0, np.pi/6, np.pi/4, np.pi/3, np.pi/2])],
+            [-np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2])],
             approx=True)
         # extra stack elements
-        assert_operator(D2R, [0, 90], [0, math.pi/2], approx=True)
+        assert_operator(D2R, [0, 90], [0, math.pi / 2], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             D2R([], {})
@@ -868,22 +868,22 @@ class TestOperator:
     def test_r2d(self):
         assert repr(R2D) == 'R2D'
         assert_operator(R2D, [0.0], [0], approx=True)
-        assert_operator(R2D, [math.pi/6], [30], approx=True)
-        assert_operator(R2D, [math.pi/4], [45], approx=True)
-        assert_operator(R2D, [math.pi/3], [60], approx=True)
-        assert_operator(R2D, [math.pi/2], [90], approx=True)
+        assert_operator(R2D, [math.pi / 6], [30], approx=True)
+        assert_operator(R2D, [math.pi / 4], [45], approx=True)
+        assert_operator(R2D, [math.pi / 3], [60], approx=True)
+        assert_operator(R2D, [math.pi / 2], [90], approx=True)
         assert_operator(
             R2D,
-            [np.array([0.0, np.pi/6, np.pi/4, np.pi/3, np.pi/2])],
+            [np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2])],
             [np.array([0, 30, 45, 60, 90])],
             approx=True)
         assert_operator(
             R2D,
-            [-np.array([0.0, np.pi/6, np.pi/4, np.pi/3, np.pi/2])],
+            [-np.array([0.0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2])],
             [-np.array([0, 30, 45, 60, 90])],
             approx=True)
         # extra stack elements
-        assert_operator(R2D, [0, math.pi/2], [0, 90], approx=True)
+        assert_operator(R2D, [0, math.pi / 2], [0, 90], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             R2D([], {})
@@ -1033,27 +1033,35 @@ class TestOperator:
         assert repr(ATAN2) == 'ATAN2'
         # NOTE: second parameter is x, first is y
         assert_operator(ATAN2, [0, 1], [0], approx=True)
-        assert_operator(ATAN2, [1, math.sqrt(3)], [math.pi/6], approx=True)
-        assert_operator(ATAN2, [1, 1], [math.pi/4], approx=True)
-        assert_operator(ATAN2, [math.sqrt(3), 1], [math.pi/3], approx=True)
-        assert_operator(ATAN2, [1, 0], [math.pi/2], approx=True)
+        assert_operator(ATAN2, [1, math.sqrt(3)], [math.pi / 6], approx=True)
+        assert_operator(ATAN2, [1, 1], [math.pi / 4], approx=True)
+        assert_operator(ATAN2, [math.sqrt(3), 1], [math.pi / 3], approx=True)
+        assert_operator(ATAN2, [1, 0], [math.pi / 2], approx=True)
         assert_operator(
-            ATAN2, [math.sqrt(3), -1], [math.pi/2 + math.pi/6], approx=True)
-        assert_operator(ATAN2, [1, -1], [math.pi/2 + math.pi/4], approx=True)
+            ATAN2,
+            [math.sqrt(3), -1],
+            [math.pi / 2 + math.pi / 6],
+            approx=True)
         assert_operator(
-            ATAN2, [1, -math.sqrt(3)], [math.pi/2 + math.pi/3], approx=True)
-        assert_operator(ATAN2, [0, -1], [math.pi/2 + math.pi/2], approx=True)
-
+            ATAN2, [1, -1], [math.pi / 2 + math.pi / 4], approx=True)
+        assert_operator(
+            ATAN2,
+            [1, -math.sqrt(3)],
+            [math.pi / 2 + math.pi / 3],
+            approx=True)
+        assert_operator(
+            ATAN2, [0, -1], [math.pi / 2 + math.pi / 2], approx=True)
         assert_operator(
             ATAN2,
             [np.array([0, 1, 1, np.sqrt(3), 1, np.sqrt(3), 1, 1, 0]),
              np.array([1, np.sqrt(3), 1, 1, 0, -1, -1, -np.sqrt(3), -1])],
             [np.array(
-                [0.0, np.pi/6, np.pi/4, np.pi/3, np.pi/2, np.pi/2 + np.pi/6,
-                 np.pi/2 + np.pi/4, np.pi/2 + np.pi/3, np.pi/2 + np.pi/2])],
+                [0.0, np.pi / 6, np.pi / 4, np.pi / 3, np.pi / 2,
+                 np.pi / 2 + np.pi / 6, np.pi / 2 + np.pi / 4,
+                 np.pi / 2 + np.pi / 3, np.pi / 2 + np.pi / 2])],
             approx=True)
         # extra stack elements
-        assert_operator(ATAN2, [0, 1, 1], [0, math.pi/4], approx=True)
+        assert_operator(ATAN2, [0, 1, 1], [0, math.pi / 4], approx=True)
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             ATAN2([], {})
@@ -1514,7 +1522,7 @@ class TestOperator:
         assert_operator(
             BOXCAR,
             [np.array([0, 1, 2, 3, 4]), 0, 3],
-            [np.array([1/3, 1, 2, 3, 11/3])],
+            [np.array([1 / 3, 1, 2, 3, 11 / 3])],
             approx=True)
         # window size of 1 should return original array
         assert_operator(
@@ -1526,13 +1534,14 @@ class TestOperator:
         assert_operator(
             BOXCAR,
             [np.array([0, np.nan, 2, 3, 4]), 0, 3],
-            [np.array([0, np.nan, 2.5, 3, 11/3])],
+            [np.array([0, np.nan, 2.5, 3, 11 / 3])],
             approx=True)
         # multi-dimensional x
         assert_operator(
             BOXCAR,
             [np.array([[0, 1, 2, 3, 4], [0, 10, 20, 30, 40]]), 1, 3],
-            [np.array([[1/3, 1, 2, 3, 11/3], [10/3, 10, 20, 30, 110/3]])],
+            [np.array([[1 / 3, 1, 2, 3, 11 / 3],
+                       [10 / 3, 10, 20, 30, 110 / 3]])],
             approx=True)
         assert_operator(
             BOXCAR,

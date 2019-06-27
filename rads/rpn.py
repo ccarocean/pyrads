@@ -93,7 +93,7 @@ Keyword          Description
 
 from abc import ABC, abstractmethod
 from datetime import timedelta
-from numbers import Complex, Integral
+from numbers import Integral
 from typing import Any, Union, MutableSequence, Mapping, Tuple, cast
 
 import numpy as np  # type: ignore
@@ -173,14 +173,14 @@ class Literal(Token):
     """
 
     @property
-    def value(self) -> NumberOrArray:
+    def value(self) -> Union[int, float, bool]:
         """Value of the literal."""
         return self._value
 
-    def __init__(self, value: Complex) -> None:
-        if not isinstance(value, Complex):
-            raise TypeError("'value' must be a number")
-        self._value = value
+    def __init__(self, value: Union[int, float, bool]) -> None:
+        if not isinstance(value, (int, float, bool)):
+            raise TypeError("'value' must be an int, float, or bool")
+        self._value: Union[int, float, bool] = value
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1354,15 +1354,16 @@ class _YMDHMSType(Operator):
         """
         x = _get_x(stack)
         if isinstance(x, np.ndarray):
-            time = np.datetime64(EPOCH) + (x*1e6).astype('timedelta64[us]')
-            year, month, day, hour, minute, second, microsecond = ymdhmsus(time)
+            time = np.datetime64(EPOCH) + (x * 1e6).astype('timedelta64[us]')
+            year, month, day, hour, minute, second, microsecond = \
+                ymdhmsus(time)
             a = ((year % 100) * 1e10 + month * 1e8 + day * 1e6 +
-                  hour * 1e4 + minute * 1e2 + second + microsecond * 1e-6)
+                 hour * 1e4 + minute * 1e2 + second + microsecond * 1e-6)
         else:
             time = (EPOCH + timedelta(seconds=x))
             a = ((time.year % 100) * 1e10 + time.month * 1e8 + time.day * 1e6 +
-                  time.hour * 1e4 + time.minute * 1e2 + time.second +
-                  time.microsecond * 1e-6)
+                 time.hour * 1e4 + time.minute * 1e2 + time.second +
+                 time.microsecond * 1e-6)
         stack.append(a)
 
 
@@ -1665,7 +1666,7 @@ class _R2Type(Operator):
 
         """
         x, y = _get_xy(stack)
-        stack.append(x**2 + y**2)
+        stack.append(x ** 2 + y ** 2)
 
 
 class _EQType(Operator):
@@ -2083,7 +2084,7 @@ class _AVGType(Operator):
             x, y = np.broadcast_arrays(x, y)
             stacked = np.stack((x, y))
             non_nan = np.sum(~np.isnan(stacked), axis=0)
-            stack.append(np.nansum(stacked, axis=0)/non_nan)
+            stack.append(np.nansum(stacked, axis=0) / non_nan)
         else:
             if np.isnan(x):
                 stack.append(y)
@@ -2977,6 +2978,7 @@ def _get_xy(stack: MutableSequence[NumberOrArray]) \
     y = stack.pop()
     x = stack.pop()
     return x, y
+
 
 def _get_xyz(stack: MutableSequence[NumberOrArray]) \
         -> Tuple[NumberOrArray, NumberOrArray, NumberOrArray]:
