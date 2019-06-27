@@ -4,7 +4,7 @@ dataclasses;python_version=="3.6"
 dataclass-builder>=1.1.2
 fortran-format-converter>=0.1.2
 lxml
-numpy>=1.11.0
+numpy>=1.16.0
 scipy
 wrapt
 yzal>=0.0.5
