@@ -7,8 +7,8 @@ from wrapt import ObjectProxy  # type: ignore
 
 from ._typing import PathOrFile, PathLike
 
-__all__ = ['ensure_open', 'filestring', 'xor',
-           'contains_sublist', 'merge_sublist', 'delete_sublist']
+__all__ = ['ensure_open', 'filestring', 'xor', 'contains_sublist',
+           'merge_sublist', 'delete_sublist', 'fortran_float']
 
 
 class _NoCloseIOWrapper(ObjectProxy):  # type: ignore

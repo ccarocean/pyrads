@@ -7,14 +7,14 @@ import numpy as np  # type: ignore
 import pytest  # type: ignore
 
 from rads.rpn import (NumberOrArray, StackUnderflowError, Literal, PI, E,
-                      Variable, Operator, SUB, ADD, MUL, POP, NEG, ABS, INV,
-                      SQRT, SQR, EXP, LOG, LOG10, SIN, COS, TAN, SIND, COSD,
-                      TAND, SINH, COSH, TANH, ASIN, ACOS, ATAN, ASIND, ACOSD,
-                      ATAND, ASINH, ACOSH, ATANH, ISNAN, ISAN, RINT, NINT,
-                      CEIL, CEILING, FLOOR, D2R, R2D, YMDHMS, SUM, DIF, DUP,
-                      DIV, POW, FMOD, MIN, MAX, ATAN2, HYPOT, R2, EQ, NE, LT,
-                      LE, GT, GE, NAN, AND, OR, IAND, IOR, BTEST, AVG, DXDY,
-                      EXCH, INRANGE, BOXCAR, GAUSS, token)
+                      Variable, Operator, Expression, SUB, ADD, MUL, POP, NEG,
+                      ABS, INV, SQRT, SQR, EXP, LOG, LOG10, SIN, COS, TAN,
+                      SIND, COSD, TAND, SINH, COSH, TANH, ASIN, ACOS, ATAN,
+                      ASIND, ACOSD, ATAND, ASINH, ACOSH, ATANH, ISNAN, ISAN,
+                      RINT, NINT, CEIL, CEILING, FLOOR, D2R, R2D, YMDHMS, SUM,
+                      DIF, DUP, DIV, POW, FMOD, MIN, MAX, ATAN2, HYPOT, R2, EQ,
+                      NE, LT, LE, GT, GE, NAN, AND, OR, IAND, IOR, BTEST, AVG,
+                      DXDY, EXCH, INRANGE, BOXCAR, GAUSS, token)
 
 GOLDEN_RATIO = math.log((1 + math.sqrt(5)) / 2)
 
@@ -26,6 +26,12 @@ class TestLiteral:
         Literal(3.14)
         with pytest.raises(TypeError):
             Literal('not a number')  # type: ignore
+
+    def test_pops(self):
+        assert Literal(3).pops == 0
+
+    def test_puts(self):
+        assert Literal(3).puts == 1
 
     def test_value(self):
         assert Literal(3).value == 3
@@ -110,6 +116,12 @@ class TestVariable:
             Variable(3)  # type: ignore
         with pytest.raises(TypeError):
             Variable(3.14)  # type: ignore
+
+    def test_pops(self):
+        assert Variable('alt').pops == 0
+
+    def test_puts(self):
+        assert Variable('alt').puts == 1
 
     def test_name(self):
         assert Variable('alt').name == 'alt'
@@ -231,6 +243,8 @@ class TestOperator:
 
     def test_sub(self):
         assert repr(SUB) == 'SUB'
+        assert SUB.pops == 2
+        assert SUB.puts == 1
         assert_operator(SUB, [2, 4], [-2])
         assert_operator(SUB, [2, np.array([4, 1])], [np.array([-2, 1])])
         assert_operator(SUB, [np.array([4, 1]), 2], [np.array([2, -1])])
@@ -246,6 +260,8 @@ class TestOperator:
 
     def test_add(self):
         assert repr(ADD) == 'ADD'
+        assert ADD.pops == 2
+        assert ADD.puts == 1
         assert_operator(ADD, [2, 4], [6])
         assert_operator(ADD, [2, np.array([4, 1])], [np.array([6, 3])])
         assert_operator(ADD, [np.array([4, 1]), 2], [np.array([6, 3])])
@@ -261,6 +277,8 @@ class TestOperator:
 
     def test_mul(self):
         assert repr(MUL) == 'MUL'
+        assert MUL.pops == 2
+        assert MUL.puts == 1
         assert_operator(MUL, [2, 4], [8])
         assert_operator(MUL, [2, np.array([4, 1])], [np.array([8, 2])])
         assert_operator(MUL, [np.array([4, 1]), 2], [np.array([8, 2])])
@@ -276,6 +294,8 @@ class TestOperator:
 
     def test_pop(self):
         assert repr(POP) == 'POP'
+        assert POP.pops == 1
+        assert POP.puts == 0
         assert_operator(POP, [1], [])
         assert_operator(POP, [1, 2], [1])
         # not enough stack elements
@@ -284,6 +304,8 @@ class TestOperator:
 
     def test_neg(self):
         assert repr(NEG) == 'NEG'
+        assert NEG.pops == 1
+        assert NEG.puts == 1
         assert_operator(NEG, [2], [-2])
         assert_operator(NEG, [-2], [2])
         assert_operator(NEG, [np.array([4, -1])], [np.array([-4, 1])])
@@ -296,6 +318,8 @@ class TestOperator:
 
     def test_abs(self):
         assert repr(ABS) == 'ABS'
+        assert ABS.pops == 1
+        assert ABS.puts == 1
         assert_operator(ABS, [2], [2])
         assert_operator(ABS, [-2], [2])
         assert_operator(ABS, [np.array([4, -1])], [np.array([4, 1])])
@@ -308,6 +332,8 @@ class TestOperator:
 
     def test_inv(self):
         assert repr(INV) == 'INV'
+        assert INV.pops == 1
+        assert INV.puts == 1
         assert_operator(INV, [2], [0.5])
         assert_operator(INV, [-2], [-0.5])
         assert_operator(INV, [np.array([4, -1])], [np.array([0.25, -1])])
@@ -320,6 +346,8 @@ class TestOperator:
 
     def test_sqrt(self):
         assert repr(SQRT) == 'SQRT'
+        assert SQRT.pops == 1
+        assert SQRT.puts == 1
         assert_operator(SQRT, [4], [2])
         assert_operator(SQRT, [np.array([4, 16])], [np.array([2, 4])])
         # extra stack elements
@@ -330,6 +358,8 @@ class TestOperator:
 
     def test_sqr(self):
         assert repr(SQR) == 'SQR'
+        assert SQR.pops == 1
+        assert SQR.puts == 1
         assert_operator(SQR, [2], [4])
         assert_operator(SQR, [-2], [4])
         assert_operator(SQR, [np.array([4, -1])], [np.array([16, 1])])
@@ -342,6 +372,8 @@ class TestOperator:
 
     def test_exp(self):
         assert repr(EXP) == 'EXP'
+        assert EXP.pops == 1
+        assert EXP.puts == 1
         assert_operator(EXP, [math.log(1)], [1.0], approx=True)
         assert_operator(EXP, [math.log(2)], [2.0], approx=True)
         assert_operator(
@@ -355,6 +387,8 @@ class TestOperator:
 
     def test_log(self):
         assert repr(LOG) == 'LOG'
+        assert LOG.pops == 1
+        assert LOG.puts == 1
         assert_operator(LOG, [math.e], [1.0], approx=True)
         assert_operator(LOG, [math.e ** 2], [2.0], approx=True)
         assert_operator(LOG, [math.e ** -2], [-2.0], approx=True)
@@ -372,6 +406,8 @@ class TestOperator:
 
     def test_log10(self):
         assert repr(LOG10) == 'LOG10'
+        assert LOG10.pops == 1
+        assert LOG10.puts == 1
         assert_operator(LOG10, [10], [1.0], approx=True)
         assert_operator(LOG10, [10 ** 2], [2.0], approx=True)
         assert_operator(LOG10, [10 ** -2], [-2.0], approx=True)
@@ -389,6 +425,8 @@ class TestOperator:
 
     def test_sin(self):
         assert repr(SIN) == 'SIN'
+        assert SIN.pops == 1
+        assert SIN.puts == 1
         assert_operator(SIN, [0.0], [0.0], approx=True)
         assert_operator(SIN, [math.pi / 6], [1 / 2], approx=True)
         assert_operator(SIN, [math.pi / 4], [1 / math.sqrt(2)], approx=True)
@@ -412,6 +450,8 @@ class TestOperator:
 
     def test_cos(self):
         assert repr(COS) == 'COS'
+        assert COS.pops == 1
+        assert COS.puts == 1
         assert_operator(COS, [0.0], [1.0], approx=True)
         assert_operator(COS, [math.pi / 6], [math.sqrt(3) / 2], approx=True)
         assert_operator(COS, [math.pi / 4], [1 / math.sqrt(2)], approx=True)
@@ -435,6 +475,8 @@ class TestOperator:
 
     def test_tan(self):
         assert repr(TAN) == 'TAN'
+        assert TAN.pops == 1
+        assert TAN.puts == 1
         assert_operator(TAN, [0.0], [0.0], approx=True)
         assert_operator(TAN, [math.pi / 6], [1 / math.sqrt(3)], approx=True)
         assert_operator(TAN, [math.pi / 4], [1.0], approx=True)
@@ -457,6 +499,8 @@ class TestOperator:
 
     def test_sind(self):
         assert repr(SIND) == 'SIND'
+        assert SIND.pops == 1
+        assert SIND.puts == 1
         assert_operator(SIND, [0], [0.0], approx=True)
         assert_operator(SIND, [30], [1 / 2], approx=True)
         assert_operator(SIND, [45], [1 / math.sqrt(2)], approx=True)
@@ -480,6 +524,8 @@ class TestOperator:
 
     def test_cosd(self):
         assert repr(COSD) == 'COSD'
+        assert COSD.pops == 1
+        assert COSD.puts == 1
         assert_operator(COSD, [0], [1.0], approx=True)
         assert_operator(COSD, [30], [math.sqrt(3) / 2], approx=True)
         assert_operator(COSD, [45], [1 / math.sqrt(2)], approx=True)
@@ -503,6 +549,8 @@ class TestOperator:
 
     def test_tand(self):
         assert repr(TAND) == 'TAND'
+        assert TAND.pops == 1
+        assert TAND.puts == 1
         assert_operator(TAND, [0], [0], approx=True)
         assert_operator(TAND, [30], [1 / math.sqrt(3)], approx=True)
         assert_operator(TAND, [45], [1.0], approx=True)
@@ -525,6 +573,8 @@ class TestOperator:
 
     def test_sinh(self):
         assert repr(SINH) == 'SINH'
+        assert SINH.pops == 1
+        assert SINH.puts == 1
         assert_operator(SINH, [0.0], [0.0], approx=True)
         assert_operator(SINH, [GOLDEN_RATIO], [0.5], approx=True)
         assert_operator(
@@ -540,6 +590,8 @@ class TestOperator:
 
     def test_cosh(self):
         assert repr(COSH) == 'COSH'
+        assert COSH.pops == 1
+        assert COSH.puts == 1
         assert_operator(COSH, [0.0], [1.0], approx=True)
         assert_operator(COSH, [GOLDEN_RATIO], [math.sqrt(5) / 2], approx=True)
         assert_operator(
@@ -556,6 +608,8 @@ class TestOperator:
 
     def test_tanh(self):
         assert repr(TANH) == 'TANH'
+        assert TANH.pops == 1
+        assert TANH.puts == 1
         assert_operator(TANH, [0.0], [0.0], approx=True)
         assert_operator(TANH, [GOLDEN_RATIO], [math.sqrt(5) / 5], approx=True)
         assert_operator(
@@ -572,6 +626,8 @@ class TestOperator:
 
     def test_asin(self):
         assert repr(ASIN) == 'ASIN'
+        assert ASIN.pops == 1
+        assert ASIN.puts == 1
         assert_operator(ASIN, [0.0], [0.0], approx=True)
         assert_operator(ASIN, [1 / 2], [math.pi / 6], approx=True)
         assert_operator(ASIN, [1 / math.sqrt(2)], [math.pi / 4], approx=True)
@@ -595,6 +651,8 @@ class TestOperator:
 
     def test_acos(self):
         assert repr(ACOS) == 'ACOS'
+        assert ACOS.pops == 1
+        assert ACOS.puts == 1
         assert_operator(ACOS, [1.0], [0.0], approx=True)
         assert_operator(ACOS, [math.sqrt(3) / 2], [math.pi / 6], approx=True)
         assert_operator(ACOS, [1 / math.sqrt(2)], [math.pi / 4], approx=True)
@@ -613,6 +671,8 @@ class TestOperator:
 
     def test_atan(self):
         assert repr(ATAN) == 'ATAN'
+        assert ATAN.pops == 1
+        assert ATAN.puts == 1
         assert_operator(ATAN, [0.0], [0.0], approx=True)
         assert_operator(ATAN, [1 / math.sqrt(3)], [math.pi / 6], approx=True)
         assert_operator(ATAN, [1.0], [math.pi / 4], approx=True)
@@ -635,6 +695,8 @@ class TestOperator:
 
     def test_asind(self):
         assert repr(ASIND) == 'ASIND'
+        assert ASIND.pops == 1
+        assert ASIND.puts == 1
         assert_operator(ASIND, [0.0], [0], approx=True)
         assert_operator(ASIND, [1 / 2], [30], approx=True)
         assert_operator(ASIND, [1 / math.sqrt(2)], [45], approx=True)
@@ -658,6 +720,8 @@ class TestOperator:
 
     def test_acosd(self):
         assert repr(ACOSD) == 'ACOSD'
+        assert ACOSD.pops == 1
+        assert ACOSD.puts == 1
         assert_operator(ACOSD, [1.0], [0], approx=True)
         assert_operator(ACOSD, [math.sqrt(3) / 2], [30], approx=True)
         assert_operator(ACOSD, [1 / math.sqrt(2)], [45], approx=True)
@@ -676,6 +740,8 @@ class TestOperator:
 
     def test_atand(self):
         assert repr(ATAND) == 'ATAND'
+        assert ATAND.pops == 1
+        assert ATAND.puts == 1
         assert_operator(ATAND, [0.0], [0], approx=True)
         assert_operator(ATAND, [1 / math.sqrt(3)], [30], approx=True)
         assert_operator(ATAND, [1.0], [45], approx=True)
@@ -698,6 +764,8 @@ class TestOperator:
 
     def test_asinh(self):
         assert repr(ASINH) == 'ASINH'
+        assert ASINH.pops == 1
+        assert ASINH.puts == 1
         assert_operator(ASINH, [0.0], [0.0], approx=True)
         assert_operator(ASINH, [0.5], [GOLDEN_RATIO], approx=True)
         assert_operator(
@@ -713,6 +781,8 @@ class TestOperator:
 
     def test_acosh(self):
         assert repr(ACOSH) == 'ACOSH'
+        assert ACOSH.pops == 1
+        assert ACOSH.puts == 1
         assert_operator(ACOSH, [1.0], [0.0], approx=True)
         assert_operator(ACOSH, [math.sqrt(5) / 2], [GOLDEN_RATIO], approx=True)
         assert_operator(
@@ -729,6 +799,8 @@ class TestOperator:
 
     def test_atanh(self):
         assert repr(ATANH) == 'ATANH'
+        assert ATANH.pops == 1
+        assert ATANH.puts == 1
         assert_operator(ATANH, [0.0], [0.0], approx=True)
         assert_operator(ATANH, [math.sqrt(5) / 5], [GOLDEN_RATIO], approx=True)
         assert_operator(
@@ -745,6 +817,8 @@ class TestOperator:
 
     def test_isnan(self):
         assert repr(ISNAN) == 'ISNAN'
+        assert ISNAN.pops == 1
+        assert ISNAN.puts == 1
         assert_operator(ISNAN, [2], [False])
         assert_operator(ISNAN, [float('nan')], [True])
         assert_operator(
@@ -759,6 +833,8 @@ class TestOperator:
 
     def test_isan(self):
         assert repr(ISAN) == 'ISAN'
+        assert ISAN.pops == 1
+        assert ISAN.puts == 1
         assert_operator(ISAN, [2], [True])
         assert_operator(ISAN, [float('nan')], [False])
         assert_operator(
@@ -773,6 +849,8 @@ class TestOperator:
 
     def test_rint(self):
         assert repr(RINT) == 'RINT'
+        assert RINT.pops == 1
+        assert RINT.puts == 1
         assert_operator(RINT, [1.6], [2])
         assert_operator(RINT, [2.4], [2])
         assert_operator(RINT, [-1.6], [-2])
@@ -787,6 +865,8 @@ class TestOperator:
 
     def test_nint(self):
         assert repr(NINT) == 'NINT'
+        assert NINT.pops == 1
+        assert NINT.puts == 1
         assert_operator(NINT, [1.6], [2])
         assert_operator(NINT, [2.4], [2])
         assert_operator(NINT, [-1.6], [-2])
@@ -801,6 +881,8 @@ class TestOperator:
 
     def test_ceil(self):
         assert repr(CEIL) == 'CEIL'
+        assert CEIL.pops == 1
+        assert CEIL.puts == 1
         assert_operator(CEIL, [1.6], [2])
         assert_operator(CEIL, [2.4], [3])
         assert_operator(CEIL, [-1.6], [-1])
@@ -815,6 +897,8 @@ class TestOperator:
 
     def test_ceiling(self):
         assert repr(CEILING) == 'CEILING'
+        assert CEILING.pops == 1
+        assert CEILING.puts == 1
         assert_operator(CEILING, [1.6], [2])
         assert_operator(CEILING, [2.4], [3])
         assert_operator(CEILING, [-1.6], [-1])
@@ -830,6 +914,8 @@ class TestOperator:
 
     def test_floor(self):
         assert repr(FLOOR) == 'FLOOR'
+        assert FLOOR.pops == 1
+        assert FLOOR.puts == 1
         assert_operator(FLOOR, [1.6], [1])
         assert_operator(FLOOR, [2.4], [2])
         assert_operator(FLOOR, [-1.6], [-2])
@@ -844,6 +930,8 @@ class TestOperator:
 
     def test_d2r(self):
         assert repr(D2R) == 'D2R'
+        assert D2R.pops == 1
+        assert D2R.puts == 1
         assert_operator(D2R, [0], [0.0], approx=True)
         assert_operator(D2R, [30], [math.pi / 6], approx=True)
         assert_operator(D2R, [45], [math.pi / 4], approx=True)
@@ -867,6 +955,8 @@ class TestOperator:
 
     def test_r2d(self):
         assert repr(R2D) == 'R2D'
+        assert R2D.pops == 1
+        assert R2D.puts == 1
         assert_operator(R2D, [0.0], [0], approx=True)
         assert_operator(R2D, [math.pi / 6], [30], approx=True)
         assert_operator(R2D, [math.pi / 4], [45], approx=True)
@@ -890,6 +980,8 @@ class TestOperator:
 
     def test_ymdhms(self):
         assert repr(YMDHMS) == 'YMDHMS'
+        assert YMDHMS.pops == 1
+        assert YMDHMS.puts == 1
         epoch = datetime(1985, 1, 1, 0, 0, 0, 0)
         date1 = datetime(2008, 7, 4, 12, 19, 19, 570865)
         date2 = datetime(2019, 6, 26, 12, 31, 6, 930575)
@@ -911,6 +1003,8 @@ class TestOperator:
 
     def test_sum(self):
         assert repr(SUM) == 'SUM'
+        assert SUM.pops == 1
+        assert SUM.puts == 1
         assert_operator(SUM, [2], [2])
         assert_operator(SUM, [-2], [-2])
         assert_operator(SUM, [float('nan')], [0])
@@ -926,6 +1020,8 @@ class TestOperator:
 
     def test_diff(self):
         assert repr(DIF) == 'DIF'
+        assert DIF.pops == 1
+        assert DIF.puts == 1
         assert_operator(DIF, [2], [np.array([np.nan])])
         assert_operator(DIF, [np.array([1, 2])], [np.array([np.nan, 1])])
         assert_operator(DIF, [np.array([1, 2, 5])], [np.array([np.nan, 1, 3])])
@@ -940,6 +1036,8 @@ class TestOperator:
 
     def test_dup(self):
         assert repr(DUP) == 'DUP'
+        assert DUP.pops == 1
+        assert DUP.puts == 2
         assert_operator(DUP, [2], [2, 2])
         assert_operator(
             DUP, [np.array([4, -1])], [np.array([4, -1]), np.array([4, -1])])
@@ -950,6 +1048,8 @@ class TestOperator:
 
     def test_div(self):
         assert repr(DIV) == 'DIV'
+        assert DIV.pops == 2
+        assert DIV.puts == 1
         assert_operator(DIV, [10, 2], [5])
         assert_operator(DIV, [10, np.array([2, 5])], [np.array([5, 2])])
         assert_operator(DIV, [np.array([10, 4]), 2], [np.array([5, 2])])
@@ -965,6 +1065,8 @@ class TestOperator:
 
     def test_pow(self):
         assert repr(POW) == 'POW'
+        assert POW.pops == 2
+        assert POW.puts == 1
         assert_operator(POW, [1, 2], [1])
         assert_operator(POW, [2, 2], [4])
         assert_operator(POW, [2, 4], [16])
@@ -982,6 +1084,8 @@ class TestOperator:
 
     def test_fmod(self):
         assert repr(FMOD) == 'FMOD'
+        assert FMOD.pops == 2
+        assert FMOD.puts == 1
         assert_operator(FMOD, [1, 2], [1])
         assert_operator(FMOD, [2, 10], [2])
         assert_operator(FMOD, [12, 10], [2])
@@ -999,6 +1103,8 @@ class TestOperator:
 
     def test_min(self):
         assert repr(MIN) == 'MIN'
+        assert MIN.pops == 2
+        assert MIN.puts == 1
         assert_operator(MIN, [2, 3], [2])
         assert_operator(MIN, [3, 2], [2])
         assert_operator(MIN, [2, np.array([1, 3])], [np.array([1, 2])])
@@ -1015,6 +1121,8 @@ class TestOperator:
 
     def test_max(self):
         assert repr(MAX) == 'MAX'
+        assert MAX.pops == 2
+        assert MAX.puts == 1
         assert_operator(MAX, [2, 3], [3])
         assert_operator(MAX, [3, 2], [3])
         assert_operator(MAX, [2, np.array([1, 3])], [np.array([2, 3])])
@@ -1031,6 +1139,8 @@ class TestOperator:
 
     def test_atan2(self):
         assert repr(ATAN2) == 'ATAN2'
+        assert ATAN2.pops == 2
+        assert ATAN2.puts == 1
         # NOTE: second parameter is x, first is y
         assert_operator(ATAN2, [0, 1], [0], approx=True)
         assert_operator(ATAN2, [1, math.sqrt(3)], [math.pi / 6], approx=True)
@@ -1068,6 +1178,8 @@ class TestOperator:
 
     def test_hypot(self):
         assert repr(HYPOT) == 'HYPOT'
+        assert HYPOT.pops == 2
+        assert HYPOT.puts == 1
         assert_operator(HYPOT, [1, 1], [math.sqrt(2)], approx=True)
         assert_operator(HYPOT, [math.sqrt(3), 1], [2], approx=True)
         assert_operator(
@@ -1095,6 +1207,8 @@ class TestOperator:
 
     def test_r2(self):
         assert repr(R2) == 'R2'
+        assert R2.pops == 2
+        assert R2.puts == 1
         assert_operator(R2, [2, 3], [13])
         assert_operator(R2, [2, np.array([3, 4])], [np.array([13, 20])])
         assert_operator(R2, [np.array([3, 4]), 2], [np.array([13, 20])])
@@ -1110,6 +1224,8 @@ class TestOperator:
 
     def test_eq(self):
         assert repr(EQ) == 'EQ'
+        assert EQ.pops == 2
+        assert EQ.puts == 1
         assert_operator(EQ, [2, 2], [True])
         assert_operator(EQ, [2, 3], [False])
         assert_operator(
@@ -1134,6 +1250,8 @@ class TestOperator:
 
     def test_ne(self):
         assert repr(NE) == 'NE'
+        assert NE.pops == 2
+        assert NE.puts == 1
         assert_operator(NE, [2, 2], [False])
         assert_operator(NE, [2, 3], [True])
         assert_operator(
@@ -1158,6 +1276,8 @@ class TestOperator:
 
     def test_lt(self):
         assert repr(LT) == 'LT'
+        assert LT.pops == 2
+        assert LT.puts == 1
         assert_operator(LT, [2, 3], [True])
         assert_operator(LT, [2, 2], [False])
         assert_operator(LT, [3, 2], [False])
@@ -1179,6 +1299,8 @@ class TestOperator:
 
     def test_le(self):
         assert repr(LE) == 'LE'
+        assert LE.pops == 2
+        assert LE.puts == 1
         assert_operator(LE, [2, 3], [True])
         assert_operator(LE, [2, 2], [True])
         assert_operator(LE, [3, 2], [False])
@@ -1200,6 +1322,8 @@ class TestOperator:
 
     def test_gt(self):
         assert repr(GT) == 'GT'
+        assert GT.pops == 2
+        assert GT.puts == 1
         assert_operator(GT, [2, 3], [False])
         assert_operator(GT, [2, 2], [False])
         assert_operator(GT, [3, 2], [True])
@@ -1221,6 +1345,8 @@ class TestOperator:
 
     def test_ge(self):
         assert repr(GE) == 'GE'
+        assert GE.pops == 2
+        assert GE.puts == 1
         assert_operator(GE, [2, 3], [False])
         assert_operator(GE, [2, 2], [True])
         assert_operator(GE, [3, 2], [True])
@@ -1242,6 +1368,8 @@ class TestOperator:
 
     def test_nan(self):
         assert repr(NAN) == 'NAN'
+        assert NAN.pops == 2
+        assert NAN.puts == 1
         assert_operator(NAN, [2, 2], [float('nan')])
         assert_operator(NAN, [2, 3], [2])
         assert_operator(NAN, [2, np.array([2, 3])], [np.array([np.nan, 2])])
@@ -1266,6 +1394,8 @@ class TestOperator:
 
     def test_and(self):
         assert repr(AND) == 'AND'
+        assert AND.pops == 2
+        assert AND.puts == 1
         assert_operator(AND, [2, 3], [2])
         assert_operator(AND, [float('nan'), 3], [3])
         assert_operator(
@@ -1285,6 +1415,8 @@ class TestOperator:
 
     def test_or(self):
         assert repr(OR) == 'OR'
+        assert OR.pops == 2
+        assert OR.puts == 1
         assert_operator(OR, [2, 3], [2])
         assert_operator(OR, [2, float('nan')], [float('nan')])
         assert_operator(
@@ -1310,6 +1442,8 @@ class TestOperator:
 
     def test_iand(self):
         assert repr(IAND) == 'IAND'
+        assert IAND.pops == 2
+        assert IAND.puts == 1
         assert_operator(IAND, [5, 3], [1])
         assert_operator(IAND, [15, 21], [5])
         assert_operator(IAND, [21, 15], [5])
@@ -1340,6 +1474,8 @@ class TestOperator:
 
     def test_ior(self):
         assert repr(IOR) == 'IOR'
+        assert IOR.pops == 2
+        assert IOR.puts == 1
         assert_operator(IOR, [5, 3], [7])
         assert_operator(IOR, [15, 21], [31])
         assert_operator(IOR, [21, 15], [31])
@@ -1370,6 +1506,8 @@ class TestOperator:
 
     def test_btest(self):
         assert repr(BTEST) == 'BTEST'
+        assert BTEST.pops == 2
+        assert BTEST.puts == 1
         assert_operator(BTEST, [9, 0], [True])
         assert_operator(BTEST, [9, 1], [False])
         assert_operator(BTEST, [9, 2], [False])
@@ -1404,6 +1542,8 @@ class TestOperator:
 
     def test_avg(self):
         assert repr(AVG) == 'AVG'
+        assert AVG.pops == 2
+        assert AVG.puts == 1
         assert_operator(AVG, [5, 11], [8])
         assert_operator(AVG, [float('nan'), 11], [11])
         assert_operator(AVG, [5, float('nan')], [5])
@@ -1429,6 +1569,8 @@ class TestOperator:
 
     def test_dxdy(self):
         assert repr(DXDY) == 'DXDY'
+        assert DXDY.pops == 2
+        assert DXDY.puts == 1
         assert_operator(DXDY, [5, 11], [float('nan')])
         assert_operator(
             DXDY, [3, np.array([5, 11])], [np.array([np.nan, np.nan])])
@@ -1464,6 +1606,8 @@ class TestOperator:
 
     def test_exch(self):
         assert repr(EXCH) == 'EXCH'
+        assert EXCH.pops == 2
+        assert EXCH.puts == 2
         assert_operator(EXCH, [5, 11], [11, 5])
         assert_operator(
             EXCH, [3, np.array([5, 11])], [np.array([5, 11]), 3])
@@ -1483,6 +1627,8 @@ class TestOperator:
 
     def test_inrange(self):
         assert repr(INRANGE) == 'INRANGE'
+        assert INRANGE.pops == 3
+        assert INRANGE.puts == 1
         assert_operator(INRANGE, [0, 1, 3], [False])
         assert_operator(INRANGE, [1, 1, 3], [True])
         assert_operator(INRANGE, [2, 1, 3], [True])
@@ -1516,6 +1662,8 @@ class TestOperator:
 
     def test_boxcar(self):
         assert repr(BOXCAR) == 'BOXCAR'
+        assert BOXCAR.pops == 3
+        assert BOXCAR.puts == 1
         # returns value if scalar
         assert_operator(BOXCAR, [1, 2, 3], [1])
         # simple
@@ -1572,8 +1720,9 @@ class TestOperator:
             BOXCAR([1, 2], {})
 
     def test_gauss(self):
-        # NOTE: This operator is not tested thoroughly.
         assert repr(GAUSS) == 'GAUSS'
+        assert GAUSS.pops == 3
+        assert GAUSS.puts == 1
         # returns value if scalar
         assert_operator(GAUSS, [1, 2, 3], [1])
         # simple
@@ -1656,5 +1805,268 @@ def test_token_literals():
 def test_token_variables():
     assert token('alt') == Variable('alt')
     assert token('ref_frame_offset') == Variable('ref_frame_offset')
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError) as excinfo:
         token('3name')
+    assert str(excinfo.value) == "invalid RPN token '3name'"
+    with pytest.raises(ValueError) as excinfo:
+        token('3,')
+    assert str(excinfo.value) == "invalid RPN token '3,'"
+
+
+class TestExpression:
+
+    def test_init_with_token_sequence(self):
+        Expression([Literal(1)])
+        Expression([Literal(1), Literal(2.5), ADD])
+        Expression([Literal(1), Variable('a_var'), ADD])
+
+    def test_init_with_mixed_sequence(self):
+        Expression([1])
+        Expression([1, 2.5, ADD])
+        Expression([1, 'a_var', ADD])
+        with pytest.raises(ValueError) as excinfo:
+            Expression([1, '3name', ADD])
+        assert str(excinfo.value) == "invalid RPN token '3name'"
+        with pytest.raises(ValueError) as excinfo:
+            Expression([1, '3,', ADD])
+        assert str(excinfo.value) == "invalid RPN token '3,'"
+
+    def test_init_with_token_string(self):
+        Expression('1')
+        Expression('1 2.5 ADD')
+        Expression('1 a_var ADD')
+        # extra spaces
+        Expression('1   a_var        ADD')
+        with pytest.raises(ValueError) as excinfo:
+            Expression('1 3name ADD')
+        assert str(excinfo.value) == "invalid RPN token '3name'"
+        with pytest.raises(ValueError) as excinfo:
+            Expression('1 3, ADD')
+        assert str(excinfo.value) == "invalid RPN token '3,'"
+
+    def test_init_no_results_with_token_sequence(self):
+        with pytest.raises(ValueError) as excinfo:
+            Expression([])
+        assert str(excinfo.value) == 'expression does not produce a result'
+        with pytest.raises(ValueError) as excinfo:
+            Expression([Literal(1), Variable('a_var'), ADD, POP])
+        assert str(excinfo.value) == 'expression does not produce a result'
+
+    def test_init_no_results_with_mixed_sequence(self):
+        with pytest.raises(ValueError) as excinfo:
+            Expression([1, 'a_var', ADD, POP])
+        assert str(excinfo.value) == 'expression does not produce a result'
+
+    def test_init_no_results_with_token_string(self):
+        with pytest.raises(ValueError) as excinfo:
+            Expression('')
+        assert str(excinfo.value) == 'expression does not produce a result'
+        with pytest.raises(ValueError) as excinfo:
+            Expression('1 a_var ADD POP')
+        assert str(excinfo.value) == 'expression does not produce a result'
+
+    def test_init_too_many_results_with_token_sequence(self):
+        with pytest.raises(ValueError) as excinfo:
+            Expression([Literal(1), Variable('a_var')])
+        assert (str(excinfo.value) ==
+                'expression produces too many results, number of results is 2,'
+                ' expected 1')
+        with pytest.raises(ValueError) as excinfo:
+            Expression([Literal(1), Variable('a_var'), Literal(2.5), ADD, DUP])
+        assert (str(excinfo.value) ==
+                'expression produces too many results, number of results is 3,'
+                ' expected 1')
+
+    def test_init_too_many_results_with_mixed_sequence(self):
+        with pytest.raises(ValueError) as excinfo:
+            Expression([1, 'a_var'])
+        assert (str(excinfo.value) ==
+                'expression produces too many results, number of results is 2,'
+                ' expected 1')
+        with pytest.raises(ValueError) as excinfo:
+            Expression([1, 'a_var', 2.5, ADD, DUP])
+        assert (str(excinfo.value) ==
+                'expression produces too many results, number of results is 3,'
+                ' expected 1')
+
+    def test_init_too_many_results_with_token_string(self):
+        with pytest.raises(ValueError) as excinfo:
+            Expression('1 a_var')
+        assert (str(excinfo.value) ==
+                'expression produces too many results, number of results is 2,'
+                ' expected 1')
+        with pytest.raises(ValueError) as excinfo:
+            Expression('1 a_var 2.5 ADD DUP')
+        assert (str(excinfo.value) ==
+                'expression produces too many results, number of results is 3,'
+                ' expected 1')
+
+    def test_init_stack_underflow_with_token_sequence(self):
+        with pytest.raises(ValueError) as excinfo:
+            Expression([Literal(1), ADD])
+        assert str(excinfo.value).splitlines() == [
+            "'ADD' takes 2 arguments but the stack will only have "
+            "1 element(s)", '1 ADD', '  ^']
+        with pytest.raises(ValueError) as excinfo:
+            Expression([Literal(1), Variable('a_var'), ADD, POP, MUL])
+        assert str(excinfo.value).splitlines() == [
+            "'MUL' takes 2 arguments but the stack will only have "
+            "0 element(s)", '1 a_var ADD POP MUL', '                ^']
+
+    def test_init_stack_underflow_with_mixed_sequence(self):
+        with pytest.raises(ValueError) as excinfo:
+            Expression([1, ADD])
+        assert str(excinfo.value).splitlines() == [
+            "'ADD' takes 2 arguments but the stack will only have "
+            "1 element(s)", '1 ADD', '  ^']
+        with pytest.raises(ValueError) as excinfo:
+            Expression([1, 'a_var', ADD, POP, MUL])
+        assert str(excinfo.value).splitlines() == [
+            "'MUL' takes 2 arguments but the stack will only have "
+            "0 element(s)", '1 a_var ADD POP MUL', '                ^']
+
+    def test_init_stack_underflow_with_token_string(self):
+        with pytest.raises(ValueError) as excinfo:
+            Expression('1 ADD')
+        assert str(excinfo.value).splitlines() == [
+            "'ADD' takes 2 arguments but the stack will only have "
+            "1 element(s)", '1 ADD', '  ^']
+        with pytest.raises(ValueError) as excinfo:
+            Expression('1 a_var ADD POP MUL')
+        assert str(excinfo.value).splitlines() == [
+            "'MUL' takes 2 arguments but the stack will only have "
+            "0 element(s)", '1 a_var ADD POP MUL', '                ^']
+
+    def test_variables_with_token_sequence(self):
+        assert Expression([Literal(1), Literal(2.5), ADD]).variables == set()
+        assert Expression([Variable('a_var'), Literal(2.5), ADD]
+                          ).variables == {'a_var'}
+        assert Expression([Variable('a_var'), Variable('b_var'), ADD]
+                          ).variables == {'a_var', 'b_var'}
+
+    def test_variables_with_mixed_sequence(self):
+        assert Expression([1, 2.5, ADD]).variables == set()
+        assert Expression(['a_var', 2.5, ADD]).variables == {'a_var'}
+        assert Expression(['a_var', 'b_var', ADD]
+                          ).variables == {'a_var', 'b_var'}
+
+    def test_variables_with_token_string(self):
+        assert Expression('1 2.5 ADD').variables == set()
+        assert Expression('a_var 2.5 ADD').variables == {'a_var'}
+        assert Expression('a_var b_var ADD').variables == {'a_var', 'b_var'}
+        # extra spaces
+        assert Expression('1   a_var        ADD').variables == {'a_var'}
+
+    def test_call_with_token_sequence(self):
+        assert Expression([Literal(1)])() == 1
+        assert Expression([Literal(1), Literal(2.5), ADD])() == 3.5
+        assert Expression([Literal(1), Variable('a_var'), ADD])(
+            {'a_var': 10}) == 11
+        with pytest.raises(KeyError):
+            Expression([Literal(1), Variable('a_var'), ADD])()
+
+    def test_call_with_mixed_sequence(self):
+        assert Expression([1])() == 1
+        assert Expression([1, 2.5, ADD])() == 3.5
+        assert Expression([1, 'a_var', ADD])({'a_var': 10}) == 11
+        with pytest.raises(KeyError):
+            Expression([1, 'a_var', ADD])()
+
+    def test_call_with_token_string(self):
+        assert Expression('1')() == 1
+        assert Expression('1 2.5 ADD')() == 3.5
+        assert Expression('1 a_var ADD')({'a_var': 10}) == 11
+        # extra spaces
+        assert Expression('1   a_var        ADD')({'a_var': 10}) == 11
+        with pytest.raises(KeyError):
+            Expression('1 a_var ADD')()
+
+    def test_eval_with_token_sequence(self):
+        assert Expression([Literal(1)]).eval() == 1
+        assert Expression([Literal(1), Literal(2.5), ADD]).eval() == 3.5
+        assert Expression([Literal(1), Variable('a_var'), ADD]).eval(
+            {'a_var': 10}) == 11
+        with pytest.raises(KeyError):
+            Expression([Literal(1), Variable('a_var'), ADD]).eval()
+
+    def test_eval_with_mixed_sequence(self):
+        assert Expression([1]).eval() == 1
+        assert Expression([1, 2.5, ADD]).eval() == 3.5
+        assert Expression([1, 'a_var', ADD]).eval({'a_var': 10}) == 11
+        with pytest.raises(KeyError):
+            Expression([1, 'a_var', ADD]).eval()
+
+    def test_eval_with_token_string(self):
+        assert Expression('1').eval() == 1
+        assert Expression('1 2.5 ADD').eval() == 3.5
+        assert Expression('1 a_var ADD').eval({'a_var': 10}) == 11
+        # extra spaces
+        assert Expression('1   a_var        ADD').eval({'a_var': 10}) == 11
+        with pytest.raises(KeyError):
+            Expression('1 a_var ADD').eval()
+
+    def test_iter_with_token_sequence(self):
+        assert list(Expression([Literal(1)])) == [Literal(1)]
+        assert list(Expression([Literal(1), Literal(2.5), ADD])) == [
+            Literal(1), Literal(2.5), ADD]
+        assert list(Expression([Literal(1), Variable('a_var'), ADD])) == [
+            Literal(1), Variable('a_var'), ADD]
+
+    def test_iter_with_mixed_sequence(self):
+        assert list(Expression([1])) == [Literal(1)]
+        assert list(Expression([1, 2.5, ADD])) == [
+            Literal(1), Literal(2.5), ADD]
+        assert list(Expression([1, 'a_var', ADD])) == [
+            Literal(1), Variable('a_var'), ADD]
+
+    def test_iter_with_token_string(self):
+        assert list(Expression('1')) == [Literal(1)]
+        assert list(Expression('1 2.5 ADD')) == [
+            Literal(1), Literal(2.5), ADD]
+        assert list(Expression('1 a_var ADD')) == [
+            Literal(1), Variable('a_var'), ADD]
+        # extra spaces
+        assert list(Expression('1   a_var        ADD')) == [
+            Literal(1), Variable('a_var'), ADD]
+
+    def test_repr_with_token_sequence(self):
+        assert repr(Expression([Literal(1)])) == 'Expression([Literal(1)])'
+        assert (repr(Expression([Literal(1), Literal(2.5), ADD])) ==
+                'Expression([Literal(1), Literal(2.5), ADD])')
+        assert (repr(Expression([Literal(1), Variable('a_var'), ADD])) ==
+                "Expression([Literal(1), Variable('a_var'), ADD])")
+
+    def test_repr_with_mixed_sequence(self):
+        assert repr(Expression([1])) == 'Expression([Literal(1)])'
+        assert (repr(Expression([1, 2.5, ADD])) ==
+                'Expression([Literal(1), Literal(2.5), ADD])')
+        assert (repr(Expression([1, 'a_var', ADD])) ==
+                "Expression([Literal(1), Variable('a_var'), ADD])")
+
+    def test_repr_with_token_repring(self):
+        assert repr(Expression('1')) == 'Expression([Literal(1)])'
+        assert (repr(Expression('1 2.5 ADD')) ==
+                'Expression([Literal(1), Literal(2.5), ADD])')
+        assert (repr(Expression('1 a_var ADD')) ==
+                "Expression([Literal(1), Variable('a_var'), ADD])")
+        # extra spaces
+        assert (repr(Expression('1   a_var        ADD')) ==
+                "Expression([Literal(1), Variable('a_var'), ADD])")
+
+    def test_str_with_token_sequence(self):
+        assert str(Expression([Literal(1)])) == '1'
+        assert str(Expression([Literal(1), Literal(2.5), ADD])) == '1 2.5 ADD'
+        assert (str(Expression([Literal(1), Variable('a_var'), ADD])) ==
+                '1 a_var ADD')
+
+    def test_str_with_mixed_sequence(self):
+        assert str(Expression([1])) == '1'
+        assert str(Expression([1, 2.5, ADD])) == '1 2.5 ADD'
+        assert str(Expression([1, 'a_var', ADD])) == '1 a_var ADD'
+
+    def test_str_with_token_string(self):
+        assert str(Expression('1')) == '1'
+        assert str(Expression('1 2.5 ADD')) == '1 2.5 ADD'
+        assert str(Expression('1 a_var ADD')) == '1 a_var ADD'
+        # extra spaces
+        assert str(Expression('1   a_var        ADD')) == '1 a_var ADD'

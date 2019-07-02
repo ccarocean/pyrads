@@ -1,5 +1,27 @@
 r"""Reverse Polish Notation calculator.
 
+Exceptions
+----------
+
+* :class:`StackUnderflowError`
+
+
+Classes
+-------
+
+* :class:`Expression`
+* :class:`Token`
+* :class:`Literal`
+* :class:`Variable`
+* :class:`Operator`
+
+
+Functions
+---------
+
+* :func:`token`
+
+
 Constants
 ---------
 
@@ -94,17 +116,34 @@ Keyword          Description
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from numbers import Integral
-from typing import Any, Union, MutableSequence, Mapping, Tuple, cast
+from typing import (Any, Union, MutableSequence, Mapping, Tuple,
+                    AbstractSet, Optional, List, Iterable, Iterator,
+                    cast, overload)
 
 import numpy as np  # type: ignore
 from astropy.convolution import (  # type: ignore
     Box1DKernel, Gaussian1DKernel, convolve)
+from cached_property import cached_property  # type: ignore
 
 from . import EPOCH
 from ._utility import fortran_float
 from .datetime64util import ymdhmsus
 
-NumberOrArray = Union[int, float, np.generic, np.ndarray]
+__all__ = ['StackUnderflowError', 'Expression', 'Token', 'Literal', 'PI', 'E',
+           'Variable', 'Operator', 'token', 'SUB', 'ADD', 'MUL', 'POP', 'NEG',
+           'ABS', 'INV', 'SQRT', 'SQR', 'EXP', 'LOG', 'LOG10', 'SIN', 'COS',
+           'TAN', 'SIND', 'COSD', 'TAND', 'SINH', 'COSH', 'TANH', 'ASIN',
+           'ACOS', 'ATAN', 'ASIND', 'ACOSD', 'ATAND', 'ASINH', 'ACOSH',
+           'ATANH', 'ISNAN', 'ISAN', 'RINT', 'NINT', 'CEIL', 'CEILING',
+           'FLOOR', 'D2R', 'R2D', 'YMDHMS', 'SUM', 'DIF', 'DUP', 'DIV', 'POW',
+           'FMOD', 'MIN', 'MAX', 'ATAN2', 'HYPOT', 'R2', 'EQ', 'NE', 'LT',
+           'LE', 'GT', 'GE', 'NAN', 'AND', 'OR', 'IAND', 'IOR', 'BTEST', 'AVG',
+           'DXDY', 'EXCH', 'INRANGE', 'BOXCAR', 'GAUSS']
+
+NumberOrArray = Union[int, float, bool, np.generic, np.ndarray]
+# for the purpose of the RPN calculator bool is considered a numeric type
+# as it will act as 0 or 1 when used as a number
+Number = Union[int, float, bool]
 
 
 class StackUnderflowError(Exception):
@@ -114,24 +153,37 @@ class StackUnderflowError(Exception):
     the operation was attempted.  Therefore, it is not necessary to repair the
     stack.
 
+    .. note:
+
+        Due to the static checker in :class:`Expression` this should never be
+        raised excemanually manualy evaluating a :class:`Token`.
+
     """
 
 
 class Token(ABC):
     """Base class of all RPN tokens.
 
-    .. seealso::
-
-        Class :class:`Literal`
-            A literal numeric/array value.
-
-        Class :class:`Variable`
-            A variable to be looked up from the environment.
-
-        Class :class:`Operator`
-            Base class of operators that modify the stack.
+    See Also
+    --------
+    :class:`Literal`
+        A literal numeric/array value.
+    :class:`Variable`
+        A variable to be looked up from the environment.
+    :class:`Operator`
+        Base class of operators that modify the stack.
 
     """
+
+    @property
+    @abstractmethod
+    def pops(self) -> int:
+        """Elements removed off the stack by calling the token."""
+
+    @property
+    @abstractmethod
+    def puts(self) -> int:
+        """Elements placed on the stack by calling the token."""
 
     @abstractmethod
     def __call__(self, stack: MutableSequence[NumberOrArray],
@@ -172,6 +224,16 @@ class Literal(Token):
         If :paramref:`value` is not a number.
 
     """
+
+    @property
+    def pops(self) -> int:
+        """Elements removed off the stack by calling the token."""
+        return 0
+
+    @property
+    def puts(self) -> int:
+        """Elements placed on the stack by calling the token."""
+        return 1
 
     @property
     def value(self) -> Union[int, float, bool]:
@@ -246,6 +308,16 @@ class Variable(Token):
     """
 
     @property
+    def pops(self) -> int:
+        """Elements removed off the stack by calling the token."""
+        return 0
+
+    @property
+    def puts(self) -> int:
+        """Elements placed on the stack by calling the token."""
+        return 1
+
+    @property
     def name(self) -> str:
         """Name of the variable, used to lookup value in the environment."""
         return self._name
@@ -308,11 +380,235 @@ class Operator(Token, ABC):
         return self._name
 
 
+class Expression(Iterable[Token]):
+    r"""Reverse Polish Notation expression that can be evaluated.
+
+    Parameters
+    ----------
+    tokens
+        A Reverse Polish Notation expression given as a sequence of tokens or
+        a string of tokens.
+
+        .. note::
+
+            This parameter is very forgiving.  If given a sequence of tokens
+            and some of the elements are not :class:`Token`\ s then then an
+            attempt will be made to convert them to :class:`Token`\ s.
+            Because of this both numbers and strings can be given in the
+            sequence of :paramref:`tokens`.
+
+    Raises
+    ------
+    ValueError
+        If the sequence or string of :paramref:`tokens` represents an invalid
+        expression.  This exception also indicates which token makes the
+        expression invalid.
+
+    """
+
+    _tokens: MutableSequence[Token]
+
+    @cached_property
+    def variables(self) -> AbstractSet[str]:
+        """Set of variables needed to evaluate the expression."""
+        return {t.name for t in self._tokens if isinstance(t, Variable)}
+
+    # TODO: Remove the F811 statements bellow once
+    #       https://github.com/PyCQA/pyflakes/pull/435 makes it into a release.
+    #       Also update requirements to match.
+
+    @overload  # noqa: F811
+    def __init__(self, tokens: str) -> None:
+        ...
+
+    @overload  # noqa: F811
+    def __init__(self, tokens: Iterable[Union[Number, str, Token]]) \
+            -> None:
+        ...
+
+    def __init__(self,  # noqa: F811
+                 tokens: Union[str, Iterable[Union[Number, str, Token]]]) \
+            -> None:
+        if isinstance(tokens, str):
+            tokens_ = [token(t) for t in tokens.split()]
+        else:
+            tokens_ = []
+            for token_ in tokens:
+                if isinstance(token_, Token):
+                    tokens_.append(token_)
+                elif isinstance(token_, (int, float, bool)):
+                    tokens_.append(Literal(token_))
+                else:
+                    tokens_.append(token(token_))
+        # check the syntax, raise ValueError if invalid
+        self._check(tokens_)
+        self._tokens = tokens_
+
+    def __call__(self,
+                 environment: Optional[Mapping[str, NumberOrArray]] = None) \
+            -> NumberOrArray:
+        """Evaluate the expression and return a numerical or logical result.
+
+        See Also
+        --------
+        :func:`eval`
+            This is the same as the :func:`eval` method.  Look there for
+            further documentation.
+
+        """
+        return self.eval(environment)
+
+    def eval(self, environment: Optional[Mapping[str, NumberOrArray]] = None) \
+            -> NumberOrArray:
+        """Evaluate the expression and return a numerical or logical result.
+
+        Parameters
+        ----------
+        environment
+            A mapping to lookup variables in when evaluating the expression.
+            If not provided an empty mapping will be used, this is fine as
+            long as the expression does not contain any variables.  This can
+            be ascertained by checking the with the :attr:`variables`
+            attribute:
+
+            .. code-block:: python
+
+                if not expression.variables:
+                    expression.eval()
+
+            If the evaluation is lengthy or there are side effects to key
+            lookup in the :paramref:`environment` it may be beneficial to
+            check for any missing variables first:
+
+            .. code-block:: python
+
+                missing_vars = expression.variables.difference(environment)
+
+        Returns
+        -------
+            The numeric or logical result of the expression.
+
+
+        Raises
+        ------
+        TypeError
+            If there is a type mismatch with one of the operators and a value.
+
+            .. note::
+
+                While this class includes a static syntax checker that runs
+                upon initialization it does not know the type of variables in
+                the given :paramref:`environment` ahead of time.
+
+        KeyError
+            If the expression contains a variable that is not within the given
+            :paramref:`environment`.
+
+        IndexError, ValueError, RuntimeError, ZeroDivisionError
+            If arguments to operators in the expression do not have the proper
+            dimensions or values for the operators to produce a result.  See
+            the documentation of each operator for specifics.
+
+        """
+        if not environment:
+            environment = {}
+        stack: List[NumberOrArray] = []
+        for token_ in self._tokens:
+            token_(stack, environment)
+        # NOTE: The stack will always have exactly one element at this point
+        #       due to the static checker that runs at initialization.
+        return stack[0]
+
+    def __iter__(self) -> Iterator[Token]:
+        for token_ in self._tokens:
+            yield token_
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__qualname__}({repr(self._tokens)})"
+
+    def __str__(self) -> str:
+        return ' '.join(str(t) for t in self._tokens)
+
+    @staticmethod
+    def _check(tokens: Iterable[Token]) -> None:
+        """Check the syntax of the given :paramref:`tokens`.
+
+        Parameters
+        ----------
+        tokens
+            Sequence of tokens to check the syntax of.
+
+        Raises
+        ------
+        ValueError
+            If the sequence of :paramref:`tokens` is invalid.
+
+        """
+        stack_size = 0
+        for i, token_ in enumerate(tokens):
+            stack_size -= token_.pops
+            if stack_size < 0:
+                tokens_str = [str(t) for t in tokens]
+                raise ValueError(
+                    f"'{token_}' takes {token_.pops} arguments but the stack "
+                    f"will only have {stack_size + token_.pops} element(s)\n"
+                    f"{' '.join(tokens_str)}\n"
+                    f"{' ' * len(' '.join(tokens_str[:i])) + ' ^'}")
+            stack_size += token_.puts
+        if stack_size == 0:
+            raise ValueError('expression does not produce a result')
+        if stack_size > 1:
+            raise ValueError(
+                'expression produces too many results, number of results is '
+                f'{stack_size}, expected 1')
+
+
+def token(string: str) -> Token:
+    """Parse string token into a :class:`Token`.
+
+    There are three types of tokens that can result from this function:
+
+        * :class:`Literal` - a literal integer or float
+        * :class:`Variable` - a variable to looked up in the environment
+        * :class:`Operator` - an operator to modify the stack
+
+    Parameters
+    ----------
+    string
+
+    Returns
+    -------
+    Token
+        Parsed token.
+
+    """
+    if string in _KEYWORDS:
+        return _KEYWORDS[string]
+    try:
+        return Literal(int(string))
+    except ValueError:
+        pass
+    try:
+        return Literal(fortran_float(string))
+    except ValueError:
+        if string.isidentifier():
+            return Variable(string)
+        raise ValueError(f"invalid RPN token '{string}'")
+
+
 # NOTE: The operators in this file are in the same order as they are in the
 # RADS user manual.
 
 
 class _SUBType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -341,6 +637,14 @@ class _SUBType(Operator):
 
 class _ADDType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Add two numbers/arrays.
@@ -367,6 +671,14 @@ class _ADDType(Operator):
 
 
 class _MULType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -395,6 +707,14 @@ class _MULType(Operator):
 
 class _POPType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 0
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Remove top of stack.
@@ -420,6 +740,14 @@ class _POPType(Operator):
 
 
 class _NEGType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -448,6 +776,14 @@ class _NEGType(Operator):
 
 class _ABSType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         r"""Absolute value of number/array.
@@ -474,6 +810,14 @@ class _ABSType(Operator):
 
 
 class _INVType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -502,6 +846,14 @@ class _INVType(Operator):
 
 class _SQRTType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Compute square root of number/array.
@@ -528,6 +880,14 @@ class _SQRTType(Operator):
 
 
 class _SQRType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -556,6 +916,14 @@ class _SQRType(Operator):
 
 class _EXPType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Exponential of number/array.
@@ -582,6 +950,14 @@ class _EXPType(Operator):
 
 
 class _LOGType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -610,6 +986,14 @@ class _LOGType(Operator):
 
 class _LOG10Type(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Compute base 10 logarithm of number/array.
@@ -636,6 +1020,14 @@ class _LOG10Type(Operator):
 
 
 class _SINType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -664,6 +1056,14 @@ class _SINType(Operator):
 
 class _COSType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Cosine of number/array [in radians].
@@ -690,6 +1090,14 @@ class _COSType(Operator):
 
 
 class _TANType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -718,6 +1126,14 @@ class _TANType(Operator):
 
 class _SINDType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Sine of number/array [in degrees].
@@ -744,6 +1160,14 @@ class _SINDType(Operator):
 
 
 class _COSDType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -772,6 +1196,14 @@ class _COSDType(Operator):
 
 class _TANDType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Tangend of number/array [in degrees].
@@ -798,6 +1230,14 @@ class _TANDType(Operator):
 
 
 class _SINHType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -826,6 +1266,14 @@ class _SINHType(Operator):
 
 class _COSHType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Hyperbolic cosine of number/array.
@@ -852,6 +1300,14 @@ class _COSHType(Operator):
 
 
 class _TANHType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -880,6 +1336,14 @@ class _TANHType(Operator):
 
 class _ASINType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Inverse sine of number/array [in radians].
@@ -906,6 +1370,14 @@ class _ASINType(Operator):
 
 
 class _ACOSType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -934,6 +1406,14 @@ class _ACOSType(Operator):
 
 class _ATANType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Inverse tangent of number/array [in radians].
@@ -960,6 +1440,14 @@ class _ATANType(Operator):
 
 
 class _ASINDType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -988,6 +1476,14 @@ class _ASINDType(Operator):
 
 class _ACOSDType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Inverse cosine of number/array [in degrees].
@@ -1014,6 +1510,14 @@ class _ACOSDType(Operator):
 
 
 class _ATANDType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1042,6 +1546,14 @@ class _ATANDType(Operator):
 
 class _ASINHType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Inverse hyperbolic sine of number/array.
@@ -1068,6 +1580,14 @@ class _ASINHType(Operator):
 
 
 class _ACOSHType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1096,6 +1616,14 @@ class _ACOSHType(Operator):
 
 class _ATANHType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Inverse hyperbolic tangent of number/array.
@@ -1122,6 +1650,14 @@ class _ATANHType(Operator):
 
 
 class _ISNANType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1155,6 +1691,14 @@ class _ISNANType(Operator):
 
 class _ISANType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Determine if number/array is not NaN.
@@ -1187,6 +1731,14 @@ class _ISANType(Operator):
 
 class _RINTType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Round number/array to nearest integer.
@@ -1213,6 +1765,14 @@ class _RINTType(Operator):
 
 
 class _CEILType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1241,6 +1801,14 @@ class _CEILType(Operator):
 
 class _FLOORType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Round number/array down to nearest integer.
@@ -1267,6 +1835,14 @@ class _FLOORType(Operator):
 
 
 class _D2RType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1295,6 +1871,14 @@ class _D2RType(Operator):
 
 class _R2DType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Convert number/array from radians to degrees.
@@ -1321,6 +1905,14 @@ class _R2DType(Operator):
 
 
 class _YMDHMSType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1370,6 +1962,14 @@ class _YMDHMSType(Operator):
 
 class _SUMType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Compute sum over number/array [ignoring NaNs].
@@ -1397,6 +1997,14 @@ class _SUMType(Operator):
 
 class _DIFType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Compute difference over number/array.
@@ -1423,6 +2031,14 @@ class _DIFType(Operator):
 
 
 class _DUPType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 1
+
+    @property
+    def puts(self) -> int:
+        return 2
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1456,6 +2072,14 @@ class _DUPType(Operator):
 
 class _DIVType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Divide one number/array from another.
@@ -1482,6 +2106,14 @@ class _DIVType(Operator):
 
 
 class _POWType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1510,6 +2142,14 @@ class _POWType(Operator):
 
 class _FMODType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Remainder of dividing one number/array by another.
@@ -1536,6 +2176,14 @@ class _FMODType(Operator):
 
 
 class _MINType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1564,6 +2212,14 @@ class _MINType(Operator):
 
 class _MAXType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Maximum of two numbers/arrays [element wise].
@@ -1590,6 +2246,14 @@ class _MAXType(Operator):
 
 
 class _ATAN2Type(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1618,6 +2282,14 @@ class _ATAN2Type(Operator):
 
 class _HYPOTType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Hypotenuse from numbers/arrays giving legs.
@@ -1645,6 +2317,14 @@ class _HYPOTType(Operator):
 
 class _R2Type(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Sum of squares of two numbers/arrays.
@@ -1671,6 +2351,14 @@ class _R2Type(Operator):
 
 
 class _EQType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1704,6 +2392,14 @@ class _EQType(Operator):
 
 class _NEType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Compare two numbers/arrays for inequality [element wise].
@@ -1735,6 +2431,14 @@ class _NEType(Operator):
 
 
 class _LTType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1768,6 +2472,14 @@ class _LTType(Operator):
 
 class _LEType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Compare two numbers/arrays with <= [element wise].
@@ -1799,6 +2511,14 @@ class _LEType(Operator):
 
 
 class _GTType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1832,6 +2552,14 @@ class _GTType(Operator):
 
 class _GEType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Compare two numbers/arrays with >= [element wise].
@@ -1863,6 +2591,14 @@ class _GEType(Operator):
 
 
 class _NANType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1901,6 +2637,14 @@ class _NANType(Operator):
 
 class _ANDType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Fallback to second number/array when first is NaN [element wise].
@@ -1934,6 +2678,14 @@ class _ANDType(Operator):
 
 
 class _ORType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -1974,6 +2726,14 @@ class _ORType(Operator):
 
 class _IANDType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Bitwise AND of two numbers/arrays [element wise].
@@ -2001,6 +2761,14 @@ class _IANDType(Operator):
 
 class _IORType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Bitwise OR of two numbers/arrays [element wise].
@@ -2027,6 +2795,14 @@ class _IORType(Operator):
 
 
 class _BTESTType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -2058,6 +2834,14 @@ class _BTESTType(Operator):
 
 
 class _AVGType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -2096,6 +2880,14 @@ class _AVGType(Operator):
 
 
 class _DXDYType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -2136,6 +2928,14 @@ class _DXDYType(Operator):
 
 class _EXCHType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 2
+
+    @property
+    def puts(self) -> int:
+        return 2
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Exchange top two elements of stack.
@@ -2163,6 +2963,14 @@ class _EXCHType(Operator):
 
 
 class _INRANGEType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 3
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -2196,6 +3004,14 @@ class _INRANGEType(Operator):
 
 
 class _BOXCARType(Operator):
+
+    @property
+    def pops(self) -> int:
+        return 3
+
+    @property
+    def puts(self) -> int:
+        return 1
 
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
@@ -2254,6 +3070,14 @@ class _BOXCARType(Operator):
 
 class _GAUSSType(Operator):
 
+    @property
+    def pops(self) -> int:
+        return 3
+
+    @property
+    def puts(self) -> int:
+        return 1
+
     def __call__(self, stack: MutableSequence[NumberOrArray],
                  environment: Mapping[str, NumberOrArray]) -> None:
         """Filter number/array with a gaussian filter along a given dimension.
@@ -2304,11 +3128,12 @@ class _GAUSSType(Operator):
         stack.append(a)
 
 
+# constants
+
 PI = Literal(np.pi)
 E = Literal(np.e)
 
 # operators
-
 
 SUB = _SUBType('SUB')
 """Subtract one number/array from another.
@@ -2938,39 +3763,6 @@ _KEYWORDS = {
     'BOXCAR': BOXCAR,
     'GAUSS': GAUSS
 }
-
-
-def token(string: str) -> Token:
-    """Parse string token into a :class:`Token`.
-
-    There are three types of tokens that can result from this function:
-
-        * :class:`Literal` - a literal integer or float
-        * :class:`Variable` - a variable to looked up in the environment
-        * :class:`Operator` - an operator to modify the stack
-
-    Parameters
-    ----------
-    string
-
-    Returns
-    -------
-    Token
-        Parsed token.
-
-    """
-    if string in _KEYWORDS:
-        return _KEYWORDS[string]
-    try:
-        return Literal(int(string))
-    except ValueError:
-        pass
-    try:
-        return Literal(fortran_float(string))
-    except ValueError:
-        if string.isidentifier():
-            return Variable(string)
-        raise ValueError(f"invalid RPN token '{string}'")
 
 
 def _is_integer(x: NumberOrArray) -> bool:

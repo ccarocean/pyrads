@@ -148,6 +148,7 @@ disable=print-statement,
         too-many-return-statements,
         function-redefined,
         ungrouped-imports,
+        unused-argument,
         too-many-function-args,
         fixme
 
