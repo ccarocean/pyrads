@@ -8,7 +8,7 @@ This module is heavily based on PEGTL_, a parser combinator library for C++.
 import typing
 from abc import abstractmethod, ABC
 from typing import (Callable, List, Any, Tuple, NoReturn, Optional,
-                    MutableSequence, cast)
+                    MutableSequence, Collection, Union, cast)
 
 import yzal
 
@@ -286,16 +286,42 @@ class Apply(Parser):
         The parser whose value result to apply the given :paramref:`func` to
         the value result of.
     func
-        The function to apply
-    """
+        The function to apply.
+    catch
+        An exception or iterable of exceptions to convert into
+        :class:`LocalParseFailure` s.  The default is not to catch any
+        exceptions.  To catch all exceptions simply pass :class:`Exception` as
+        it is the base class of all exceptions that should be caught.
 
-    def __init__(self, parser: Parser, func: Callable[[Any], Any]) -> None:
+        .. note::
+
+            Any exceptions that are derived from the exceptions given will also
+            be caught.
+
+    """
+    _catch: Optional[Union[type, Tuple[type, ...]]] = None
+
+    def __init__(self, parser: Parser, func: Callable[[Any], Any],
+                 catch: Optional[Collection[type]] = None) -> None:
         self._parser = parser
         self._function = func
+        if catch:
+            if isinstance(catch, type):
+                self._catch = cast(type, catch)
+            else:
+                self._catch = tuple(catch)
 
     def __call__(self, position: Element) -> Tuple[Any, Element]:  # noqa: D102
         value, position = self._parser(position)
-        return self._function(value), position
+        if not self._catch:
+            return self._function(value), position
+        try:
+            return self._function(value), position
+        except Exception as err:
+            if not isinstance(err, self._catch):
+                raise  # don't catch this exception
+            raise LocalParseFailure(
+                position.file, position.opening_line, str(err)) from err
 
 
 class Lazy(Parser):
