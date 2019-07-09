@@ -48,6 +48,14 @@ def error_at(element: Element) -> Callable[[str], p.GlobalParseFailure]:
     return error
 
 
+def continue_from(element: Element) -> Callable[[str], p.LocalParseFailure]:
+    def error(message: str) -> p.LocalParseFailure:
+        return p.LocalParseFailure(
+            element.file, element.opening_line, message)
+
+    return error
+
+
 def parse_condition(attr: Mapping[str, str]) -> ast.Condition:
     # currently the only condition RADS uses is based on the satellite
     try:
