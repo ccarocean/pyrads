@@ -6,15 +6,16 @@ import math
 import numpy as np  # type: ignore
 import pytest  # type: ignore
 
-from rads.rpn import (NumberOrArray, StackUnderflowError, Literal, PI, E,
-                      Variable, Operator, Expression, SUB, ADD, MUL, POP, NEG,
-                      ABS, INV, SQRT, SQR, EXP, LOG, LOG10, SIN, COS, TAN,
-                      SIND, COSD, TAND, SINH, COSH, TANH, ASIN, ACOS, ATAN,
-                      ASIND, ACOSD, ATAND, ASINH, ACOSH, ATANH, ISNAN, ISAN,
-                      RINT, NINT, CEIL, CEILING, FLOOR, D2R, R2D, YMDHMS, SUM,
-                      DIF, DUP, DIV, POW, FMOD, MIN, MAX, ATAN2, HYPOT, R2, EQ,
-                      NE, LT, LE, GT, GE, NAN, AND, OR, IAND, IOR, BTEST, AVG,
-                      DXDY, EXCH, INRANGE, BOXCAR, GAUSS, token)
+from rads._typing import NumberOrArray
+from rads.rpn import (StackUnderflowError, Literal, PI, E, Variable, Operator,
+                      Expression, SUB, ADD, MUL, POP, NEG, ABS, INV, SQRT, SQR,
+                      EXP, LOG, LOG10, SIN, COS, TAN, SIND, COSD, TAND, SINH,
+                      COSH, TANH, ASIN, ACOS, ATAN, ASIND, ACOSD, ATAND, ASINH,
+                      ACOSH, ATANH, ISNAN, ISAN, RINT, NINT, CEIL, CEILING,
+                      FLOOR, D2R, R2D, YMDHMS, SUM, DIF, DUP, DIV, POW, FMOD,
+                      MIN, MAX, ATAN2, HYPOT, R2, EQ, NE, LT, LE, GT, GE, NAN,
+                      AND, OR, IAND, IOR, BTEST, AVG, DXDY, EXCH, INRANGE,
+                      BOXCAR, GAUSS, token)
 
 GOLDEN_RATIO = math.log((1 + math.sqrt(5)) / 2)
 

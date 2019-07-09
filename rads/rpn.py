@@ -127,6 +127,7 @@ from cached_property import cached_property  # type: ignore
 
 from . import EPOCH
 from ._utility import fortran_float
+from ._typing import Number, NumberOrArray
 from .datetime64util import ymdhmsus
 
 __all__ = ['StackUnderflowError', 'Expression', 'Token', 'Literal', 'PI', 'E',
@@ -140,11 +141,6 @@ __all__ = ['StackUnderflowError', 'Expression', 'Token', 'Literal', 'PI', 'E',
            'LE', 'GT', 'GE', 'NAN', 'AND', 'OR', 'IAND', 'IOR', 'BTEST', 'AVG',
            'DXDY', 'EXCH', 'INRANGE', 'BOXCAR', 'GAUSS']
 
-NumberOrArray = Union[int, float, bool, np.generic, np.ndarray]
-# for the purpose of the RPN calculator bool is considered a numeric type
-# as it will act as 0 or 1 when used as a number
-Number = Union[int, float, bool]
-
 
 class StackUnderflowError(Exception):
     """Raised when the stack is too small for the operation.
@@ -156,7 +152,7 @@ class StackUnderflowError(Exception):
     .. note:
 
         Due to the static checker in :class:`Expression` this should never be
-        raised excemanually manualy evaluating a :class:`Token`.
+        raised except for manually evaluating a :class:`Token`.
 
     """
 
@@ -635,6 +631,7 @@ class _SUBType(Operator):
         stack.append(x - y)
 
 
+# TODO: write as many as possible to use operators instead of numpy functions
 class _ADDType(Operator):
 
     @property
