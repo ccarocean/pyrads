@@ -1,11 +1,12 @@
-from typing import Any, Callable, Iterable, Optional, Sequence, Tuple, cast
+from typing import (Any, Callable, Iterable, Mapping, Optional, Sequence,
+                    Tuple, cast)
 
 import fortran_format_converter as ffc
 
 from .ast import (Alias, Assignment, CompoundStatement, If, NullStatement,
                   Phase, SatelliteID, Satellites, Source, Statement, Variable)
-from .text_parsers import (list_of, range_of, types, compress, cycles, nop,
-                           ref_pass, repeat, time, unit)
+from .text_parsers import (lift, list_of, one_of, range_of, compress, cycles,
+                           nop, ref_pass, repeat, time, unit)
 from .tree import SubCycles
 from .utility import (error_at, source_from_element, parse_action,
                       parse_condition, named_block_processor)
@@ -40,7 +41,8 @@ def ignore(tag_: Optional[str] = None) -> Parser:
     return any() ^ process
 
 
-def value(parser: Callable[[str], Any] = nop, tag_: Optional[str] = None,
+def value(parser: Callable[[str, Mapping[str, str]], Any] = nop,
+          tag_: Optional[str] = None,
           var: Optional[str] = None) -> Parser:
     def process(element: Element) -> Assignment:
         var_ = var if var else element.tag
@@ -49,14 +51,11 @@ def value(parser: Callable[[str], Any] = nop, tag_: Optional[str] = None,
         text = element.text if element.text else ''
         source = source_from_element(element)
         try:
-            return Assignment(
-                name=var_,
-                value=parser(text),
-                condition=condition,
-                action=action,
-                source=source)
+            value = parser(text, element.attributes)
         except (ValueError, TypeError) as err:
             raise error_at(element)(str(err)) from err
+        return Assignment(name=var_, value=value, condition=condition,
+                          action=action, source=source)
 
     if tag_:
         return tag(tag_) ^ process
@@ -137,19 +136,15 @@ def subcycles() -> Parser:
         text = element.text if element.text else ''
         lengths = [int(s) for s in text.split()]
         source = source_from_element(element)
-        return Assignment(
-            name='subcycles',
-            value=SubCycles(lengths, start=start),
-            condition=condition,
-            action=action,
-            source=source)
+        value = SubCycles(lengths, start=start)
+        return Assignment(name='subcycles', value=value, condition=condition,
+                          action=action, source=source)
 
     return tag('subcycles') ^ process
 
 
-def block(
-        parser: Parser,
-        error_msg: str = 'Invalid configuration block or value.') -> Parser:
+def block(parser: Parser,
+          error_msg: str = 'Invalid configuration block or value.') -> Parser:
     def process(statements: Sequence[Statement]) -> Statement:
         # flatten if only a single statement
         if len(statements) == 1:
@@ -167,7 +162,7 @@ def block(
 
 def phase() -> Parser:
     phase_block = block(
-        value(str, 'mission') |
+        value(lift(str), 'mission') |
         value(cycles, 'cycles') |
         value(repeat, 'repeat') |
         value(ref_pass, 'ref_pass', var='reference_pass') |
@@ -182,30 +177,31 @@ def phase() -> Parser:
 def variable() -> Parser:
     # NOTE: These must be duplicated in the variable_overrides below.
     variable_block = block(
-        value(str, 'long_name', var='name') |
-        value(str, 'standard_name') |
-        value(str, 'source') |
-        value(str, 'comment') |
+        value(lift(str), 'long_name', var='name') |
+        value(lift(str), 'standard_name') |
+        value(lift(str), 'source') |
+        value(lift(str), 'comment') |
         value(unit, 'units') |
-        value(list_of(str), 'flag_values') |
-        value(list_of(str), 'flag_masks') |
-        value(range_of(types((int, float))), 'limits') |
-        value(range_of(types((int, float))), 'plot_range') |
+        value(list_of(lift(str)), 'flag_values') |
+        value(list_of(lift(str)), 'flag_masks') |
+        value(range_of(one_of((lift(int), lift(float)))), 'limits') |
+        value(range_of(one_of((lift(int), lift(float)))), 'plot_range') |
         # used by rads for database generation, has no effect on end users
         ignore('parameters') |
         ignore('data') |  # TODO: Complex field.
-        value(list_of(str), 'quality_flag') |
+        value(list_of(lift(str)), 'quality_flag') |
         # not currently used
-        value(int, 'dimensions') |
-        value(ffc.convert, 'format') |
+        value(lift(int), 'dimensions') |
+        value(lift(ffc.convert), 'format') |
         value(compress, 'compress') |
-        value(types((int, float)), 'default')
+        value(one_of((lift(int), lift(float))), 'default')
     )
     process = named_block_processor('var', variable_block, Variable)
     return tag('var') ^ process
 
 
-def variable_override(parser: Callable[[str], Any], tag_: str,
+def variable_override(parser: Callable[[str, Mapping[str, str]], Any],
+                      tag_: str,
                       var: Optional[str] = None) -> Parser:
     def process(element: Element) -> Variable:
         try:
@@ -217,9 +213,12 @@ def variable_override(parser: Callable[[str], Any], tag_: str,
         action = parse_action(element)
         text = element.text if element.text else ''
         source = source_from_element(element)
-        # TODO: Needs error handling.
-        statement = Assignment(
-            name=var_, value=parser(text), action=action, source=source)
+        try:
+            value = parser(text, element.attributes)
+        except (ValueError, TypeError) as err:
+            raise error_at(element)(str(err)) from err
+        statement = Assignment(name=var_, value=value, action=action,
+                               source=source)
         return Variable(name, statement, condition, source=source)
 
     return tag(tag_) ^ process
@@ -227,24 +226,26 @@ def variable_override(parser: Callable[[str], Any], tag_: str,
 
 def variable_overrides() -> Parser:
     overrides = (
-            variable_override(str, 'long_name', var='name') |
-            variable_override(str, 'standard_name') |
-            variable_override(str, 'source') |
-            variable_override(str, 'comment') |
+            variable_override(lift(str), 'long_name', var='name') |
+            variable_override(lift(str), 'standard_name') |
+            variable_override(lift(str), 'source') |
+            variable_override(lift(str), 'comment') |
             variable_override(unit, 'units') |
-            variable_override(list_of(str), 'flag_variable_overrides') |
-            variable_override(list_of(str), 'flag_masks') |
-            variable_override(range_of(types((int, float))), 'limits') |
-            variable_override(range_of(types((int, float))), 'plot_range') |
+            variable_override(list_of(lift(str)), 'flag_variable_overrides') |
+            variable_override(list_of(lift(str)), 'flag_masks') |
+            variable_override(
+                range_of(one_of((lift(int), lift(float)))), 'limits') |
+            variable_override(
+                range_of(one_of((lift(int), lift(float)))), 'plot_range') |
             # used by rads for database generation, has no effect on end users
             ignore('parameters') |
             ignore('data') |  # TODO: Complex field.
-            variable_override(list_of(str), 'quality_flag') |
+            variable_override(list_of(lift(str)), 'quality_flag') |
             # not currently used
-            variable_override(int, 'dimensions') |
-            variable_override(ffc.convert, 'format') |
+            variable_override(lift(int), 'dimensions') |
+            variable_override(lift(ffc.convert), 'format') |
             variable_override(compress, 'compress') |
-            variable_override(types((int, float)), 'default'))
+            variable_override(one_of((lift(int), lift(float))), 'default'))
     return overrides
 
 
@@ -257,11 +258,11 @@ def parse(root: Element) -> Statement:
         satellites() |
 
         # top level satellite parameters
-        value(str, 'satellite', var='name') |
+        value(lift(str), 'satellite', var='name') |
         ignore('satid') |
-        value(float, 'dt1hz') |
-        value(float, 'inclination') |
-        value(list_of(float), 'frequency') |
+        value(lift(float), 'dt1hz') |
+        value(lift(float), 'inclination') |
+        value(list_of(lift(float)), 'frequency') |
         ignore('xover_params') |
 
         # satellite phase
