@@ -2030,6 +2030,27 @@ class TestExpression:
         assert list(Expression('1   a_var        ADD')) == [
             Literal(1), Variable('a_var'), ADD]
 
+    def test_eq_with_token_sequence(self):
+        assert Expression([Literal(1)]) == Expression([Literal(1)])
+        assert Expression([Literal(1), Literal(2.5), ADD]) == Expression(
+            [Literal(1), Literal(2.5), ADD])
+        assert Expression([Literal(1), Variable('a_var'), ADD]) == Expression(
+            [Literal(1), Variable('a_var'), ADD])
+
+    def test_eq_with_mixed_sequence(self):
+        assert Expression([1]) == Expression([Literal(1)])
+        assert Expression([1, 2.5, ADD]) == Expression(
+            [Literal(1), Literal(2.5), ADD])
+        assert Expression([1, 'a_var', ADD]) == Expression(
+            [Literal(1), Variable('a_var'), ADD])
+
+    def test_eq_with_token_string(self):
+        assert Expression('1') == Expression([Literal(1)])
+        assert Expression('1 2.5 ADD') == Expression(
+            [Literal(1), Literal(2.5), ADD])
+        assert Expression('1 a_var ADD') == Expression(
+            [Literal(1), Variable('a_var'), ADD])
+
     def test_repr_with_token_sequence(self):
         assert repr(Expression([Literal(1)])) == 'Expression([Literal(1)])'
         assert (repr(Expression([Literal(1), Literal(2.5), ADD])) ==

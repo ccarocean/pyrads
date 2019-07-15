@@ -519,6 +519,16 @@ class Expression(Iterable[Token]):
         for token_ in self._tokens:
             yield token_
 
+    def __eq__(self, other):
+        if not isinstance(other, Expression):
+            return NotImplemented
+        return self._tokens == other._tokens
+
+    def __ne__(self, other):
+        if not isinstance(other, Expression):
+            return NotImplemented
+        return self._tokens != other._tokens
+
     def __repr__(self) -> str:
         return f"{self.__class__.__qualname__}({repr(self._tokens)})"
 
