@@ -19,10 +19,21 @@ import numpy as np  # type: ignore
 from .tree import Compress, Cycles, Range, ReferencePass, Repeat, Unit
 from .._utility import fortran_float
 
-__all__ = ['lift', 'list_of', 'one_of', 'range_of', 'compress', 'cycles',
-           'nop', 'ref_pass', 'repeat', 'time', 'unit']
+__all__ = ['TerminalTextParseError', 'TextParseError', 'lift', 'list_of',
+           'one_of', 'range_of', 'compress', 'cycles', 'nop',
+           'ref_pass', 'repeat', 'time', 'unit']
 
 T = TypeVar('T')
+
+
+class TerminalTextParseError(Exception):
+    pass
+
+
+# inherits from TerminalTextParseError because any except clause that catches
+# terminal errors should also catch non-terminal errors.
+class TextParseError(TerminalTextParseError):
+    pass
 
 
 # COMBINATORS
@@ -31,7 +42,7 @@ T = TypeVar('T')
 # text parsers together and return a new text parser.
 
 
-def lift(string_parser: Callable[[str], T]) \
+def lift(string_parser: Callable[[str], T], *, terminal: bool = False) \
         -> Callable[[str, Mapping[str, str]], T]:
     """Lift a simple string parser to a text parser that accepts attributes.
 
@@ -41,6 +52,9 @@ def lift(string_parser: Callable[[str], T]) \
     ----------
     string_parser
         A simple parser that takes a string and returns a value.
+    terminal
+        Set to True to use :class:`TerminalTextParseError` s instead of
+        :class:`TextParseError` s.
 
     Returns
     -------
@@ -48,16 +62,33 @@ def lift(string_parser: Callable[[str], T]) \
         The given :paramref:`string_parser` with an added argument to accept
         and ignore the attributes for the text tag.
 
+    Raises
+    ------
+    TextParseError
+        The resulting parser throws this if the given :paramref:`string_parser`
+        throws a TypeError, ValueError, or KeyError and :paramref:`terminal`
+        was False (the default).
+    TerminalTextParseError
+        The resulting parser throws this if the given :paramref:`string_parser`
+        throws a TypeError, ValueError, or KeyError and :paramref:`terminal`
+        was True.
+
     """
+
     def _parser(string: str, _: Mapping[str, str]) -> T:
-        return string_parser(string)
+        try:
+            return string_parser(string)
+        except (TypeError, ValueError, KeyError) as err:
+            if terminal:
+                raise TerminalTextParseError(str(err)) from err
+            raise TextParseError(str(err)) from err
 
     _parser._lifted = string_parser.__qualname__  # type: ignore
     return _parser
 
 
 def list_of(parser: Callable[[str, Mapping[str, str]], T],
-            sep: Optional[str] = None) \
+            *, sep: Optional[str] = None, terminal: bool = False) \
         -> Callable[[str, Mapping[str, str]], List[T]]:
     """Convert parser into a parser of lists.
 
@@ -67,6 +98,9 @@ def list_of(parser: Callable[[str, Mapping[str, str]], T],
         Original parser.
     sep
         Item delimiter.  Default is to separate by one or more spaces.
+    terminal
+        If set to True it promotes any :class:`TextParseError` s raised by the
+        given :paramref:`parser` to a :class:`TerminalTextParseError`.
 
     Returns
     -------
@@ -74,13 +108,21 @@ def list_of(parser: Callable[[str, Mapping[str, str]], T],
         The new parser of delimited lists.
 
     """
+
     def _parser(string: str, attr: Mapping[str, str]) -> List[T]:
         return [parser(s, attr) for s in string.split(sep=sep)]
 
-    return _parser
+    def _terminal_parser(string: str, attr: Mapping[str, str]) -> List[T]:
+        try:
+            return _parser(string, attr)
+        except TextParseError as err:
+            raise TerminalTextParseError(str(err)) from err
+
+    return _terminal_parser if terminal else _parser
 
 
-def range_of(parser: Callable[[str, Mapping[str, str]], Real]) \
+def range_of(parser: Callable[[str, Mapping[str, str]], Real],
+             *, terminal: bool = False) \
         -> Callable[[str, Mapping[str, str]], Range]:
     """Create a range parser from a given parser for each range element.
 
@@ -91,6 +133,11 @@ def range_of(parser: Callable[[str, Mapping[str, str]], Real]) \
     ----------
     parser
         Parser to use for the min and max values.
+    terminal
+        Set to True to use :class:`TerminalTextParseError` s instead of
+        :class:`TextParseError` s.  Also promotes any :class:`TextParseError` s
+        raised by the given :paramref:`parser` to a
+        :class:`TerminalTextParseError`.
 
     Returns
     -------
@@ -99,41 +146,54 @@ def range_of(parser: Callable[[str, Mapping[str, str]], Real]) \
 
     Raises
     ------
-    ValueError
+    TextParseError
         Resulting parser raises this if given a string that does not contain
-        two space separated elements.
+        two space separated elements and :paramref:`terminal` was False
+        (the default).
+    TerminalTextParseError
+        Resulting parser raises this if given a string that does not contain
+        two space separated elements and :paramref:`terminal` was True.
 
     """
+
     def _parser(string: str, attr: Mapping[str, str]) -> Range:
+        exc = TerminalTextParseError if terminal else TextParseError
         minmax = [parser(s, attr) for s in string.split()]
         if not minmax:
-            raise ValueError(
-                'ranges require exactly 2 values, but none were given')
+            raise exc('ranges require exactly 2 values, but none were given')
         if len(minmax) == 1:
-            raise ValueError(
-                'ranges require exactly 2 values, but only 1 was given')
+            raise exc('ranges require exactly 2 values, but only 1 was given')
         if len(minmax) > 2:
-            raise ValueError(
-                'ranges require exactly 2 values, '
-                f'but {len(minmax)} were given')
+            raise exc('ranges require exactly 2 values, '
+                      f'but {len(minmax)} were given')
         return Range(*minmax)
 
-    return _parser
+    def _terminal_parser(string: str, attr: Mapping[str, str]) -> Range:
+        try:
+            return _parser(string, attr)
+        except TextParseError as err:
+            raise TerminalTextParseError(str(err)) from err
+
+    return _terminal_parser if terminal else _parser
 
 
-def one_of(parsers: Iterable[Callable[[str, Mapping[str, str]], Any]]) \
+def one_of(parsers: Iterable[Callable[[str, Mapping[str, str]], Any]],
+           *, terminal: bool = False) \
         -> Callable[[str, Mapping[str, str]], Any]:
     """Convert parsers into a parser that tries each one in sequence.
 
     .. note::
 
         Each parser will be tried in sequence.  The next parser will be tried
-        if TypeError, ValueError, or KeyError is raised.
+        if :class:`TextParseError` is raised.
 
     Parameters
     ----------
     parsers
-        A sequence of parsers the new parsers should try in order.
+        A sequence of parsers the new parser should try in order.
+    terminal
+        Set to True to use :class:`TerminalTextParseError` s instead of
+        :class:`TextParseError` s.
 
     Returns
     -------
@@ -143,16 +203,21 @@ def one_of(parsers: Iterable[Callable[[str, Mapping[str, str]], Any]]) \
 
     Raises
     ------
-    TypeError
+    TextParseError
         Resulting parser raises this if given a string that cannot be parsed by
-        any of the given :paramref:`parsers`.
+        any of the given :paramref:`parsers` and :paramref:`terminal` was False
+        (the defualt).
+    TerminalTextParseError
+        Resulting parser raises this if given a string that cannot be parsed by
+        any of the given :paramref:`parsers` and :paramref:`terminal` was True.
 
     """
+
     def _parser(string: str, attr: Mapping[str, str]) -> Any:
         for parser in parsers:
             try:
                 return parser(string, attr)
-            except (TypeError, ValueError, KeyError):
+            except TextParseError:
                 pass
 
         # build list of parser types
@@ -163,8 +228,11 @@ def one_of(parsers: Iterable[Callable[[str, Mapping[str, str]], Any]]) \
             except AttributeError:
                 parser_types.append(parser.__qualname__)
 
-        raise ValueError(f"cannot convert '{string}' to any of the following "
-                         f"types: {', '.join(parser_types)}")
+        err_str = (f"cannot convert '{string}' to any of the following "
+                   f"types: {', '.join(parser_types)}")
+        if terminal:
+            raise TerminalTextParseError(err_str)
+        raise TextParseError(err_str)
 
     return _parser
 
@@ -207,7 +275,7 @@ def compress(string: str, _: Mapping[str, str]) -> Compress:
 
     Raises
     ------
-    ValueError
+    TextParseError
         If the <type> is not in the given :paramref:`string` or if too many
         values are in the :paramref:`string`.  Also, if one of the values
         cannot be converted.
@@ -218,12 +286,14 @@ def compress(string: str, _: Mapping[str, str]) -> Compress:
         funcs: Iterable[Callable[[str], Any]] = (
             _rads_type, fortran_float, fortran_float, lambda x: x)
         return Compress(*(f(s) for f, s in zip(funcs, parts)))
+    except (KeyError, ValueError) as err:
+        raise TextParseError(str(err)) from err
     except TypeError:
         if len(parts) > 3:
-            raise ValueError(
+            raise TextParseError(
                 "too many values given, expected only 'type', "
                 "'scale_factor', and 'add_offset'")
-        raise ValueError("'missing 'type'")
+        raise TextParseError("'missing 'type'")
 
 
 def cycles(string: str, _: Mapping[str, str]) -> Cycles:
@@ -248,20 +318,22 @@ def cycles(string: str, _: Mapping[str, str]) -> Cycles:
 
     Raises
     ------
-    ValueError
+    TextParseError
         If the wrong number of values are given in the :paramref:`string` or
         one of the values is not parsable to an integer.
 
     """
     try:
         return Cycles(*(int(s) for s in string.split()))
+    except ValueError as err:
+        raise TextParseError(str(err)) from err
     except TypeError:
         num_values = len(string.split())
         if num_values == 0:
-            raise ValueError("missing 'first' cycle")
+            raise TextParseError("missing 'first' cycle")
         if num_values == 1:
-            raise ValueError("missing 'last' cycle")
-        raise ValueError(
+            raise TextParseError("missing 'last' cycle")
+        raise TextParseError(
             "too many cycles given, expected only 'first' and 'last'")
 
 
@@ -313,6 +385,7 @@ def ref_pass(string: str, _: Mapping[str, str]) -> ReferencePass:
 
     Raises
     ------
+    TextParseError
         If the wrong number of values are given in the :paramref:`string` or
         one of the values is not parsable.
 
@@ -322,20 +395,22 @@ def ref_pass(string: str, _: Mapping[str, str]) -> ReferencePass:
         funcs: Sequence[Callable[[str], Any]] = (
             _time, float, int, int, int, lambda x: x)
         return ReferencePass(*(f(s) for f, s in zip(funcs, parts)))
+    except ValueError as err:
+        raise TextParseError(str(err)) from err
     except TypeError:
         if not parts:
-            raise ValueError("missing 'time' of reference pass")
+            raise TextParseError("missing 'time' of reference pass")
         if len(parts) == 1:
-            raise ValueError(
+            raise TextParseError(
                 "missing equator crossing 'longitude' of reference pass")
         if len(parts) == 2:
-            raise ValueError("missing 'cycle number' of reference pass")
+            raise TextParseError("missing 'cycle number' of reference pass")
         if len(parts) == 3:
-            raise ValueError("missing 'pass number' of reference pass")
+            raise TextParseError("missing 'pass number' of reference pass")
         # absolute orbit number is defaulted in ReferencePass
-        raise ValueError("too many values given, expected only 'time', "
-                         "'longitude', 'cycle number', 'pass number', and "
-                         "optionally 'absolute orbit number'")
+        raise TextParseError("too many values given, expected only 'time', "
+                             "'longitude', 'cycle number', 'pass number', and "
+                             "optionally 'absolute orbit number'")
 
 
 def repeat(string: str, _: Mapping[str, str]) -> Repeat:
@@ -362,7 +437,7 @@ def repeat(string: str, _: Mapping[str, str]) -> Repeat:
 
     Raises
     ------
-    ValueError
+    TextParseError
         If the wrong number of values are given in the :paramref:`string` or
         one of the values is not parsable.
 
@@ -372,12 +447,14 @@ def repeat(string: str, _: Mapping[str, str]) -> Repeat:
         funcs: Sequence[Callable[[str], Any]] = (
             float, int, float, lambda x: x)
         return Repeat(*(f(s) for f, s in zip(funcs, parts)))
+    except ValueError as err:
+        raise TextParseError(str(err)) from err
     except TypeError:
         if not parts:
-            raise ValueError("missing length of repeat cycle in 'days'")
+            raise TextParseError("missing length of repeat cycle in 'days'")
         if len(parts) == 1:
-            raise ValueError("missing length of repeat cycle in 'passes'")
-        raise ValueError(
+            raise TextParseError("missing length of repeat cycle in 'passes'")
+        raise TextParseError(
             "too many values given, expected only 'days', "
             "'passes', and 'longitude_drift'")
 
@@ -405,11 +482,14 @@ def time(string: str, _: Mapping[str, str]) -> datetime:
 
     Raises
     ------
-    ValueError
+    TextParseError
         If the date/time :paramref:`string` cannot be parsed.
 
     """
-    return _time(string)
+    try:
+        return _time(string)
+    except ValueError as err:
+        raise TextParseError(str(err)) from err
 
 
 def unit(string: str, _: Mapping[str, str]) -> Unit:
@@ -452,7 +532,21 @@ def unit(string: str, _: Mapping[str, str]) -> Unit:
             return Unit('no unit')
         if string == 'yymmddhhmmss':
             return Unit('unknown')
-        raise ValueError(f"failed to parse unit '{string}'")
+        raise TextParseError(f"failed to parse unit '{string}'")
+
+
+def _rads_type(string: str) -> type:
+    switch: Dict[str, type] = {
+        'int1': np.int8,
+        'int2': np.int16,
+        'int4': np.int32,
+        'real': np.float32,
+        'dble': np.float64
+    }
+    try:
+        return switch[string.lower()]
+    except KeyError:
+        raise ValueError(f"invalid RADS type string '{string}'")
 
 
 def _time(string: str) -> datetime:
@@ -476,17 +570,3 @@ def _time(string: str) -> datetime:
                         raise ValueError(
                             "time data '{:s}' does not match format "
                             "'%Y-%m-%dT%H:%M:%S'".format(string))
-
-
-def _rads_type(string: str) -> type:
-    switch: Dict[str, type] = {
-        'int1': np.int8,
-        'int2': np.int16,
-        'int4': np.int32,
-        'real': np.float32,
-        'dble': np.float64
-    }
-    try:
-        return switch[string.lower()]
-    except KeyError:
-        raise ValueError(f"invalid RADS type string '{string}'")
