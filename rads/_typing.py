@@ -1,6 +1,5 @@
 """Type aliases."""
 
-import numbers
 import os
 from typing import Union, IO, Any, TYPE_CHECKING
 
