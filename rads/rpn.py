@@ -519,12 +519,12 @@ class Expression(Iterable[Token]):
         for token_ in self._tokens:
             yield token_
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Expression):
             return NotImplemented
         return self._tokens == other._tokens
 
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         if not isinstance(other, Expression):
             return NotImplemented
         return self._tokens != other._tokens

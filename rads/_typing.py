@@ -20,6 +20,6 @@ Real = Union[int, float, numbers.Real]
 
 # for the purpose of PyRADS bool as a number since it will act
 # as 0 or 1 when used as a number
-Number = Union[Real, bool]
+Number = Union[int, float, bool]
 
 NumberOrArray = Union[Number, np.generic, np.ndarray]
