@@ -6,9 +6,13 @@ from cf_units import Unit
 
 from rads.config.text_parsers import (TerminalTextParseError, TextParseError,
                                       lift, list_of, range_of, one_of,
-                                      compress, cycles, nop, ref_pass,
+                                      compress, cycles, data, nop, ref_pass,
                                       repeat, time, unit)
-from rads.config.tree import Range, Compress, Cycles, ReferencePass, Repeat
+from rads.config.tree import (Compress, Constant, Cycles, Flags, Grid,
+                              MultiBitFlag, NetCDFAttribute, NetCDFVariable,
+                              Range, ReferencePass, Repeat, SurfaceType,
+                              SingleBitFlag)
+from rads.rpn import Expression
 
 
 def test_exceptions():
@@ -125,6 +129,211 @@ def test_cycles():
         cycles('100', {})
     with pytest.raises(TextParseError):
         cycles('100 200 300', {})
+
+
+def test_data_as_constant():
+    # explicit constant
+    assert data('3', {'source': 'constant'}) == Constant(3)
+    assert data('3.14', {'source': 'constant'}) == Constant(3.14)
+    # implicit constant
+    assert data('3', {}) == Constant(3)
+    assert data('3.14', {}) == Constant(3.14)
+    # not a constant
+    assert not isinstance(data('abc', {}), Constant)
+    assert not isinstance(data('abc.nc', {}), Constant)
+    assert not isinstance(data('3.14 2.72 ADD', {}), Constant)
+    # not a constant, explicit leads to terminal error
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('', {'source': 'constant'})
+    assert exc_info.type is TerminalTextParseError
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('abc', {'source': 'constant'})
+    assert exc_info.type is TerminalTextParseError
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('3.14 2.72', {'source': 'constant'})
+    assert exc_info.type is TerminalTextParseError
+
+
+def test_data_as_flags():
+    assert data('5', {'source': 'flags'}) == SingleBitFlag(5)
+    assert data('5 9', {'source': 'flags'}) == MultiBitFlag(5, 9)
+    assert data('surface_type', {'source': 'flags'}) == SurfaceType()
+    # never parsed as flags without source
+    assert not isinstance(data('surface_type', {}), Flags)
+    # invalid flags leads to terminal error
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('', {'source': 'flags'})
+    assert exc_info.type is TerminalTextParseError
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('5.5', {'source': 'flags'})
+    assert exc_info.type is TerminalTextParseError
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('5 9.5', {'source': 'flags'})
+    assert exc_info.type is TerminalTextParseError
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('5 9 3', {'source': 'flags'})
+    assert exc_info.type is TerminalTextParseError
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('surface', {'source': 'flags'})
+    # negative bit is invalid
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('-1', {'source': 'flags'})
+    assert exc_info.type is TerminalTextParseError
+    # multibit must have multiple bits
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('0 1', {'source': 'flags'})
+    assert exc_info.type is TerminalTextParseError
+
+
+def test_data_as_grid():
+    # explicit grid, default x and y
+    assert (data('gridfile.nc', {'source': 'grid'}) ==
+            Grid('gridfile.nc', 'lon', 'lat', 'linear'))
+    assert (data('gridfile.nc', {'source': 'grid_l'}) ==
+            Grid('gridfile.nc', 'lon', 'lat', 'linear'))
+    assert (data('gridfile.nc', {'source': 'grid_s'}) ==
+            Grid('gridfile.nc', 'lon', 'lat', 'spline'))
+    assert (data('gridfile.nc', {'source': 'grid_c'}) ==
+            Grid('gridfile.nc', 'lon', 'lat', 'spline'))
+    assert (data('gridfile.nc', {'source': 'grid_q'}) ==
+            Grid('gridfile.nc', 'lon', 'lat', 'nearest'))
+    assert (data('gridfile.nc', {'source': 'grid_n'}) ==
+            Grid('gridfile.nc', 'lon', 'lat', 'nearest'))
+    # explicit grid, custom x and y
+    assert (data('gridfile.nc', {'source': 'grid', 'x': 'x', 'y': 'y'}) ==
+            Grid('gridfile.nc', 'x', 'y', 'linear'))
+    assert (data('gridfile.nc', {'source': 'grid_l', 'x': 'x', 'y': 'y'}) ==
+            Grid('gridfile.nc', 'x', 'y', 'linear'))
+    assert (data('gridfile.nc', {'source': 'grid_s', 'x': 'x', 'y': 'y'}) ==
+            Grid('gridfile.nc', 'x', 'y', 'spline'))
+    assert (data('gridfile.nc', {'source': 'grid_c', 'x': 'x', 'y': 'y'}) ==
+            Grid('gridfile.nc', 'x', 'y', 'spline'))
+    assert (data('gridfile.nc', {'source': 'grid_q', 'x': 'x', 'y': 'y'}) ==
+            Grid('gridfile.nc', 'x', 'y', 'nearest'))
+    assert (data('gridfile.nc', {'source': 'grid_n', 'x': 'x', 'y': 'y'}) ==
+            Grid('gridfile.nc', 'x', 'y', 'nearest'))
+    # implicit grid, default x and y
+    assert (data('gridfile.nc', {}) ==
+            Grid('gridfile.nc', 'lon', 'lat', 'linear'))
+    # implicit grid, custom x and y
+    assert (data('gridfile.nc', {'x': 'x', 'y': 'y'}) ==
+            Grid('gridfile.nc', 'x', 'y', 'linear'))
+    # not a grid
+    assert not isinstance(data('3.14', {}), Grid)
+    assert not isinstance(data('abc', {}), Grid)
+    assert not isinstance(data('3.14 2.72 ADD', {}), Grid)
+
+
+def test_data_as_math():
+    # explicit math
+    assert data('3.14', {'source': 'math'}) == Expression('3.14')
+    assert data('abc', {'source': 'math'}) == Expression('abc')
+    assert (data('3.14 2.72 ADD', {'source': 'math'}) ==
+            Expression('3.14 2.72 ADD'))
+    # implicit math
+    assert data('3.14 2.72 ADD', {}) == Expression('3.14 2.72 ADD')
+    # not math
+    assert not isinstance(data('3.14', {}), Expression)
+    assert not isinstance(data('ADD', {}), Expression)
+    assert not isinstance(data('abc', {}), Expression)
+    assert not isinstance(data('abc.nc', {}), Expression)
+    assert not isinstance(data('abc xyz.nc', {}), Expression)
+    # not math, explicit leads to terminal error
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('', {'source': 'math'})
+    assert exc_info.type is TerminalTextParseError
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('abc.nc', {'source': 'math'})
+    assert exc_info.type is TerminalTextParseError
+    # invalid math, explicit leads to terminal error
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('ADD', {'source': 'math'})
+    assert exc_info.type is TerminalTextParseError
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('3.14 2.72', {'source': 'math'})
+    assert exc_info.type is TerminalTextParseError
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('3.14 2.72 ADD MUL', {'source': 'math'})
+    assert exc_info.type is TerminalTextParseError
+    # invalid math, implicit leads to terminal error
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('3.14 2.72', {})
+    assert exc_info.type is TerminalTextParseError
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('3.14 2.72 ADD MUL', {})
+    assert exc_info.type is TerminalTextParseError
+
+
+def test_data_as_netcdf():
+    # explicit netcdf
+    assert data('alt_gdre', {'source': 'nc'}) == NetCDFVariable('alt_gdre')
+    assert data('alt_gdre', {'source': 'netcdf'}) == NetCDFVariable('alt_gdre')
+    assert (data('range_ku:add_offset', {'source': 'nc'}) ==
+            NetCDFAttribute('add_offset', 'range_ku'))
+    assert (data('range_ku:add_offset', {'source': 'netcdf'}) ==
+            NetCDFAttribute('add_offset', 'range_ku'))
+    assert (data(':range_bias_ku', {'source': 'nc'}) ==
+            NetCDFAttribute('range_bias_ku'))
+    assert (data(':range_bias_ku', {'source': 'netcdf'}) ==
+            NetCDFAttribute('range_bias_ku'))
+    # explicit netcdf, with branch
+    assert (data('alt_gdre', {'source': 'nc', 'branch': '.mydata'}) ==
+            NetCDFVariable('alt_gdre', '.mydata'))
+    assert (data('alt_gdre', {'source': 'netcdf', 'branch': '.mydata'}) ==
+            NetCDFVariable('alt_gdre', '.mydata'))
+    assert (data('range_ku:add_offset',
+                 {'source': 'nc', 'branch': '.mydata'}) ==
+            NetCDFAttribute('add_offset', 'range_ku', '.mydata'))
+    assert (data('range_ku:add_offset',
+                 {'source': 'netcdf', 'branch': '.mydata'}) ==
+            NetCDFAttribute('add_offset', 'range_ku', '.mydata'))
+    assert (data(':range_bias_ku', {'source': 'nc', 'branch': '.mydata'}) ==
+            NetCDFAttribute('range_bias_ku', branch='.mydata'))
+    assert (data(':range_bias_ku',
+                 {'source': 'netcdf', 'branch': '.mydata'}) ==
+            NetCDFAttribute('range_bias_ku', branch='.mydata'))
+    # implicit netcdf
+    assert data('alt_gdre', {}) == NetCDFVariable('alt_gdre')
+    assert (data('range_ku:add_offset', {}) ==
+            NetCDFAttribute('add_offset', 'range_ku'))
+    assert data(':range_bias_ku', {}) == NetCDFAttribute('range_bias_ku')
+    # implicit netcdf, with branch
+    assert (data('alt_gdre', {'branch': '.mydata'}) ==
+            NetCDFVariable('alt_gdre', '.mydata'))
+    assert (data('range_ku:add_offset', {'branch': '.mydata'}) ==
+            NetCDFAttribute('add_offset', 'range_ku', '.mydata'))
+    assert (data(':range_bias_ku', {'branch': '.mydata'}) ==
+            NetCDFAttribute('range_bias_ku', branch='.mydata'))
+    # not netcdf variable
+    assert not isinstance(data('3.14', {}), NetCDFVariable)
+    assert not isinstance(data('abc:xyz', {}), NetCDFVariable)
+    assert not isinstance(data(':xyz', {}), NetCDFVariable)
+    assert not isinstance(data('abc.nc', {}), NetCDFVariable)
+    assert not isinstance(data('3.14 2.72 ADD', {}), NetCDFVariable)
+    # not netcdf attribute
+    assert not isinstance(data('3.14', {}), NetCDFAttribute)
+    assert not isinstance(data('abc', {}), NetCDFAttribute)
+    assert not isinstance(data('abc.nc', {}), NetCDFAttribute)
+    assert not isinstance(data('3.14 2.72 ADD', {}), NetCDFAttribute)
+    # not netcdf variable or attribute, explicit leads to terminal error
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('3.14', {'source': 'nc'})
+    assert exc_info.type is TerminalTextParseError
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('var.nc', {'source': 'nc'})
+    assert exc_info.type is TerminalTextParseError
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('3.14 2.72 ADD', {'source': 'nc'})
+    assert exc_info.type is TerminalTextParseError
+    # should not default with explict source
+    assert not isinstance(data('abc', {'source': 'math'}), NetCDFVariable)
+    assert not isinstance(data('abc', {'source': 'math'}), NetCDFAttribute)
+
+
+def test_data_with_invalid():
+    with pytest.raises(TerminalTextParseError) as exc_info:
+        data('', {})
+    assert exc_info.type is TerminalTextParseError
 
 
 def test_nop():

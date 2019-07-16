@@ -9,18 +9,23 @@ and if it returns a rads.config.xml_parsers.Parser but is not generic then it
 belongs in rads.config.grammar.
 """
 
+import re
 from datetime import datetime
 from numbers import Real
-from typing import (Any, Callable, Dict, Iterable, List, Mapping, Optional,
-                    Sequence, TypeVar)
+from typing import (Any, Callable, Dict, Iterable, List, Mapping, NoReturn,
+                    Optional, Sequence, TypeVar, Union)
 
 import numpy as np  # type: ignore
+import regex
 
-from .tree import Compress, Cycles, Range, ReferencePass, Repeat, Unit
+from .tree import (Compress, Constant, Cycles, Flags, Grid, MultiBitFlag,
+                   NetCDFAttribute, NetCDFVariable, Range, ReferencePass,
+                   Repeat, SingleBitFlag, SurfaceType, Unit)
 from .._utility import fortran_float
+from ..rpn import Expression
 
 __all__ = ['TerminalTextParseError', 'TextParseError', 'lift', 'list_of',
-           'one_of', 'range_of', 'compress', 'cycles', 'nop',
+           'one_of', 'range_of', 'compress', 'cycles', 'data', 'nop',
            'ref_pass', 'repeat', 'time', 'unit']
 
 T = TypeVar('T')
@@ -339,6 +344,66 @@ def cycles(string: str, _: Mapping[str, str]) -> Cycles:
             "too many cycles given, expected only 'first' and 'last'")
 
 
+def data(string: str, attr: Mapping[str, str]) -> Any:
+    """Parse a string into one of the data objects list below.
+
+        * :class:`Constant`
+        * :class:`Expression`
+        * :class:`Flags`
+        * :class:`Grid`
+        * :class:`NetCDFAttribute`
+        * :class:`NetCDFVariable`
+
+    The parsing is done based on both the given :paramref:`string` and the
+    'source' value in :paramref:`attr` if it exists.
+
+    .. note::
+
+        This is a terminal parser, it will either succeed or raise
+        :class:`TerminalTextParseError`.
+
+    Parameters
+    ----------
+    string
+        String to parse into a data object.
+    attr
+        Mapping of tag attributes.  This parser can make use of the following
+        key/value pairs if they exist:
+
+            * 'source' - explicitly specify the data source, this can be any
+               of the following
+                * 'flags'
+                * 'constant'
+                * 'grid'
+                * 'grid_l'
+                * 'grid_s'
+                * 'grid_c'
+                * 'grid_q'
+                * 'grid_n'
+                * 'nc'
+                * 'netcdf'
+                * 'math'
+            * 'branch' - used by some sources to specify an alternate directory
+            * 'x' - used by the grid sources to set the x dimension
+            * 'y' - used by the grid sources to set the y dimension
+
+    Returns
+    -------
+    Constant, Expression, Flags, Grid, NetCDFAttribute or NetCDFVariable
+        A new data object representing the given :paramref:`string`.
+
+    Raises
+    ------
+    TerminalTextParseError
+        If for any reason the given :paramref:`string` and :paramref:`attr`
+        cannot be parsed into one of the data objects listed above.
+
+    """
+    attr_ = {k: v.strip() for k, v in attr.items()}
+    return one_of((_flags, _constant, _grid, _netcdf, _math, _invalid_data))(
+        string.strip(), attr_)
+
+
 def nop(string: str, _: Mapping[str, str]) -> str:
     """No operation parser, returns given string unchanged.
 
@@ -535,6 +600,116 @@ def unit(string: str, _: Mapping[str, str]) -> Unit:
         if string == 'yymmddhhmmss':
             return Unit('unknown')
         raise TextParseError(f"failed to parse unit '{string}'")
+
+
+def _constant(string: str, attr: Mapping[str, str]) -> Constant:
+    try:
+        if 'source' not in attr or attr['source'] == 'constant':
+            return Constant(one_of((lift(int), lift(float)))(string, attr))
+    except TextParseError:
+        if 'source' in attr:  # constant, so hard fail
+            raise TerminalTextParseError(
+                f"invalid numerical constant '{string}'")
+        raise  # pass on parsing
+    raise TextParseError(f"'{string}' does not represent a constant")
+
+
+# regex is a loose match in order to allow more specific error message to take
+# precedence
+_FLAGS_RE = re.compile(r'([\+\-\d\.]+)(?:\s+([\+\-\d\.]+))?')
+
+
+def _flags(string: str, attr: Mapping[str, str]) -> Flags:
+    if not attr.get('source') == 'flags':
+        raise TextParseError(f"'{string}' does not represent a flags source")
+    if string == 'surface_type':
+        return SurfaceType()
+    try:
+        bit, length = _FLAGS_RE.fullmatch(string).groups(0)
+    except AttributeError:
+        raise TerminalTextParseError(
+            f"'{string}' does not represent a flags source")
+    try:
+        bit = int(bit)
+    except ValueError as err:
+        raise TerminalTextParseError(err)
+    if bit < 0:
+        raise TerminalTextParseError(f"bit index '{bit}' cannot be negative")
+    if not length:
+        return SingleBitFlag(bit=bit)
+    try:
+        length = int(length)
+    except ValueError as err:
+        raise TerminalTextParseError(err)
+    if length < 2:
+        raise TerminalTextParseError(
+            "multi bit flags must have length 2 or greater, "
+            f"length is '{length}'")
+    return MultiBitFlag(bit=bit, length=length)
+
+
+def _grid(string: str, attr: Mapping[str, str]) -> Grid:
+    method = None
+    try:
+        if attr['source'] in ('grid', 'grid_l'):
+            method = 'linear'
+        elif attr['source'] in ('grid_s', 'grid_c'):
+            method = 'spline'
+        elif attr['source'] in ('grid_q', 'grid_n'):
+            method = 'nearest'
+    except KeyError:
+        if re.fullmatch(r'\S[\S ]*\.nc', string):
+            method = 'linear'
+    if method:
+        return Grid(file=string, x=attr.get('x', 'lon'),
+                    y=attr.get('y', 'lat'), method=method)
+    # pass on parsing
+    raise TextParseError(f"'{string}' does not represent a grid")
+
+
+def _invalid_data(string: str, _: Mapping[str, str]) -> NoReturn:
+    raise TerminalTextParseError(f"invalid <data> tag value '{string}'")
+
+
+_MATH_RE = re.compile(r'((\S+\s+)+)\S+')
+
+
+def _math(string: str, attr: Mapping[str, str]) -> Expression:
+    # NOTE: This parser is more aggressive about terminal errors, this is
+    # because the math source is the most likely to have errors and is never
+    # explicitly indicated in practice so the math error messages must be
+    # terminal most of the time to aid in configuration file debugging.
+    try:
+        if ('source' not in attr and _MATH_RE.fullmatch(string) or
+                attr.get('source') == 'math'):
+            return Expression(string)
+    except ValueError as err:
+        raise TerminalTextParseError(str(err)) from err
+    raise TextParseError(f"'{string}' does not represent a math expression")
+
+
+_NETCDF_RE = regex.compile(
+    r'(?|([a-zA-Z][a-zA-Z0-9_]*)?:([a-zA-Z][a-zA-Z0-9_]+)|'
+    r'([a-zA-Z][a-zA-Z0-9_]+))')
+
+
+def _netcdf(string: str, attr: Mapping[str, str]) \
+        -> Union[NetCDFVariable, NetCDFAttribute]:
+    if attr.get('source', 'nc') not in ('nc', 'netcdf'):
+        raise TextParseError(f"'{string}' does not represent a flags source")
+    try:
+        variable, attribute = _NETCDF_RE.fullmatch(string).groups(0)
+    except AttributeError:
+        str_ = f"'{string}' does not represent a netcdf attribute"
+        if attr.get('source') in ('nc', 'netcdf'):
+            raise TerminalTextParseError(str_)
+        raise TextParseError(str_)
+    variable = variable if variable else None
+    branch = attr.get('branch', None)
+    if attribute:
+        return NetCDFAttribute(
+            name=attribute, variable=variable, branch=branch)
+    return NetCDFVariable(name=variable, branch=branch)
 
 
 def _rads_type(string: str) -> type:
