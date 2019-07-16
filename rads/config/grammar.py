@@ -6,7 +6,7 @@ import fortran_format_converter as ffc
 from .ast import (Alias, Assignment, CompoundStatement, If, NullStatement,
                   Phase, SatelliteID, Satellites, Source, Statement, Variable)
 from .text_parsers import (lift, list_of, one_of, range_of, compress, cycles,
-                           nop, ref_pass, repeat, time, unit)
+                           data, nop, ref_pass, repeat, time, unit)
 from .tree import SubCycles
 from .utility import (error_at, source_from_element, parse_action,
                       parse_condition, named_block_processor)
@@ -52,7 +52,7 @@ def value(parser: Callable[[str, Mapping[str, str]], Any] = nop,
         source = source_from_element(element)
         try:
             value = parser(text, element.attributes)
-        except (ValueError, TypeError) as err:
+        except (TypeError, KeyError, ValueError) as err:
             raise error_at(element)(str(err)) from err
         return Assignment(name=var_, value=value, condition=condition,
                           action=action, source=source)
@@ -188,7 +188,7 @@ def variable() -> Parser:
         value(range_of(one_of((lift(int), lift(float)))), 'plot_range') |
         # used by rads for database generation, has no effect on end users
         ignore('parameters') |
-        ignore('data') |  # TODO: Complex field.
+        value(data, 'data') |
         value(list_of(lift(str)), 'quality_flag') |
         # not currently used
         value(lift(int), 'dimensions') |
@@ -215,7 +215,7 @@ def variable_override(parser: Callable[[str, Mapping[str, str]], Any],
         source = source_from_element(element)
         try:
             value = parser(text, element.attributes)
-        except (ValueError, TypeError) as err:
+        except (TypeError, KeyError, ValueError) as err:
             raise error_at(element)(str(err)) from err
         statement = Assignment(name=var_, value=value, action=action,
                                source=source)
@@ -239,7 +239,7 @@ def variable_overrides() -> Parser:
                 range_of(one_of((lift(int), lift(float)))), 'plot_range') |
             # used by rads for database generation, has no effect on end users
             ignore('parameters') |
-            ignore('data') |  # TODO: Complex field.
+            variable_override(data, 'data') |
             variable_override(list_of(lift(str)), 'quality_flag') |
             # not currently used
             variable_override(lift(int), 'dimensions') |
