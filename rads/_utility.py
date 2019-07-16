@@ -1,7 +1,7 @@
 """Utility functions."""
 
 import os
-from typing import cast, IO, Optional, Any, Union
+from typing import Any, List, IO, Optional, Union, cast
 
 from wrapt import ObjectProxy  # type: ignore
 
@@ -159,7 +159,7 @@ def xor(a: bool, b: bool) -> bool:
     return (a and not b) or (not a and b)
 
 
-def contains_sublist(list_: list, sublist: list) -> bool:
+def contains_sublist(list_: List[Any], sublist: List[Any]) -> bool:
     """Determine if a :paramref:`list` contains a :paramref:`sublist`.
 
     Parameters
@@ -185,7 +185,7 @@ def contains_sublist(list_: list, sublist: list) -> bool:
     return False
 
 
-def merge_sublist(list_: list, sublist: list) -> list:
+def merge_sublist(list_: List[Any], sublist: List[Any]) -> List[Any]:
     """Merge a :paramref:`sublist` into a given :paramref:`list_`.
 
     Parameters
@@ -208,7 +208,7 @@ def merge_sublist(list_: list, sublist: list) -> list:
     return list_ + sublist
 
 
-def delete_sublist(list_: list, sublist: list) -> list:
+def delete_sublist(list_: List[Any], sublist: List[Any]) -> List[Any]:
     """Remove a :paramref:`sublist` from the given :paramref:`list_`.
 
     Parameters
