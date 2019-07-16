@@ -157,15 +157,17 @@ def range_of(parser: Callable[[str, Mapping[str, str]], Real],
     """
 
     def _parser(string: str, attr: Mapping[str, str]) -> Range:
-        exc = TerminalTextParseError if terminal else TextParseError
         minmax = [parser(s, attr) for s in string.split()]
         if not minmax:
-            raise exc('ranges require exactly 2 values, but none were given')
+            raise TextParseError(
+                'ranges require exactly 2 values, but none were given')
         if len(minmax) == 1:
-            raise exc('ranges require exactly 2 values, but only 1 was given')
+            raise TextParseError(
+                'ranges require exactly 2 values, but only 1 was given')
         if len(minmax) > 2:
-            raise exc('ranges require exactly 2 values, '
-                      f'but {len(minmax)} were given')
+            raise TextParseError(
+                'ranges require exactly 2 values, '
+                f'but {len(minmax)} were given')
         return Range(*minmax)
 
     def _terminal_parser(string: str, attr: Mapping[str, str]) -> Range:
