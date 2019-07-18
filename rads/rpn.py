@@ -587,7 +587,16 @@ def token(string: str) -> Token:
     Token
         Parsed token.
 
+    Raises
+    ------
+    TypeError
+        If not given a string.
+    ValueError
+        If :paramref:`string` is not a valid token.
+
     """
+    if not isinstance(string, str):
+        raise TypeError(f"expected 'str' got {type(string)}")
     if string in _KEYWORDS:
         return _KEYWORDS[string]
     try:

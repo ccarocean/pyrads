@@ -1814,6 +1814,11 @@ def test_token_variables():
     assert str(excinfo.value) == "invalid RPN token '3,'"
 
 
+def test_token_wrong_type():
+    with pytest.raises(TypeError):
+        token(5)
+
+
 class TestExpression:
 
     def test_init_with_token_sequence(self):
