@@ -4,7 +4,7 @@ from typing import Callable, Mapping, cast
 
 from .ast import (Condition, NamedBlock, NullStatement, SatelliteCondition,
                   Source, Statement, TrueCondition, ActionType, edit_append,
-                  replace, keep, append, delete, merge, add)
+                  replace, append, delete, merge)
 from .xml_parsers import GlobalParseFailure, LocalParseFailure, Parser
 from ..xml.base import Element
 
@@ -38,19 +38,16 @@ def parse_action(element: Element) -> ActionType:
         edit = element.attributes.get('edit', 'replace')
         if edit == 'append':
             return edit_append
+    # default action is replace
     action = element.attributes.get('action', 'replace')
     if action == 'replace':
         return replace
-    if action == 'keep':  # only pyrads
-        return keep
     if action == 'append':
         return append
     if action == 'delete':
         return delete
     if action == 'merge':
         return merge
-    if action == 'add':  # only pyrads
-        return add
     raise error_at(element)('Invalid action="{:s}".'.format(action))
 
 

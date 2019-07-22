@@ -1,20 +1,24 @@
 """Abstract Syntax Tree elements for RADS configuration file."""
 
+from itertools import chain
 import typing
-from copy import deepcopy
 from abc import ABC, abstractmethod
+from copy import deepcopy
 from dataclasses import dataclass, fields
 from difflib import get_close_matches
-from typing import (Any, Optional, Container, Sequence, Union, MutableMapping,
-                    Mapping, Collection, Iterator, Callable, cast)
+from typing import (Any, Callable, Collection, Container, Iterator, List,
+                    Mapping, MutableMapping, Optional, Sequence, Union, cast)
 
 from dataclass_builder import UndefinedFieldError, MissingFieldError, MISSING
 
 from ._builders import PhaseBuilder, VariableBuilder
 from .._utility import xor, delete_sublist, merge_sublist
+from ..rpn import CompleteExpression, Expression
 
 ActionType = Callable[[Any, str, Any], None]
 
+
+# TODO: Add better error handling, particularly around actions.
 
 def _get_mapping(environment: Any, attr: str,
                  mapping: Callable[[], Mapping] = dict):
@@ -68,175 +72,215 @@ def replace(environment: Any, attr: str, value: Any) -> None:
     ----------
     environment
         Environment to apply the action to the value of :paramref:`attr` in.
+        If this environment is a :class:`MutableMapping` then key/values will
+        be used.  Otherwise, object attributes will be used.
     attr
         Name of the value to change in the :paramref:`environment`.
     value
-        New value to use for the action.
+        New value to use for the action.  If this is an :class:`Expression` it
+        will be converted to a :class:`CompleteExpression` via the
+        :func:`Expression.complete` method.
+
+    Raises
+    ------
+    ValueError
+        If a delayed value (currently only :class:`Expression`) fails it's
+        parsing.
 
     """
-    _set(environment, attr, value)
-
-
-def keep(environment: Any, attr: str, value: Any) -> None:
-    """Set value in the given environment.
-
-    Sets :paramref:`attr` to the given :paramref:`value` in the given
-    :paramref:`environment`.  If the :paramref:`attr` has already ben set it
-    will be left intact and the new value discarded.
-
-    Parameters
-    ----------
-    environment
-        Environment to apply the action to the value of :paramref:`attr` in.
-    attr
-        Name of the value to change in the :paramref:`environment`.
-    value
-        New value to use for the action.
-
-    """
-    if not _has(environment, attr) or _get(environment, attr) == MISSING:
+    if isinstance(value, Expression):
+        # force CompleteExpression's
+        _set(environment, attr, value.complete())
+    else:
         _set(environment, attr, value)
 
 
-def append(
-        environment: MutableMapping[str, Any], attr: str, value: Any) -> None:
+def append(environment: MutableMapping[str, Any], attr: str,
+           value: Union[str, List[Any], Expression]) -> None:
     """Set/append key/value pair in the given environment.
 
     Sets :paramref:`attr` to the given :paramref:`value` in the given
     :paramref:`environment`.  If the :paramref:`attr` has already ben set the
-    new value will be appended, placing the original value in a list if
-    necessary.
+    new value will be appended.  This behaves differently depending on the type
+    of the current value.
 
-    .. note::
-
-        If both the current value and :paramref:`value` are strings then
-        string concatenation will be used instead.
+    :class:`str`
+        Appends the new string :paramref:`value` to the current string with a
+        single space between them.
+    :class:`list`
+        Extends the current list with the elements form the new list
+        :paramref:`value`.
+    :class:`CompleteExpression`
+        Appends the tokens from the new :class:`Expression` to the end of the
+        existing :class:`CompleteExpression`.
 
     Parameters
     ----------
     environment
         Environment to apply the action to the value of :paramref:`attr` in.
+        If this environment is a :class:`MutableMapping` then key/values will
+        be used.  Otherwise, object attributes will be used.
     attr
         Name of the value to change in the :paramref:`environment`.
     value
         New value to use for the action.
 
+    Raises
+    ------
+    TypeError
+        If the current value is not a :class:`str`, :class:`list`, or
+        :class:`Expression` or if the new :paramref:`value` does not match
+        the type of the current value.
+    ValueError
+        If a delayed value (currently only :class:`Expression`) fails it's
+        parsing.
+
     """
     # no current value
     if not _has(environment, attr) or _get(environment, attr) == MISSING:
-        _set(environment, attr, value)
+        replace(environment, attr, value)
         return
     # has current value
-    if (isinstance(_get(environment, attr), (str, bytes)) and
-            isinstance(value, (str, bytes))):
-        _set(environment, attr, _get(environment, attr) + ' ' + value)
+    current_value = _get(environment, attr)
+    if isinstance(current_value, str):
+        new_value = current_value + ' ' + value
+    elif isinstance(current_value, Expression):
+        # force CompleteExpression's
+        new_value = (current_value + value).complete()
+    elif isinstance(current_value, List):
+        new_value = current_value + value
     else:
-        if not _has(_get(environment, attr), 'append'):
-            _set(environment, attr, [_get(environment, attr)])
-        try:
-            _get(environment, attr).extend(value)
-        except TypeError:
-            _get(environment, attr).append(value)
+        raise TypeError("current value is of unsupported type"
+                        f"'{type(current_value)}' for the 'append' action")
+    _set(environment, attr, new_value)
 
 
-def delete(
-        environment: MutableMapping[str, Any], attr: str, value: Any) -> None:
+def delete(environment: MutableMapping[str, Any], attr: str,
+           value: Union[str, List[Any], Expression]) -> None:
     """Remove/edit key/value pair in the given environment.
 
-    Removes :paramref:`value` from the existing :paramref:`attr` in the given
-    :paramref:`environement`.  If both the existing value and
-    :paramref:`value` are strings then only parts of the current string that
-    match :paramref:`value` are removed.  If both are lists then only matching
-    portions of the list are removed.  Otherwise, if the existing value
-    matches the new value the entire attribute will be removed from the
-    environment.
+    Removes matching :paramref:`value` from the part of the existing
+    :paramref:`attr` in the given :paramref:`environement`.  This behaves
+    differently depending on the type of the current value.
+
+    :class:`str`
+        Removes the substring :paramref:`value` from the current string.  No
+        change if the current string does not contain the substring
+        :paramref:`value`.
+    :class:`list`
+        Removes the sublist :paramref:`value` from the current list.  No change
+        if the current list does not contain the sublist :paramref:`value`.
+    :class:`CompleteExpression`
+        Removes from the current expression the section that matches
+        :paramref:`value`.  No change if the current expression does not
+        contain the expression :paramref:`value`.
 
     Parameters
     ----------
     environment
         Environment to apply the action to the value of :paramref:`attr` in.
+        If this environment is a :class:`MutableMapping` then key/values will
+        be used.  Otherwise, object attributes will be used.
     attr
         Name of the value to change in the :paramref:`environment`.
     value
         New value to use for the action.
 
+    Raises
+    ------
+    TypeError
+        If the current value is not a :class:`str`, :class:`list`, or
+        :class:`Expression` or if the new :paramref:`value` does not match
+        the type of the current value.
+    ValueError
+        If a delayed value (currently only :class:`Expression`) fails it's
+        parsing.
+
     """
-    # no current value
+    # no current value, do nothing
     if not _has(environment, attr) or _get(environment, attr) == MISSING:
         return
     # has current value
     current_value = _get(environment, attr)
-    if isinstance(current_value, str) and isinstance(value, str):
-        _set(environment, attr, current_value.replace(value, ''))
-    elif isinstance(current_value, list):
-        if isinstance(value, list):
-            _set(environment, attr, delete_sublist(current_value, value))
-        else:
-            _set(environment, attr, [v for v in current_value if v != value])
-    elif current_value == value:
-        _del(environment, attr)
+    if isinstance(current_value, str):
+        new_value = current_value.replace(value, '')
+    elif isinstance(current_value, Expression):
+        # force CompleteExpression's
+        new_value = CompleteExpression(
+            delete_sublist(list(current_value), list(value)))
+    elif isinstance(current_value, List):
+        new_value = delete_sublist(current_value, value)
+    else:
+        raise TypeError("current value is of unsupported type"
+                        f"'{type(current_value)}' for the 'append' action")
+    _set(environment, attr, new_value)
 
 
-def merge(
-        environment: MutableMapping[str, Any], attr: str, value: Any) -> None:
-    """Set key/value pair in the given environment.
+def merge(environment: MutableMapping[str, Any], attr: str,
+          value: Union[str, List[Any], Expression]) -> None:
+    """Set/merge key/value pair in the given environment.
 
     Sets :paramref:`attr` to the given :paramref:`value` in the given
     :paramref:`environment`.  If the :paramref:`attr` has already ben set the
-    new value will be merged.  Merging of strings will is the same as
-    :func:`append` if :paramref:`value` not a substring of the existing
-    string, if it is a substring then nothing will be done.  A similar merging
-    is used for lists.  For all other types, merging is the same as
-    :func:`append` if the current value and new value's differ.
+    new value will be appended if the existing value does not already contain
+    the new value.  This behaves differently depending on the type of the
+    current value.
+
+    :class:`str`
+        Appends the new string :paramref:`value` to the current string with a
+        single space between them if the new string is not a substring of the
+        original.
+    :class:`list`
+        Extends the current list with the elements form the new list
+        :paramref:`value` if the new list is not a sublist of the original.
+    :class:`CompleteExpression`
+        Appends the tokens from the new :class:`Expression` to the end of the
+        existing :class:`CompleteExpression` if the new :class:`Expression` is\
+        not contained within the original expression.
 
     Parameters
     ----------
     environment
         Environment to apply the action to the value of :paramref:`attr` in.
+        If this environment is a :class:`MutableMapping` then key/values will
+        be used.  Otherwise, object attributes will be used.
     attr
         Name of the value to change in the :paramref:`environment`.
     value
         New value to use for the action.
 
+    Raises
+    ------
+    TypeError
+        If the current value is not a :class:`str`, :class:`list`, or
+        :class:`Expression` or if the new :paramref:`value` does not match
+        the type of the current value.
+    ValueError
+        If a delayed value (currently only :class:`Expression`) fails it's
+        parsing.
+
     """
-    # no current value
+    # no current value, set value
     if not _has(environment, attr) or _get(environment, attr) == MISSING:
-        _set(environment, attr, value)
+        replace(environment, attr, value)
+        return
     # has current value
     current_value = _get(environment, attr)
-    if isinstance(current_value, str) and isinstance(value, str):
-        if value not in current_value:
-            _set(environment, attr, current_value + value)
-    elif isinstance(current_value, list):
-        if isinstance(value, list):
-            _set(environment, attr, merge_sublist(current_value, value))
-        elif value not in current_value:
-            append(environment, attr, value)
-    elif current_value != value:
-        append(environment, attr, value)
-
-
-def add(environment: MutableMapping[str, Any], attr: str, value: Any) -> None:
-    """Set key/value pair in the given environment.
-
-    Sets :paramref:`attr` to the given :paramref:`value` in the given
-    :paramref:`environment`.  If the :paramref:`attr` has already ben set the
-    new value will be added.
-
-    Parameters
-    ----------
-    environment
-        Environment to apply the action to the value of :paramref:`attr` in.
-    attr
-        Name of the value to change in the :paramref:`environment`.
-    value
-        New value to use for the action.
-
-    """
-    if not _has(environment, attr) or _get(environment, attr) == MISSING:
-        _set(environment, attr, value)
+    if isinstance(current_value, str):
+        if value in current_value:
+            new_value = current_value
+        else:
+            new_value = current_value + ' ' + value
+    elif isinstance(current_value, Expression):
+        # force CompleteExpression's
+        new_value = CompleteExpression(
+            merge_sublist(list(current_value), list(value)))
+    elif isinstance(current_value, List):
+        new_value = merge_sublist(current_value, value)
     else:
-        _set(environment, attr, _get(environment, attr) + value)
+        raise TypeError("current value is of unsupported type"
+                        f"'{type(current_value)}' for the 'append' action")
+    _set(environment, attr, new_value)
 
 
 def edit_append(
@@ -247,14 +291,25 @@ def edit_append(
     :paramref:`environment`.  If the :paramref:`attr` has already ben set the
     new string will be append after '. '.
 
+    .. note::
+
+        This action only works for strings.
+
     Parameters
     ----------
     environment
         Environment to apply the action to the value of :paramref:`attr` in.
+        If this environment is a :class:`MutableMapping` then key/values will
+        be used.  Otherwise, object attributes will be used.
     attr
         Name of the value to change in the :paramref:`environment`.
     string
         New string to use for the action.
+
+    Raises
+    ------
+    TypeError
+        If not both the current and new values are strings.
 
     """
     if not _has(environment, attr) or _get(environment, attr) == MISSING:
@@ -529,7 +584,7 @@ class Assignment(Statement):
     #  fixed.
     action: Optional[ActionType] = staticmethod(replace)
 
-    def __init__(self, name: Any, value: str,
+    def __init__(self, name: Any, value: Any,
                  condition: Optional[Condition] = None,
                  action: Optional[ActionType] = None,
                  *, source: Optional[Source] = None) -> None:
