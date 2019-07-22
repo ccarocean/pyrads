@@ -115,31 +115,40 @@ Keyword          Description
 
 from abc import ABC, abstractmethod
 from datetime import timedelta
+from itertools import chain
 from numbers import Integral
-from typing import (Any, Union, MutableSequence, Mapping, Tuple,
-                    AbstractSet, Optional, List, Iterable, Iterator,
-                    cast, overload)
+from typing import (AbstractSet, Any, Iterable, Iterator, List, Mapping,
+                    MutableSequence, Optional, Sequence, Tuple, Union,
+                    cast, overload, TYPE_CHECKING)
 
 import numpy as np  # type: ignore
 from astropy.convolution import (  # type: ignore
     Box1DKernel, Gaussian1DKernel, convolve)
-from cached_property import cached_property  # type: ignore
 
 from . import EPOCH
-from ._utility import fortran_float
 from ._typing import Number, NumberOrArray
+from ._utility import fortran_float
 from .datetime64util import ymdhmsus
 
-__all__ = ['StackUnderflowError', 'Expression', 'Token', 'Literal', 'PI', 'E',
-           'Variable', 'Operator', 'token', 'SUB', 'ADD', 'MUL', 'POP', 'NEG',
-           'ABS', 'INV', 'SQRT', 'SQR', 'EXP', 'LOG', 'LOG10', 'SIN', 'COS',
-           'TAN', 'SIND', 'COSD', 'TAND', 'SINH', 'COSH', 'TANH', 'ASIN',
-           'ACOS', 'ATAN', 'ASIND', 'ACOSD', 'ATAND', 'ASINH', 'ACOSH',
-           'ATANH', 'ISNAN', 'ISAN', 'RINT', 'NINT', 'CEIL', 'CEILING',
-           'FLOOR', 'D2R', 'R2D', 'YMDHMS', 'SUM', 'DIF', 'DUP', 'DIV', 'POW',
-           'FMOD', 'MIN', 'MAX', 'ATAN2', 'HYPOT', 'R2', 'EQ', 'NE', 'LT',
-           'LE', 'GT', 'GE', 'NAN', 'AND', 'OR', 'IAND', 'IOR', 'BTEST', 'AVG',
-           'DXDY', 'EXCH', 'INRANGE', 'BOXCAR', 'GAUSS']
+# TODO: Change to functools.cached_property when dropping support for
+#       Python 3.7
+if TYPE_CHECKING:
+    # property behaves properly with Mypy but cached_property does not, even
+    # with the same type stub.
+    cached_property = property  # pylint: disable=invalid-name
+else:
+    from cached_property import cached_property
+
+__all__ = ['StackUnderflowError', 'Expression', 'CompleteExpression', 'Token',
+           'Literal', 'PI', 'E', 'Variable', 'Operator', 'token', 'SUB', 'ADD',
+           'MUL', 'POP', 'NEG', 'ABS', 'INV', 'SQRT', 'SQR', 'EXP', 'LOG',
+           'LOG10', 'SIN', 'COS', 'TAN', 'SIND', 'COSD', 'TAND', 'SINH',
+           'COSH', 'TANH', 'ASIN', 'ACOS', 'ATAN', 'ASIND', 'ACOSD', 'ATAND',
+           'ASINH', 'ACOSH', 'ATANH', 'ISNAN', 'ISAN', 'RINT', 'NINT', 'CEIL',
+           'CEILING', 'FLOOR', 'D2R', 'R2D', 'YMDHMS', 'SUM', 'DIF', 'DUP',
+           'DIV', 'POW', 'FMOD', 'MIN', 'MAX', 'ATAN2', 'HYPOT', 'R2', 'EQ',
+           'NE', 'LT', 'LE', 'GT', 'GE', 'NAN', 'AND', 'OR', 'IAND', 'IOR',
+           'BTEST', 'AVG', 'DXDY', 'EXCH', 'INRANGE', 'BOXCAR', 'GAUSS']
 
 
 class StackUnderflowError(Exception):
@@ -191,10 +200,11 @@ class Token(ABC):
             * Place literal value on the stack.
             * Place variable on the stack from the :paramref:`environment`.
             * Perform operation on the stack.
+            * Any combination of the above.
 
         .. note::
 
-            This must be overriden for all tokens.
+            This must be overridden for all tokens.
 
         Parameters
         ----------
@@ -372,11 +382,232 @@ class Operator(Token, ABC):
     def __init__(self, name: str):
         self._name = name
 
+    def __copy__(self) -> Any:
+        # sentinel object so copy will break it
+        return self
+
+    def __deepcopy__(self, memo: Any = None) -> Any:
+        # sentinel object so copy will break it
+        return self
+
     def __repr__(self) -> str:
         return self._name
 
 
-class Expression(Iterable[Token]):
+class Expression(Sequence[Token], Token):
+    r"""Reverse Polish Notation expression.
+
+    .. note::
+
+        :class:`Expression`\ s cannot be evaluated as they may not be
+        syntactically correct.  For evaluation :class:`CompleteExpression`\ s
+        are required.
+
+    Expressions can be used in three ways:
+
+        * Can be converted to a :class:`CompleteExpression` if :attr:`pops` and
+          :attr:`puts` are both 1 with the :func:`complete` method.
+        * Can be added to the end of a :class:`CompleteExpression` producing a
+          :class:`CompleteExpression` if the :class:`Expression` has
+          :attr:`pops` = 1 and :attr:`puts` = 1 or a :class:`Expression`
+          otherwise.
+        * Can be added to the end of an :class:`Expression` producing a
+          :class:`CompleteExpression` if the combination produces an expression
+          with :attr:`pops` = 0 and :attr:`puts` = 1.
+        * Can be used as a :class:`Token` in another expression.
+
+
+    Parameters
+    ----------
+    tokens
+        A Reverse Polish Notation expression given as a sequence of tokens or
+        a string of tokens.
+
+        .. note::
+
+            This parameter is very forgiving.  If given a sequence of tokens
+            and some of the elements are not :class:`Token`\ s then an attempt
+            will be made to convert them to :class:`Token`\ s.  Because of this
+            both numbers and strings can be given in the sequence of
+            :paramref:`tokens`.
+
+    See Also
+    --------
+    :class:`CompleteExpression`
+        For a expression that can be evaluated on it's own.
+
+    """
+
+    _tokens: List[Token]
+
+    @cached_property
+    def pops(self) -> int:
+        """Elements removed off the stack by calling the token."""
+        return self._simulate()[0]
+
+    @cached_property
+    def puts(self) -> int:
+        """Elements placed on the stack by calling the token."""
+        return self._simulate()[1]
+
+    @cached_property
+    def variables(self) -> AbstractSet[str]:
+        """Set of variables needed to evaluate the expression."""
+        return {t.name for t in self._tokens if isinstance(t, Variable)}
+
+    # TODO: Remove the F811 statements bellow once
+    #       https://github.com/PyCQA/pyflakes/pull/435 makes it into a release.
+    #       Also update requirements to match.
+
+    @overload  # noqa: F811
+    def __init__(self, tokens: str) -> None:
+        ...
+
+    @overload  # noqa: F811
+    def __init__(self, tokens: Iterable[Union[Number, str, Token]]) \
+            -> None:
+        ...
+
+    def __init__(self,  # noqa: F811
+                 tokens: Union[str, Iterable[Union[Number, str, Token]]]) \
+            -> None:
+        if isinstance(tokens, str):
+            self._tokens = [token(t) for t in tokens.split()]
+        else:
+            self._tokens = []
+            for token_ in tokens:
+                if isinstance(token_, Token):
+                    self._tokens.append(token_)
+                elif isinstance(token_, (int, float, bool)):
+                    self._tokens.append(Literal(token_))
+                else:
+                    self._tokens.append(token(token_))
+
+    def complete(self) -> 'CompleteExpression':
+        """Upgrade to a :class:`CompleteExpression` if possible.
+
+        Returns
+        -------
+        CompleteExpression
+            A complete expression, assuming this partial expression takes zero
+            inputs and provides one output.
+
+        Raises
+        ------
+        ValueError
+            If the partial expression is not a valid expression.
+
+        """
+        return CompleteExpression(self._tokens)
+
+    def is_complete(self) -> bool:
+        """Determine if can be upgraded to :class:`CompleteExpression`.
+
+        Returns
+        -------
+        bool
+            True if this expression can be upgraded to a
+            :class:`CompleteExpression` without error with the :func:`complete`
+            method.
+
+        """
+        return self.pops == 0 and self.puts == 1
+
+    def __call__(self, stack: MutableSequence[NumberOrArray],
+                 environment: Mapping[str, NumberOrArray]) -> None:
+        """Evaluate the expression as a token on the given :paramref:`stack`.
+
+        Parameters
+        ----------
+        stack
+            The stack of numbers/arrays to operate on.
+        environment
+            The dictionary like object providing the immutable environment.
+
+        Raises
+        ------
+        StackUnderflowError
+            If the expression underflows the stack.
+
+        """
+        for token_ in self._tokens:
+            token_(stack, environment)
+
+    def __contains__(self, item: Any) -> bool:
+        if isinstance(item, Token):
+            return item in self._tokens
+        return False
+
+    # TODO: Remove the F811 statements bellow once
+    #       https://github.com/PyCQA/pyflakes/pull/435 makes it into a release
+    #       (that is the next version after v2.1.1).
+    #       Also update requirements to match.
+
+    @overload  # noqa: F811
+    def __getitem__(self, item: int) -> Token:
+        ...
+
+    @overload  # noqa: F811
+    def __getitem__(self, item: slice) -> 'Expression':
+        ...
+
+    def __getitem__(self, item: Union[int, slice]  # noqa: F811
+                    ) -> Union[Token, 'Expression']:
+        if isinstance(item, slice):
+            return Expression(self._tokens[item])
+        return self._tokens[item]
+
+    def __iter__(self) -> Iterator[Token]:
+        for token_ in self._tokens:
+            yield token_
+
+    def __len__(self) -> int:
+        return len(self._tokens)
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Expression):
+            return NotImplemented
+        return self._tokens == other._tokens
+
+    def __ne__(self, other: Any) -> bool:
+        if not isinstance(other, Expression):
+            return NotImplemented
+        return self._tokens != other._tokens
+
+    def __add__(self, other: Any) -> 'Expression':
+        if not isinstance(other, Expression):
+            return NotImplemented
+        try:
+            return CompleteExpression(chain(self, other))
+        except ValueError:
+            return Expression(chain(self, other))
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__qualname__}({repr(self._tokens)})"
+
+    def __str__(self) -> str:
+        return ' '.join(str(t) for t in self._tokens)
+
+    def _simulate(self) -> Tuple[int, int]:
+        """Simulate the expression to determine inputs and outputs.
+
+        Returns
+        -------
+        (int, int)
+            A tuple of the number of inputs the expression takes and the number
+            of outputs from the expression.
+
+        """
+        inputs = 0
+        outputs = 0
+        for token_ in self._tokens:
+            outputs -= token_.pops
+            inputs = max(inputs, -outputs)
+            outputs += token_.puts
+        return inputs, outputs + inputs
+
+
+class CompleteExpression(Expression):
     r"""Reverse Polish Notation expression that can be evaluated.
 
     Parameters
@@ -402,57 +633,41 @@ class Expression(Iterable[Token]):
 
     """
 
-    _tokens: MutableSequence[Token]
-
-    @cached_property
-    def variables(self) -> AbstractSet[str]:
-        """Set of variables needed to evaluate the expression."""
-        return {t.name for t in self._tokens if isinstance(t, Variable)}
-
     # TODO: Remove the F811 statements bellow once
     #       https://github.com/PyCQA/pyflakes/pull/435 makes it into a release.
     #       Also update requirements to match.
 
+    # TODO: Remove the disalbe=super-init-not-called statements when
+    #       https://github.com/PyCQA/pylint/issues/3020 is fixed.
+    #       Also, update pylint require
+
     @overload  # noqa: F811
-    def __init__(self, tokens: str) -> None:
+    def __init__(self, tokens: str) -> None:  \
+            # pylint: disable=super-init-not-called
         ...
 
     @overload  # noqa: F811
-    def __init__(self, tokens: Iterable[Union[Number, str, Token]]) \
-            -> None:
+    def __init__(self, tokens: Iterable[Union[Number, str, Token]]) -> None: \
+            # pylint: disable=super-init-not-called
         ...
 
-    def __init__(self,  # noqa: F811
-                 tokens: Union[str, Iterable[Union[Number, str, Token]]]) \
-            -> None:
-        if isinstance(tokens, str):
-            tokens_ = [token(t) for t in tokens.split()]
-        else:
-            tokens_ = []
-            for token_ in tokens:
-                if isinstance(token_, Token):
-                    tokens_.append(token_)
-                elif isinstance(token_, (int, float, bool)):
-                    tokens_.append(Literal(token_))
-                else:
-                    tokens_.append(token(token_))
+    def __init__(  # noqa: F811
+            self,
+            tokens: Union[str, Iterable[Union[Number, str, Token]]]) -> None:
+        super().__init__(tokens)
         # check the syntax, raise ValueError if invalid
-        self._check(tokens_)
-        self._tokens = tokens_
+        self._check()
 
-    def __call__(self,
-                 environment: Optional[Mapping[str, NumberOrArray]] = None) \
-            -> NumberOrArray:
-        """Evaluate the expression and return a numerical or logical result.
+    def complete(self) -> 'CompleteExpression':
+        """Return this expression as it is already complete.
 
-        See Also
-        --------
-        :func:`eval`
-            This is the same as the :func:`eval` method.  Look there for
-            further documentation.
+        Returns
+        -------
+        CompleteExpression
+            This complete expression.
 
         """
-        return self.eval(environment)
+        return self
 
     def eval(self, environment: Optional[Mapping[str, NumberOrArray]] = None) \
             -> NumberOrArray:
@@ -515,58 +730,43 @@ class Expression(Iterable[Token]):
         #       due to the static checker that runs at initialization.
         return stack[0]
 
-    def __iter__(self) -> Iterator[Token]:
-        for token_ in self._tokens:
-            yield token_
+    def _format_syntax_error(
+            self, string: str, token_: Optional[int] = None) -> str:
+        tokens_str = [str(t) for t in self._tokens]
+        result = f"{string}\n{' '.join(tokens_str)}"
+        if token_ is None:
+            return result
+        if token_ == 0:
+            return result + '\n^'
+        return (result +
+                f"\n{' ' * len(' '.join(tokens_str[:token_])) + ' ^'}")
 
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, Expression):
-            return NotImplemented
-        return self._tokens == other._tokens
-
-    def __ne__(self, other: Any) -> bool:
-        if not isinstance(other, Expression):
-            return NotImplemented
-        return self._tokens != other._tokens
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__qualname__}({repr(self._tokens)})"
-
-    def __str__(self) -> str:
-        return ' '.join(str(t) for t in self._tokens)
-
-    @staticmethod
-    def _check(tokens: Iterable[Token]) -> None:
-        """Check the syntax of the given :paramref:`tokens`.
-
-        Parameters
-        ----------
-        tokens
-            Sequence of tokens to check the syntax of.
+    def _check(self) -> None:
+        """Check the syntax of the expression.
 
         Raises
         ------
         ValueError
-            If the sequence of :paramref:`tokens` is invalid.
+            If the expression is incomplete.  This error is aimed at debugging
+            the expression so it is very verbose.
 
         """
         stack_size = 0
-        for i, token_ in enumerate(tokens):
+        for i, token_ in enumerate(self._tokens):
             stack_size -= token_.pops
             if stack_size < 0:
-                tokens_str = [str(t) for t in tokens]
-                raise ValueError(
-                    f"'{token_}' takes {token_.pops} arguments but the stack "
-                    f"will only have {stack_size + token_.pops} element(s)\n"
-                    f"{' '.join(tokens_str)}\n"
-                    f"{' ' * len(' '.join(tokens_str[:i])) + ' ^'}")
+                raise ValueError(self._format_syntax_error(
+                    f"'{token_}' takes {token_.pops} argument(s) but the stack"
+                    f" will only have {stack_size + token_.pops} element(s)",
+                    i))
             stack_size += token_.puts
         if stack_size == 0:
-            raise ValueError('expression does not produce a result')
+            raise ValueError(self._format_syntax_error(
+                'expression does not produce a result'))
         if stack_size > 1:
-            raise ValueError(
-                'expression produces too many results, number of results is '
-                f'{stack_size}, expected 1')
+            raise ValueError(self._format_syntax_error(
+                f'expression produces too many results ({stack_size}), '
+                'expected 1'))
 
 
 def token(string: str) -> Token:

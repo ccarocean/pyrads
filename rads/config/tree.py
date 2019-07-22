@@ -8,7 +8,7 @@ import numpy as np  # type: ignore
 from cf_units import Unit  # type: ignore
 
 from .._typing import PathLike, Number, IntOrArray, NumberOrArray
-from ..rpn import Expression
+from ..rpn import CompleteExpression
 
 __all__ = ['Cycles', 'ReferencePass', 'Repeat', 'SubCycles', 'Phase',
            'Compress', 'Constant', 'Flags', 'MultiBitFlag', 'SingleBitFlag',
@@ -174,7 +174,7 @@ class Range:
 class Variable:
     id: str
     name: str
-    data: Union[Constant, Expression, Flags, Grid,
+    data: Union[Constant, CompleteExpression, Flags, Grid,
                 NetCDFAttribute, NetCDFVariable]
     units: Union[Unit, str] = Unit('-')
     standard_name: Optional[str] = None

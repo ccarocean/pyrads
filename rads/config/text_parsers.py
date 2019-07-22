@@ -18,9 +18,10 @@ from typing import (Any, Callable, Dict, Iterable, List, Mapping, NoReturn,
 import numpy as np  # type: ignore
 import regex
 
+from cf_units import Unit
 from .tree import (Compress, Constant, Cycles, Flags, Grid, MultiBitFlag,
                    NetCDFAttribute, NetCDFVariable, Range, ReferencePass,
-                   Repeat, SingleBitFlag, SurfaceType, Unit)
+                   Repeat, SingleBitFlag, SurfaceType)
 from .._utility import fortran_float
 from ..rpn import Expression
 
@@ -679,6 +680,10 @@ def _math(string: str, attr: Mapping[str, str]) -> Expression:
     # because the math source is the most likely to have errors and is never
     # explicitly indicated in practice so the math error messages must be
     # terminal most of the time to aid in configuration file debugging.
+    #
+    # NOTE: This uses Expression instead of CompleteExpression.  This is
+    # because checking for a complete expression must be delayed until AST
+    # evaluation due to append, delete, and merge.
     try:
         if ('source' not in attr and _MATH_RE.fullmatch(string) or
                 attr.get('source') == 'math'):

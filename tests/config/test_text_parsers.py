@@ -226,12 +226,15 @@ def test_data_as_grid():
 
 def test_data_as_math():
     # explicit math
+    assert data('', {'source': 'math'}) == Expression('')
     assert data('3.14', {'source': 'math'}) == Expression('3.14')
     assert data('abc', {'source': 'math'}) == Expression('abc')
     assert (data('3.14 2.72 ADD', {'source': 'math'}) ==
             Expression('3.14 2.72 ADD'))
+    assert (data('3.14 ADD', {'source': 'math'}) == Expression('3.14 ADD'))
     # implicit math
     assert data('3.14 2.72 ADD', {}) == Expression('3.14 2.72 ADD')
+    assert data('3.14 ADD', {}) == Expression('3.14 ADD')
     # not math
     assert not isinstance(data('3.14', {}), Expression)
     assert not isinstance(data('ADD', {}), Expression)
@@ -239,28 +242,17 @@ def test_data_as_math():
     assert not isinstance(data('abc.nc', {}), Expression)
     assert not isinstance(data('abc xyz.nc', {}), Expression)
     # not math, explicit leads to terminal error
-    with pytest.raises(TerminalTextParseError) as exc_info:
-        data('', {'source': 'math'})
-    assert exc_info.type is TerminalTextParseError
+    # assert exc_info.type is TerminalTextParseError
     with pytest.raises(TerminalTextParseError) as exc_info:
         data('abc.nc', {'source': 'math'})
     assert exc_info.type is TerminalTextParseError
     # invalid math, explicit leads to terminal error
     with pytest.raises(TerminalTextParseError) as exc_info:
-        data('ADD', {'source': 'math'})
-    assert exc_info.type is TerminalTextParseError
-    with pytest.raises(TerminalTextParseError) as exc_info:
-        data('3.14 2.72', {'source': 'math'})
-    assert exc_info.type is TerminalTextParseError
-    with pytest.raises(TerminalTextParseError) as exc_info:
-        data('3.14 2.72 ADD MUL', {'source': 'math'})
+        data('3abc 4xyz', {'source': 'math'})
     assert exc_info.type is TerminalTextParseError
     # invalid math, implicit leads to terminal error
     with pytest.raises(TerminalTextParseError) as exc_info:
-        data('3.14 2.72', {})
-    assert exc_info.type is TerminalTextParseError
-    with pytest.raises(TerminalTextParseError) as exc_info:
-        data('3.14 2.72 ADD MUL', {})
+        data('3abc 4xyz', {})
     assert exc_info.type is TerminalTextParseError
 
 
