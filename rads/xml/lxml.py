@@ -1,13 +1,21 @@
 """XML tools using the :mod:`lxml` library."""
 
 from typing import (Mapping, Optional, Iterator, Union, IO, Any, Text,
-                    Sequence, cast)
+                    Sequence, cast, TYPE_CHECKING)
 
-from cached_property import cached_property  # type: ignore
 from lxml import etree  # type: ignore
 from lxml.etree import XMLParser, ETCompatXMLParser  # type: ignore
 
 from ..xml import base
+
+# TODO: Change to functools.cached_property when dropping support for
+#       Python 3.7
+if TYPE_CHECKING:
+    # property behaves properly with Mypy but cached_property does not, even
+    # with the same type stub.
+    cached_property = property
+else:
+    from cached_property import cached_property  # type: ignore
 
 __all__ = ['Element', 'XMLParser', 'parse', 'fromstring', 'fromstringlist']
 
@@ -67,11 +75,11 @@ class Element(base.Element):
     def opening_line(self) -> int:
         return cast(int, self._element.sourceline)
 
-    @cached_property  # type: ignore
+    @cached_property
     def num_lines(self) -> int:
         return len(etree.tostring(self._element).strip().split(b'\n'))
 
-    @cached_property  # type: ignore
+    @cached_property
     def closing_line(self) -> int:
         return cast(int, self.opening_line + self.num_lines - 1)
 
