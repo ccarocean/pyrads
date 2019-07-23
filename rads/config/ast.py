@@ -1,6 +1,5 @@
 """Abstract Syntax Tree elements for RADS configuration file."""
 
-from itertools import chain
 import typing
 from abc import ABC, abstractmethod
 from copy import deepcopy
