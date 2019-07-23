@@ -18,8 +18,6 @@ from ..rpn import CompleteExpression, Expression
 ActionType = Callable[[Any, str, Any], None]
 
 
-# TODO: Add better error handling, particularly around actions.
-
 def _get_mapping(environment: Any, attr: str,
                  mapping: Callable[[], Mapping] = dict):
     if (not hasattr(environment, attr) or
@@ -628,7 +626,7 @@ class Assignment(Statement):
                 if suggested:
                     message += f", did you mean '{suggested}'"
                 raise ASTEvaluationError(message, source=self.source)
-            except TypeError as err:
+            except (TypeError, ValueError, KeyError) as err:
                 raise ASTEvaluationError(str(err), source=self.source)
 
 
@@ -665,7 +663,10 @@ class Alias(Statement):
         if self.condition.test(selectors):
             action = cast(ActionType, self.action)
             aliases = _get_mapping(environment, 'aliases')
-            action(aliases, self.alias, deepcopy(self.variables))
+            try:
+                action(aliases, self.alias, deepcopy(self.variables))
+            except (TypeError, ValueError, KeyError) as err:
+                raise ASTEvaluationError(str(err), source=self.source)
 
 
 class SatelliteID(Statement):
