@@ -148,6 +148,8 @@ disable=print-statement,
         too-many-return-statements,
         function-redefined,
         ungrouped-imports,
+        unused-argument,
+        too-many-function-args,
         fixme
 
 # protected-access
@@ -174,7 +176,13 @@ disable=print-statement,
 # typing.overload is not supported yet
 # TODO: Remove this when https://github.com/PyCQA/pylint/issues/2239 is fixed
 
+# unused-argument
+# typing.overload is not supported yet
+# TODO: Remove this when https://github.com/PyCQA/pylint/issues/2561 is fixed
 
+# too-many-function-args
+# Generates false positives.
+# TODO: Remove this when https://github.com/PyCQA/pylint/issues/2326 is fixed
 
 # Enable the message, report, category or checker with the given id(s). You can
 # either give multiple identifier separated by comma (,) or put this option
@@ -411,7 +419,10 @@ good-names=i,
            at,
            a,
            b,
-           T
+           T,
+           x,
+           y,
+           z
 
 # Include a hint for the correct naming format with invalid-name.
 include-naming-hint=no

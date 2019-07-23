@@ -1,14 +1,14 @@
+dist: xenial  # required for Python >= 3.7
 language: python
+before_install:
+  - sudo apt-get install -y libudunits2-dev
 install:
   - pip install codecov
   - pip install -r dev-requirements.txt
 script:
-  - make test
-matrix:
-  include:
-    - python: '3.6'
-    - python: '3.7'
-      dist: xenial
-      sudo: true
+  - python -m pytest --cov=rads --cov-branch
+python:
+  - '3.6'
+  - '3.7'
 after_success:
   - codecov

@@ -17,7 +17,7 @@ def read(filename):
 
 setup(
     name='rads',
-    version=read_version('dataclass_builder/__init__.py'),
+    version=read_version('rads/__init__.py'),
     author='Michael R. Shannon',
     author_email='mrshannon.aerospace@gmail.com',
     description='Python front end for the Radar Altimeter Database System.',
@@ -27,11 +27,12 @@ setup(
     packages=find_packages(),
     setup_requires=['pytest-runner'],
     install_requires=[
+        'astropy',
         'cached_property',
         'dataclasses;python_version=="3.6"',
         'dataclass-builder>=1.1.2',
         'fortran_format_converter>=0.1.2',
-        'numpy',
+        'numpy>=1.16.0',
         'scipy',
         'wrapt',
         'yzal',

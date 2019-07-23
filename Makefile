@@ -29,11 +29,9 @@ coverage: check
 		--cov-report html
 
 check:
-	@python setup.py check --restructuredtext --strict && \
-		([ $$? -eq 0 ] && echo "README.rst ok") || \
-		echo "Invalid markup in README.rst!"
 	@mypy $(module)
-	@flake8 $(module)
+	@mypy --config-file tests/mypy.ini tests
+	@flake8 $(module) tests
 	@python -m pylint $(module)
 	@python -m pycodestyle $(module) tests
 	@python -m pydocstyle $(module)

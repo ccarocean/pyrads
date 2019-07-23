@@ -1,14 +1,14 @@
 """Utility functions."""
 
 import os
-from typing import cast, IO, Optional, Any, Union
+from typing import Any, List, IO, Optional, Union, cast
 
 from wrapt import ObjectProxy  # type: ignore
 
 from ._typing import PathOrFile, PathLike
 
-__all__ = ['ensure_open', 'filestring', 'xor',
-           'contains_sublist', 'merge_sublist', 'delete_sublist']
+__all__ = ['ensure_open', 'filestring', 'xor', 'contains_sublist',
+           'merge_sublist', 'delete_sublist', 'fortran_float']
 
 
 class _NoCloseIOWrapper(ObjectProxy):  # type: ignore
@@ -159,7 +159,7 @@ def xor(a: bool, b: bool) -> bool:
     return (a and not b) or (not a and b)
 
 
-def contains_sublist(list_: list, sublist: list) -> bool:
+def contains_sublist(list_: List[Any], sublist: List[Any]) -> bool:
     """Determine if a :paramref:`list` contains a :paramref:`sublist`.
 
     Parameters
@@ -185,7 +185,7 @@ def contains_sublist(list_: list, sublist: list) -> bool:
     return False
 
 
-def merge_sublist(list_: list, sublist: list) -> list:
+def merge_sublist(list_: List[Any], sublist: List[Any]) -> List[Any]:
     """Merge a :paramref:`sublist` into a given :paramref:`list_`.
 
     Parameters
@@ -208,7 +208,7 @@ def merge_sublist(list_: list, sublist: list) -> list:
     return list_ + sublist
 
 
-def delete_sublist(list_: list, sublist: list) -> list:
+def delete_sublist(list_: List[Any], sublist: List[Any]) -> List[Any]:
     """Remove a :paramref:`sublist` from the given :paramref:`list_`.
 
     Parameters
@@ -230,3 +230,63 @@ def delete_sublist(list_: list, sublist: list) -> list:
                 list_[i:i + len(sublist)] == sublist):
             return list_[:i] + list_[i + len(sublist):]
     return list_[:]
+
+
+def fortran_float(string: str) -> float:
+    """Version of :func:`float` that can read Fortran style float strings.
+
+    This function can convert strings to floats in all of the formats below:
+
+        * 3.14e10  [also parsable with :func:`float`]
+        * 3.14E10  [also parsable with :func:`float`]
+        * 3.14d10
+        * 3.14D10
+        * 3.14e+10  [also parsable with :func:`float`]
+        * 3.14E+10  [also parsable with :func:`float`]
+        * 3.14d+10
+        * 3.14D+10
+        * 3.14e-10  [also parsable with :func:`float`]
+        * 3.14E-10  [also parsable with :func:`float`]
+        * 3.14d-10
+        * 3.14D-10
+        * 3.14+100
+        * 3.14-100
+
+    .. note::
+
+        Because RADS was written in Fortran, exponent characters in
+        configuration and passindex files sometimes use 'D' or 'd' as
+        the exponent separator instead of 'E' or 'e'.
+
+    .. warning::
+
+        If you are Fortran developer stop using 'Ew.d' and 'Ew.dDe' formats
+        and use 'Ew.dEe' instead.  The first two are not commonly supported
+        by other languages while the last version is the standard for nearly
+        all languages.
+
+    Parameters
+    ----------
+    string
+        String to attempt to convert to a float.
+
+    Returns
+    -------
+    float
+        The float parsed from the given :paramref:`string`.
+
+    Raises
+    ------
+    ValueError
+        If :paramref:`string` does not represent a valid float.
+    """
+    try:
+        return float(string)
+    except ValueError as err:
+        try:
+            return float(string.replace('d', 'e').replace('D', 'E'))
+        except ValueError:
+            try:
+                return float(string.replace('+', 'e+').replace('-', 'e-'))
+            except ValueError:
+                raise err
