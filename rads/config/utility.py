@@ -35,9 +35,10 @@ def source_from_element(element: Element):
 def parse_action(element: Element) -> ActionType:
     # edit is a special type of action for strings
     if 'edit' in element.attributes:
-        edit = element.attributes.get('edit', 'replace')
-        if edit == 'append':
+        if element.attributes['edit'] == 'append':
             return edit_append
+        raise error_at(element)(
+            f'invalid edit="{element.attributes["edit"]}"')
     # default action is replace
     action = element.attributes.get('action', 'replace')
     if action == 'replace':
@@ -48,7 +49,7 @@ def parse_action(element: Element) -> ActionType:
         return delete
     if action == 'merge':
         return merge
-    raise error_at(element)('Invalid action="{:s}".'.format(action))
+    raise error_at(element)('invalid action="{:s}".'.format(action))
 
 
 def parse_condition(attr: Mapping[str, str]) -> Condition:
