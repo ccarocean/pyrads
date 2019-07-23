@@ -1,5 +1,5 @@
 import warnings
-from copy import deepcopy
+from copy import copy, deepcopy
 from datetime import datetime
 from typing import Mapping, MutableMapping, MutableSequence, Optional
 
@@ -9,7 +9,7 @@ import pytest  # type: ignore
 
 from rads._typing import NumberOrArray
 from rads.rpn import (StackUnderflowError, Token, Literal, PI, E, Variable,
-                      Operator, CompleteExpression, Expression, SUB, ADD, MUL,
+                      CompleteExpression, Expression, SUB, ADD, MUL,
                       POP, NEG, ABS, INV, SQRT, SQR, EXP, LOG, LOG10, SIN, COS,
                       TAN, SIND, COSD, TAND, SINH, COSH, TANH, ASIN, ACOS,
                       ATAN, ASIND, ACOSD, ATAND, ASINH, ACOSH, ATANH, ISNAN,
@@ -247,12 +247,22 @@ def assert_token(operator: Token,
         assert stack == post_stack
 
 
-class TestOperator:
+class TestSUBOperator:
 
-    def test_sub(self):
+    def test_repr(self):
         assert repr(SUB) == 'SUB'
+
+    def test_pops(self):
         assert SUB.pops == 2
+
+    def test_puts(self):
         assert SUB.puts == 1
+
+    def test_no_copy(self):
+        assert copy(SUB) is SUB
+        assert deepcopy(SUB) is SUB
+
+    def test_call(self):
         assert_token(SUB, [2, 4], [-2])
         assert_token(SUB, [2, np.array([4, 1])], [np.array([-2, 1])])
         assert_token(SUB, [np.array([4, 1]), 2], [np.array([2, -1])])
@@ -266,10 +276,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             SUB([1], {})
 
-    def test_add(self):
+
+class TestADDOperator:
+
+    def test_repr(self):
         assert repr(ADD) == 'ADD'
+
+    def test_pops(self):
         assert ADD.pops == 2
+
+    def test_puts(self):
         assert ADD.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ADD) is ADD
+        assert deepcopy(ADD) is ADD
+
+    def test_call(self):
         assert_token(ADD, [2, 4], [6])
         assert_token(ADD, [2, np.array([4, 1])], [np.array([6, 3])])
         assert_token(ADD, [np.array([4, 1]), 2], [np.array([6, 3])])
@@ -283,10 +306,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ADD([1], {})
 
-    def test_mul(self):
+
+class TestMULOperator:
+
+    def test_repr(self):
         assert repr(MUL) == 'MUL'
+
+    def test_pops(self):
         assert MUL.pops == 2
+
+    def test_puts(self):
         assert MUL.puts == 1
+
+    def test_no_copy(self):
+        assert copy(MUL) is MUL
+        assert deepcopy(MUL) is MUL
+
+    def test_call(self):
         assert_token(MUL, [2, 4], [8])
         assert_token(MUL, [2, np.array([4, 1])], [np.array([8, 2])])
         assert_token(MUL, [np.array([4, 1]), 2], [np.array([8, 2])])
@@ -300,20 +336,46 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             MUL([1], {})
 
-    def test_pop(self):
+
+class TestPOPOperator:
+
+    def test_repr(self):
         assert repr(POP) == 'POP'
+
+    def test_pops(self):
         assert POP.pops == 1
+
+    def test_puts(self):
         assert POP.puts == 0
+
+    def test_no_copy(self):
+        assert copy(POP) is POP
+        assert deepcopy(POP) is POP
+
+    def test_call(self):
         assert_token(POP, [1], [])
         assert_token(POP, [1, 2], [1])
         # not enough stack elements
         with pytest.raises(StackUnderflowError):
             POP([], {})
 
-    def test_neg(self):
+
+class TestNEGOperator:
+
+    def test_repr(self):
         assert repr(NEG) == 'NEG'
+
+    def test_pops(self):
         assert NEG.pops == 1
+
+    def test_puts(self):
         assert NEG.puts == 1
+
+    def test_no_copy(self):
+        assert copy(NEG) is NEG
+        assert deepcopy(NEG) is NEG
+
+    def test_call(self):
         assert_token(NEG, [2], [-2])
         assert_token(NEG, [-2], [2])
         assert_token(NEG, [np.array([4, -1])], [np.array([-4, 1])])
@@ -324,10 +386,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             NEG([], {})
 
-    def test_abs(self):
+
+class TestABSOperator:
+
+    def test_repr(self):
         assert repr(ABS) == 'ABS'
+
+    def test_pops(self):
         assert ABS.pops == 1
+
+    def test_puts(self):
         assert ABS.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ABS) is ABS
+        assert deepcopy(ABS) is ABS
+
+    def test_call(self):
         assert_token(ABS, [2], [2])
         assert_token(ABS, [-2], [2])
         assert_token(ABS, [np.array([4, -1])], [np.array([4, 1])])
@@ -338,10 +413,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ABS([], {})
 
-    def test_inv(self):
+
+class TestINVOperator:
+
+    def test_repr(self):
         assert repr(INV) == 'INV'
+
+    def test_pops(self):
         assert INV.pops == 1
+
+    def test_puts(self):
         assert INV.puts == 1
+
+    def test_no_copy(self):
+        assert copy(INV) is INV
+        assert deepcopy(INV) is INV
+
+    def test_call(self):
         assert_token(INV, [2], [0.5])
         assert_token(INV, [-2], [-0.5])
         assert_token(INV, [np.array([4, -1])], [np.array([0.25, -1])])
@@ -352,10 +440,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             INV([], {})
 
-    def test_sqrt(self):
+
+class TestSQRTOperator:
+
+    def test_repr(self):
         assert repr(SQRT) == 'SQRT'
+
+    def test_pops(self):
         assert SQRT.pops == 1
+
+    def test_puts(self):
         assert SQRT.puts == 1
+
+    def test_no_copy(self):
+        assert copy(SQRT) is SQRT
+        assert deepcopy(SQRT) is SQRT
+
+    def test_call(self):
         assert_token(SQRT, [4], [2])
         assert_token(SQRT, [np.array([4, 16])], [np.array([2, 4])])
         # extra stack elements
@@ -364,10 +465,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             SQRT([], {})
 
-    def test_sqr(self):
+
+class TestSQROperator:
+
+    def test_repr(self):
         assert repr(SQR) == 'SQR'
+
+    def test_pops(self):
         assert SQR.pops == 1
+
+    def test_puts(self):
         assert SQR.puts == 1
+
+    def test_no_copy(self):
+        assert copy(EXP) is EXP
+        assert deepcopy(EXP) is EXP
+
+    def test_call(self):
         assert_token(SQR, [2], [4])
         assert_token(SQR, [-2], [4])
         assert_token(SQR, [np.array([4, -1])], [np.array([16, 1])])
@@ -378,10 +492,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             SQR([], {})
 
-    def test_exp(self):
+
+class TestEXPOperator:
+
+    def test_repr(self):
         assert repr(EXP) == 'EXP'
+
+    def test_pops(self):
         assert EXP.pops == 1
+
+    def test_puts(self):
         assert EXP.puts == 1
+
+    def test_no_copy(self):
+        assert copy(EXP) is EXP
+        assert deepcopy(EXP) is EXP
+
+    def test_call(self):
         assert_token(EXP, [math.log(1)], [1.0], approx=True)
         assert_token(EXP, [math.log(2)], [2.0], approx=True)
         assert_token(
@@ -393,10 +520,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             EXP([], {})
 
-    def test_log(self):
+
+class TestLOGOperator:
+
+    def test_repr(self):
         assert repr(LOG) == 'LOG'
+
+    def test_pops(self):
         assert LOG.pops == 1
+
+    def test_puts(self):
         assert LOG.puts == 1
+
+    def test_no_copy(self):
+        assert copy(LOG) is LOG
+        assert deepcopy(LOG) is LOG
+
+    def test_call(self):
         assert_token(LOG, [math.e], [1.0], approx=True)
         assert_token(LOG, [math.e ** 2], [2.0], approx=True)
         assert_token(LOG, [math.e ** -2], [-2.0], approx=True)
@@ -412,10 +552,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             LOG([], {})
 
-    def test_log10(self):
+
+class TestLOG10Operator:
+
+    def test_repr(self):
         assert repr(LOG10) == 'LOG10'
+
+    def test_pops(self):
         assert LOG10.pops == 1
+
+    def test_puts(self):
         assert LOG10.puts == 1
+
+    def test_no_copy(self):
+        assert copy(LOG10) is LOG10
+        assert deepcopy(LOG10) is LOG10
+
+    def test_call(self):
         assert_token(LOG10, [10], [1.0], approx=True)
         assert_token(LOG10, [10 ** 2], [2.0], approx=True)
         assert_token(LOG10, [10 ** -2], [-2.0], approx=True)
@@ -431,10 +584,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             LOG10([], {})
 
-    def test_sin(self):
+
+class TestSINOperator:
+
+    def test_repr(self):
         assert repr(SIN) == 'SIN'
+
+    def test_pops(self):
         assert SIN.pops == 1
+
+    def test_puts(self):
         assert SIN.puts == 1
+
+    def test_no_copy(self):
+        assert copy(SIN) is SIN
+        assert deepcopy(SIN) is SIN
+
+    def test_call(self):
         assert_token(SIN, [0.0], [0.0], approx=True)
         assert_token(SIN, [math.pi / 6], [1 / 2], approx=True)
         assert_token(SIN, [math.pi / 4], [1 / math.sqrt(2)], approx=True)
@@ -456,10 +622,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             SIN([], {})
 
-    def test_cos(self):
+
+class TestCOSOperator:
+
+    def test_repr(self):
         assert repr(COS) == 'COS'
+
+    def test_pops(self):
         assert COS.pops == 1
+
+    def test_puts(self):
         assert COS.puts == 1
+
+    def test_no_copy(self):
+        assert copy(COS) is COS
+        assert deepcopy(COS) is COS
+
+    def test_call(self):
         assert_token(COS, [0.0], [1.0], approx=True)
         assert_token(COS, [math.pi / 6], [math.sqrt(3) / 2], approx=True)
         assert_token(COS, [math.pi / 4], [1 / math.sqrt(2)], approx=True)
@@ -481,10 +660,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             COS([], {})
 
-    def test_tan(self):
+
+class TestTANOperator:
+
+    def test_repr(self):
         assert repr(TAN) == 'TAN'
+
+    def test_pops(self):
         assert TAN.pops == 1
+
+    def test_puts(self):
         assert TAN.puts == 1
+
+    def test_no_copy(self):
+        assert copy(TAN) is TAN
+        assert deepcopy(TAN) is TAN
+
+    def test_call(self):
         assert_token(TAN, [0.0], [0.0], approx=True)
         assert_token(TAN, [math.pi / 6], [1 / math.sqrt(3)], approx=True)
         assert_token(TAN, [math.pi / 4], [1.0], approx=True)
@@ -505,10 +697,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             TAN([], {})
 
-    def test_sind(self):
+
+class TestSINDOperator:
+
+    def test_repr(self):
         assert repr(SIND) == 'SIND'
+
+    def test_pops(self):
         assert SIND.pops == 1
+
+    def test_puts(self):
         assert SIND.puts == 1
+
+    def test_no_copy(self):
+        assert copy(COSD) is COSD
+        assert deepcopy(COSD) is COSD
+
+    def test_call(self):
         assert_token(SIND, [0], [0.0], approx=True)
         assert_token(SIND, [30], [1 / 2], approx=True)
         assert_token(SIND, [45], [1 / math.sqrt(2)], approx=True)
@@ -530,10 +735,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             SIND([], {})
 
-    def test_cosd(self):
+
+class TestCOSDOperator:
+
+    def test_repr(self):
         assert repr(COSD) == 'COSD'
+
+    def test_pops(self):
         assert COSD.pops == 1
+
+    def test_puts(self):
         assert COSD.puts == 1
+
+    def test_no_copy(self):
+        assert copy(COSD) is COSD
+        assert deepcopy(COSD) is COSD
+
+    def test_call(self):
         assert_token(COSD, [0], [1.0], approx=True)
         assert_token(COSD, [30], [math.sqrt(3) / 2], approx=True)
         assert_token(COSD, [45], [1 / math.sqrt(2)], approx=True)
@@ -555,10 +773,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             COSD([], {})
 
-    def test_tand(self):
+
+class TestTANDOperator:
+
+    def test_repr(self):
         assert repr(TAND) == 'TAND'
+
+    def test_pops(self):
         assert TAND.pops == 1
+
+    def test_puts(self):
         assert TAND.puts == 1
+
+    def test_no_copy(self):
+        assert copy(TAND) is TAND
+        assert deepcopy(TAND) is TAND
+
+    def test_call(self):
         assert_token(TAND, [0], [0], approx=True)
         assert_token(TAND, [30], [1 / math.sqrt(3)], approx=True)
         assert_token(TAND, [45], [1.0], approx=True)
@@ -579,10 +810,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             TAND([], {})
 
-    def test_sinh(self):
+
+class TestSINHOperator:
+
+    def test_repr(self):
         assert repr(SINH) == 'SINH'
+
+    def test_pops(self):
         assert SINH.pops == 1
+
+    def test_puts(self):
         assert SINH.puts == 1
+
+    def test_no_copy(self):
+        assert copy(SINH) is SINH
+        assert deepcopy(SINH) is SINH
+
+    def test_call(self):
         assert_token(SINH, [0.0], [0.0], approx=True)
         assert_token(SINH, [GOLDEN_RATIO], [0.5], approx=True)
         assert_token(
@@ -596,10 +840,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             SINH([], {})
 
-    def test_cosh(self):
+
+class TestCOSHOperator:
+
+    def test_repr(self):
         assert repr(COSH) == 'COSH'
+
+    def test_pops(self):
         assert COSH.pops == 1
+
+    def test_puts(self):
         assert COSH.puts == 1
+
+    def test_no_copy(self):
+        assert copy(COSH) is COSH
+        assert deepcopy(COSH) is COSH
+
+    def test_call(self):
         assert_token(COSH, [0.0], [1.0], approx=True)
         assert_token(COSH, [GOLDEN_RATIO], [math.sqrt(5) / 2], approx=True)
         assert_token(
@@ -614,10 +871,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             COSH([], {})
 
-    def test_tanh(self):
+
+class TestTANHOperator:
+
+    def test_repr(self):
         assert repr(TANH) == 'TANH'
+
+    def test_pops(self):
         assert TANH.pops == 1
+
+    def test_puts(self):
         assert TANH.puts == 1
+
+    def test_no_copy(self):
+        assert copy(TANH) is TANH
+        assert deepcopy(TANH) is TANH
+
+    def test_call(self):
         assert_token(TANH, [0.0], [0.0], approx=True)
         assert_token(TANH, [GOLDEN_RATIO], [math.sqrt(5) / 5], approx=True)
         assert_token(
@@ -632,10 +902,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             TANH([], {})
 
-    def test_asin(self):
+
+class TestASINOperator:
+
+    def test_repr(self):
         assert repr(ASIN) == 'ASIN'
+
+    def test_pops(self):
         assert ASIN.pops == 1
+
+    def test_puts(self):
         assert ASIN.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ASIN) is ASIN
+        assert deepcopy(ASIN) is ASIN
+
+    def test_call(self):
         assert_token(ASIN, [0.0], [0.0], approx=True)
         assert_token(ASIN, [1 / 2], [math.pi / 6], approx=True)
         assert_token(ASIN, [1 / math.sqrt(2)], [math.pi / 4], approx=True)
@@ -657,10 +940,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ASIN([], {})
 
-    def test_acos(self):
+
+class TestACOSOperator:
+
+    def test_repr(self):
         assert repr(ACOS) == 'ACOS'
+
+    def test_pops(self):
         assert ACOS.pops == 1
+
+    def test_puts(self):
         assert ACOS.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ACOS) is ACOS
+        assert deepcopy(ACOS) is ACOS
+
+    def test_call(self):
         assert_token(ACOS, [1.0], [0.0], approx=True)
         assert_token(ACOS, [math.sqrt(3) / 2], [math.pi / 6], approx=True)
         assert_token(ACOS, [1 / math.sqrt(2)], [math.pi / 4], approx=True)
@@ -677,10 +973,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ACOS([], {})
 
-    def test_atan(self):
+
+class TestATANOperator:
+
+    def test_repr(self):
         assert repr(ATAN) == 'ATAN'
+
+    def test_pops(self):
         assert ATAN.pops == 1
+
+    def test_puts(self):
         assert ATAN.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ATAN) is ATAN
+        assert deepcopy(ATAN) is ATAN
+
+    def test_call(self):
         assert_token(ATAN, [0.0], [0.0], approx=True)
         assert_token(ATAN, [1 / math.sqrt(3)], [math.pi / 6], approx=True)
         assert_token(ATAN, [1.0], [math.pi / 4], approx=True)
@@ -701,10 +1010,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ATAN([], {})
 
-    def test_asind(self):
+
+class TestASINDOperator:
+
+    def test_repr(self):
         assert repr(ASIND) == 'ASIND'
+
+    def test_pops(self):
         assert ASIND.pops == 1
+
+    def test_puts(self):
         assert ASIND.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ASIND) is ASIND
+        assert deepcopy(ASIND) is ASIND
+
+    def test_call(self):
         assert_token(ASIND, [0.0], [0], approx=True)
         assert_token(ASIND, [1 / 2], [30], approx=True)
         assert_token(ASIND, [1 / math.sqrt(2)], [45], approx=True)
@@ -726,10 +1048,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ASIND([], {})
 
-    def test_acosd(self):
+
+class TestACOSDOperator:
+
+    def test_repr(self):
         assert repr(ACOSD) == 'ACOSD'
+
+    def test_pops(self):
         assert ACOSD.pops == 1
+
+    def test_puts(self):
         assert ACOSD.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ACOSD) is ACOSD
+        assert deepcopy(ACOSD) is ACOSD
+
+    def test_call(self):
         assert_token(ACOSD, [1.0], [0], approx=True)
         assert_token(ACOSD, [math.sqrt(3) / 2], [30], approx=True)
         assert_token(ACOSD, [1 / math.sqrt(2)], [45], approx=True)
@@ -746,10 +1081,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ACOSD([], {})
 
-    def test_atand(self):
+
+class TestATANDOperator:
+
+    def test_repr(self):
         assert repr(ATAND) == 'ATAND'
+
+    def test_pops(self):
         assert ATAND.pops == 1
+
+    def test_puts(self):
         assert ATAND.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ATAND) is ATAND
+        assert deepcopy(ATAND) is ATAND
+
+    def test_call(self):
         assert_token(ATAND, [0.0], [0], approx=True)
         assert_token(ATAND, [1 / math.sqrt(3)], [30], approx=True)
         assert_token(ATAND, [1.0], [45], approx=True)
@@ -770,10 +1118,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ATAND([], {})
 
-    def test_asinh(self):
+
+class TestASINHOperator:
+
+    def test_repr(self):
         assert repr(ASINH) == 'ASINH'
+
+    def test_pops(self):
         assert ASINH.pops == 1
+
+    def test_puts(self):
         assert ASINH.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ASINH) is ASINH
+        assert deepcopy(ASINH) is ASINH
+
+    def test_call(self):
         assert_token(ASINH, [0.0], [0.0], approx=True)
         assert_token(ASINH, [0.5], [GOLDEN_RATIO], approx=True)
         assert_token(
@@ -787,10 +1148,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ASINH([], {})
 
-    def test_acosh(self):
+
+class TestACOSHOperator:
+
+    def test_repr(self):
         assert repr(ACOSH) == 'ACOSH'
+
+    def test_pops(self):
         assert ACOSH.pops == 1
+
+    def test_puts(self):
         assert ACOSH.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ACOSH) is ACOSH
+        assert deepcopy(ACOSH) is ACOSH
+
+    def test_call(self):
         assert_token(ACOSH, [1.0], [0.0], approx=True)
         assert_token(ACOSH, [math.sqrt(5) / 2], [GOLDEN_RATIO], approx=True)
         assert_token(
@@ -805,10 +1179,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ACOSH([], {})
 
-    def test_atanh(self):
+
+class TestATANHOperator:
+
+    def test_repr(self):
         assert repr(ATANH) == 'ATANH'
+
+    def test_pops(self):
         assert ATANH.pops == 1
+
+    def test_puts(self):
         assert ATANH.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ATANH) is ATANH
+        assert deepcopy(ATANH) is ATANH
+
+    def test_call(self):
         assert_token(ATANH, [0.0], [0.0], approx=True)
         assert_token(ATANH, [math.sqrt(5) / 5], [GOLDEN_RATIO], approx=True)
         assert_token(
@@ -823,10 +1210,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ATANH([], {})
 
-    def test_isnan(self):
+
+class TestISNANOperator:
+
+    def test_repr(self):
         assert repr(ISNAN) == 'ISNAN'
+
+    def test_pops(self):
         assert ISNAN.pops == 1
+
+    def test_puts(self):
         assert ISNAN.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ISNAN) is ISNAN
+        assert deepcopy(ISNAN) is ISNAN
+
+    def test_call(self):
         assert_token(ISNAN, [2], [False])
         assert_token(ISNAN, [float('nan')], [True])
         assert_token(
@@ -839,10 +1239,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ISNAN([], {})
 
-    def test_isan(self):
+
+class TestISANOperator:
+
+    def test_repr(self):
         assert repr(ISAN) == 'ISAN'
+
+    def test_pops(self):
         assert ISAN.pops == 1
+
+    def test_puts(self):
         assert ISAN.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ISAN) is ISAN
+        assert deepcopy(ISAN) is ISAN
+
+    def test_call(self):
         assert_token(ISAN, [2], [True])
         assert_token(ISAN, [float('nan')], [False])
         assert_token(
@@ -855,10 +1268,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ISAN([], {})
 
-    def test_rint(self):
+
+class TestRINTOperator:
+
+    def test_repr(self):
         assert repr(RINT) == 'RINT'
+
+    def test_pops(self):
         assert RINT.pops == 1
+
+    def test_puts(self):
         assert RINT.puts == 1
+
+    def test_no_copy(self):
+        assert copy(RINT) is RINT
+        assert deepcopy(RINT) is RINT
+
+    def test_call(self):
         assert_token(RINT, [1.6], [2])
         assert_token(RINT, [2.4], [2])
         assert_token(RINT, [-1.6], [-2])
@@ -871,10 +1297,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             RINT([], {})
 
-    def test_nint(self):
+
+class TestNINTOperator:
+
+    def test_repr(self):
         assert repr(NINT) == 'NINT'
+
+    def test_pops(self):
         assert NINT.pops == 1
+
+    def test_puts(self):
         assert NINT.puts == 1
+
+    def test_no_copy(self):
+        assert copy(NINT) is NINT
+        assert deepcopy(NINT) is NINT
+
+    def test_call(self):
         assert_token(NINT, [1.6], [2])
         assert_token(NINT, [2.4], [2])
         assert_token(NINT, [-1.6], [-2])
@@ -887,10 +1326,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             NINT([], {})
 
-    def test_ceil(self):
+
+class TestCEILOperator:
+
+    def test_repr(self):
         assert repr(CEIL) == 'CEIL'
+
+    def test_pops(self):
         assert CEIL.pops == 1
+
+    def test_puts(self):
         assert CEIL.puts == 1
+
+    def test_no_copy(self):
+        assert copy(CEIL) is CEIL
+        assert deepcopy(CEIL) is CEIL
+
+    def test_call(self):
         assert_token(CEIL, [1.6], [2])
         assert_token(CEIL, [2.4], [3])
         assert_token(CEIL, [-1.6], [-1])
@@ -903,10 +1355,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             CEIL([], {})
 
-    def test_ceiling(self):
+
+class TestCEILINGOperator:
+
+    def test_repr(self):
         assert repr(CEILING) == 'CEILING'
+
+    def test_pops(self):
         assert CEILING.pops == 1
+
+    def test_puts(self):
         assert CEILING.puts == 1
+
+    def test_no_copy(self):
+        assert copy(CEILING) is CEILING
+        assert deepcopy(CEILING) is CEILING
+
+    def test_call(self):
         assert_token(CEILING, [1.6], [2])
         assert_token(CEILING, [2.4], [3])
         assert_token(CEILING, [-1.6], [-1])
@@ -920,10 +1385,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             CEILING([], {})
 
-    def test_floor(self):
+
+class TestFLOOROperator:
+
+    def test_repr(self):
         assert repr(FLOOR) == 'FLOOR'
+
+    def test_pops(self):
         assert FLOOR.pops == 1
+
+    def test_puts(self):
         assert FLOOR.puts == 1
+
+    def test_no_copy(self):
+        assert copy(FLOOR) is FLOOR
+        assert deepcopy(FLOOR) is FLOOR
+
+    def test_call(self):
         assert_token(FLOOR, [1.6], [1])
         assert_token(FLOOR, [2.4], [2])
         assert_token(FLOOR, [-1.6], [-2])
@@ -936,10 +1414,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             FLOOR([], {})
 
-    def test_d2r(self):
+
+class TestD2ROperator:
+
+    def test_repr(self):
         assert repr(D2R) == 'D2R'
+
+    def test_pops(self):
         assert D2R.pops == 1
+
+    def test_puts(self):
         assert D2R.puts == 1
+
+    def test_no_copy(self):
+        assert copy(D2R) is D2R
+        assert deepcopy(D2R) is D2R
+
+    def test_call(self):
         assert_token(D2R, [0], [0.0], approx=True)
         assert_token(D2R, [30], [math.pi / 6], approx=True)
         assert_token(D2R, [45], [math.pi / 4], approx=True)
@@ -961,10 +1452,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             D2R([], {})
 
-    def test_r2d(self):
+
+class TestR2DOperator:
+
+    def test_repr(self):
         assert repr(R2D) == 'R2D'
+
+    def test_pops(self):
         assert R2D.pops == 1
+
+    def test_puts(self):
         assert R2D.puts == 1
+
+    def test_no_copy(self):
+        assert copy(R2D) is R2D
+        assert deepcopy(R2D) is R2D
+
+    def test_call(self):
         assert_token(R2D, [0.0], [0], approx=True)
         assert_token(R2D, [math.pi / 6], [30], approx=True)
         assert_token(R2D, [math.pi / 4], [45], approx=True)
@@ -986,10 +1490,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             R2D([], {})
 
-    def test_ymdhms(self):
+
+class TestYMDHMSOperator:
+
+    def test_repr(self):
         assert repr(YMDHMS) == 'YMDHMS'
+
+    def test_pops(self):
         assert YMDHMS.pops == 1
+
+    def test_puts(self):
         assert YMDHMS.puts == 1
+
+    def test_no_copy(self):
+        assert copy(YMDHMS) is YMDHMS
+        assert deepcopy(YMDHMS) is YMDHMS
+
+    def test_call(self):
         epoch = datetime(1985, 1, 1, 0, 0, 0, 0)
         date1 = datetime(2008, 7, 4, 12, 19, 19, 570865)
         date2 = datetime(2019, 6, 26, 12, 31, 6, 930575)
@@ -1009,10 +1526,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             YMDHMS([], {})
 
-    def test_sum(self):
+
+class TestSUMOperator:
+
+    def test_repr(self):
         assert repr(SUM) == 'SUM'
+
+    def test_pops(self):
         assert SUM.pops == 1
+
+    def test_puts(self):
         assert SUM.puts == 1
+
+    def test_no_copy(self):
+        assert copy(SUM) is SUM
+        assert deepcopy(SUM) is SUM
+
+    def test_call(self):
         assert_token(SUM, [2], [2])
         assert_token(SUM, [-2], [-2])
         assert_token(SUM, [float('nan')], [0])
@@ -1026,10 +1556,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             SUM([], {})
 
-    def test_diff(self):
+
+class TestDIFFOperator:
+
+    def test_repr(self):
         assert repr(DIF) == 'DIF'
+
+    def test_pops(self):
         assert DIF.pops == 1
+
+    def test_puts(self):
         assert DIF.puts == 1
+
+    def test_no_copy(self):
+        assert copy(DIF) is DIF
+        assert deepcopy(DIF) is DIF
+
+    def test_call(self):
         assert_token(DIF, [2], [np.array([np.nan])])
         assert_token(DIF, [np.array([1, 2])], [np.array([np.nan, 1])])
         assert_token(DIF, [np.array([1, 2, 5])], [np.array([np.nan, 1, 3])])
@@ -1042,10 +1585,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             DIF([], {})
 
-    def test_dup(self):
+
+class TestDUPOperator:
+
+    def test_repr(self):
         assert repr(DUP) == 'DUP'
+
+    def test_pops(self):
         assert DUP.pops == 1
+
+    def test_puts(self):
         assert DUP.puts == 2
+
+    def test_no_copy(self):
+        assert copy(DUP) is DUP
+        assert deepcopy(DUP) is DUP
+
+    def test_call(self):
         assert_token(DUP, [2], [2, 2])
         assert_token(
             DUP, [np.array([4, -1])], [np.array([4, -1]), np.array([4, -1])])
@@ -1054,10 +1610,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             DUP([], {})
 
-    def test_div(self):
+
+class TestDIVOperator:
+
+    def test_repr(self):
         assert repr(DIV) == 'DIV'
+
+    def test_pops(self):
         assert DIV.pops == 2
+
+    def test_puts(self):
         assert DIV.puts == 1
+
+    def test_no_copy(self):
+        assert copy(DIV) is DIV
+        assert deepcopy(DIV) is DIV
+
+    def test_call(self):
         assert_token(DIV, [10, 2], [5])
         assert_token(DIV, [10, np.array([2, 5])], [np.array([5, 2])])
         assert_token(DIV, [np.array([10, 4]), 2], [np.array([5, 2])])
@@ -1071,10 +1640,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             DIV([1], {})
 
-    def test_pow(self):
+
+class TestPOWOperator:
+
+    def test_repr(self):
         assert repr(POW) == 'POW'
+
+    def test_pops(self):
         assert POW.pops == 2
+
+    def test_puts(self):
         assert POW.puts == 1
+
+    def test_no_copy(self):
+        assert copy(POW) is POW
+        assert deepcopy(POW) is POW
+
+    def test_call(self):
         assert_token(POW, [1, 2], [1])
         assert_token(POW, [2, 2], [4])
         assert_token(POW, [2, 4], [16])
@@ -1090,10 +1672,29 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             POW([1], {})
 
-    def test_fmod(self):
+
+class TestFMODOperator:
+
+    def test_repr(self):
         assert repr(FMOD) == 'FMOD'
         assert FMOD.pops == 2
         assert FMOD.puts == 1
+
+    def test_pops(self):
+        assert repr(FMOD) == 'FMOD'
+        assert FMOD.pops == 2
+        assert FMOD.puts == 1
+
+    def test_puts(self):
+        assert repr(FMOD) == 'FMOD'
+        assert FMOD.pops == 2
+        assert FMOD.puts == 1
+
+    def test_no_copy(self):
+        assert copy(FMOD) is FMOD
+        assert deepcopy(FMOD) is FMOD
+
+    def test_call(self):
         assert_token(FMOD, [1, 2], [1])
         assert_token(FMOD, [2, 10], [2])
         assert_token(FMOD, [12, 10], [2])
@@ -1109,10 +1710,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             FMOD([1], {})
 
-    def test_min(self):
+
+class TestMINOperator:
+
+    def test_repr(self):
         assert repr(MIN) == 'MIN'
+
+    def test_pops(self):
         assert MIN.pops == 2
+
+    def test_puts(self):
         assert MIN.puts == 1
+
+    def test_no_copy(self):
+        assert copy(MIN) is MIN
+        assert deepcopy(MIN) is MIN
+
+    def test_call(self):
         assert_token(MIN, [2, 3], [2])
         assert_token(MIN, [3, 2], [2])
         assert_token(MIN, [2, np.array([1, 3])], [np.array([1, 2])])
@@ -1127,10 +1741,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             MIN([1], {})
 
-    def test_max(self):
+
+class TestMAXOperator:
+
+    def test_repr(self):
         assert repr(MAX) == 'MAX'
+
+    def test_pops(self):
         assert MAX.pops == 2
+
+    def test_puts(self):
         assert MAX.puts == 1
+
+    def test_no_copy(self):
+        assert copy(MAX) is MAX
+        assert deepcopy(MAX) is MAX
+
+    def test_call(self):
         assert_token(MAX, [2, 3], [3])
         assert_token(MAX, [3, 2], [3])
         assert_token(MAX, [2, np.array([1, 3])], [np.array([2, 3])])
@@ -1145,10 +1772,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             MAX([1], {})
 
-    def test_atan2(self):
+
+class TestATAN2Operator:
+
+    def test_repr(self):
         assert repr(ATAN2) == 'ATAN2'
+
+    def test_pops(self):
         assert ATAN2.pops == 2
+
+    def test_puts(self):
         assert ATAN2.puts == 1
+
+    def test_no_copy(self):
+        assert copy(ATAN2) is ATAN2
+        assert deepcopy(ATAN2) is ATAN2
+
+    def test_call(self):
         # NOTE: second parameter is x, first is y
         assert_token(ATAN2, [0, 1], [0], approx=True)
         assert_token(ATAN2, [1, math.sqrt(3)], [math.pi / 6], approx=True)
@@ -1184,10 +1824,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             ATAN2([], {})
 
-    def test_hypot(self):
+
+class TestHYPOTOperator:
+
+    def test_repr(self):
         assert repr(HYPOT) == 'HYPOT'
+
+    def test_pops(self):
         assert HYPOT.pops == 2
+
+    def test_puts(self):
         assert HYPOT.puts == 1
+
+    def test_no_copy(self):
+        assert copy(HYPOT) is HYPOT
+        assert deepcopy(HYPOT) is HYPOT
+
+    def test_call(self):
         assert_token(HYPOT, [1, 1], [math.sqrt(2)], approx=True)
         assert_token(HYPOT, [math.sqrt(3), 1], [2], approx=True)
         assert_token(
@@ -1213,10 +1866,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             HYPOT([1], {})
 
-    def test_r2(self):
+
+class TestR2Operator:
+
+    def test_repr(self):
         assert repr(R2) == 'R2'
+
+    def test_pops(self):
         assert R2.pops == 2
+
+    def test_puts(self):
         assert R2.puts == 1
+
+    def test_no_copy(self):
+        assert copy(R2) is R2
+        assert deepcopy(R2) is R2
+
+    def test_call(self):
         assert_token(R2, [2, 3], [13])
         assert_token(R2, [2, np.array([3, 4])], [np.array([13, 20])])
         assert_token(R2, [np.array([3, 4]), 2], [np.array([13, 20])])
@@ -1230,10 +1896,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             R2([1], {})
 
-    def test_eq(self):
+
+class TestEQOperator:
+
+    def test_repr(self):
         assert repr(EQ) == 'EQ'
+
+    def test_pops(self):
         assert EQ.pops == 2
+
+    def test_puts(self):
         assert EQ.puts == 1
+
+    def test_no_copy(self):
+        assert copy(EQ) is EQ
+        assert deepcopy(EQ) is EQ
+
+    def test_call(self):
         assert_token(EQ, [2, 2], [True])
         assert_token(EQ, [2, 3], [False])
         assert_token(
@@ -1256,10 +1935,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             EQ([1], {})
 
-    def test_ne(self):
+
+class TestNEOperator:
+
+    def test_repr(self):
         assert repr(NE) == 'NE'
+
+    def test_pops(self):
         assert NE.pops == 2
+
+    def test_puts(self):
         assert NE.puts == 1
+
+    def test_no_copy(self):
+        assert copy(NE) is NE
+        assert deepcopy(NE) is NE
+
+    def test_call(self):
         assert_token(NE, [2, 2], [False])
         assert_token(NE, [2, 3], [True])
         assert_token(
@@ -1282,10 +1974,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             NE([1], {})
 
-    def test_lt(self):
+
+class TestLTOperator:
+
+    def test_repr(self):
         assert repr(LT) == 'LT'
+
+    def test_pops(self):
         assert LT.pops == 2
+
+    def test_puts(self):
         assert LT.puts == 1
+
+    def test_no_copy(self):
+        assert copy(LT) is LT
+        assert deepcopy(LT) is LT
+
+    def test_call(self):
         assert_token(LT, [2, 3], [True])
         assert_token(LT, [2, 2], [False])
         assert_token(LT, [3, 2], [False])
@@ -1305,10 +2010,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             LT([1], {})
 
-    def test_le(self):
+
+class TestLEOperator:
+
+    def test_repr(self):
         assert repr(LE) == 'LE'
+
+    def test_pops(self):
         assert LE.pops == 2
+
+    def test_puts(self):
         assert LE.puts == 1
+
+    def test_no_copy(self):
+        assert copy(LE) is LE
+        assert deepcopy(LE) is LE
+
+    def test_le(self):
         assert_token(LE, [2, 3], [True])
         assert_token(LE, [2, 2], [True])
         assert_token(LE, [3, 2], [False])
@@ -1328,10 +2046,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             LE([1], {})
 
-    def test_gt(self):
+
+class TestGTOperator:
+
+    def test_repr(self):
         assert repr(GT) == 'GT'
+
+    def test_pops(self):
         assert GT.pops == 2
+
+    def test_puts(self):
         assert GT.puts == 1
+
+    def test_no_copy(self):
+        assert copy(GT) is GT
+        assert deepcopy(GT) is GT
+
+    def test_call(self):
         assert_token(GT, [2, 3], [False])
         assert_token(GT, [2, 2], [False])
         assert_token(GT, [3, 2], [True])
@@ -1351,10 +2082,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             GT([1], {})
 
-    def test_ge(self):
+
+class TestGEOperator:
+
+    def test_repr(self):
         assert repr(GE) == 'GE'
+
+    def test_pops(self):
         assert GE.pops == 2
+
+    def test_puts(self):
         assert GE.puts == 1
+
+    def test_no_copy(self):
+        assert copy(GE) is GE
+        assert deepcopy(GE) is GE
+
+    def test_call(self):
         assert_token(GE, [2, 3], [False])
         assert_token(GE, [2, 2], [True])
         assert_token(GE, [3, 2], [True])
@@ -1374,10 +2118,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             GE([1], {})
 
-    def test_nan(self):
+
+class TestNANOperator:
+
+    def test_repr(self):
         assert repr(NAN) == 'NAN'
+
+    def test_pops(self):
         assert NAN.pops == 2
+
+    def test_puts(self):
         assert NAN.puts == 1
+
+    def test_no_copy(self):
+        assert copy(NAN) is NAN
+        assert deepcopy(NAN) is NAN
+
+    def test_call(self):
         assert_token(NAN, [2, 2], [float('nan')])
         assert_token(NAN, [2, 3], [2])
         assert_token(NAN, [2, np.array([2, 3])], [np.array([np.nan, 2])])
@@ -1400,10 +2157,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             NAN([1], {})
 
-    def test_and(self):
+
+class TestANDOperator:
+
+    def test_repr(self):
         assert repr(AND) == 'AND'
+
+    def test_pops(self):
         assert AND.pops == 2
+
+    def test_puts(self):
         assert AND.puts == 1
+
+    def test_no_copy(self):
+        assert copy(AND) is AND
+        assert deepcopy(AND) is AND
+
+    def test_call(self):
         assert_token(AND, [2, 3], [2])
         assert_token(AND, [float('nan'), 3], [3])
         assert_token(
@@ -1421,10 +2191,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             AND([1], {})
 
-    def test_or(self):
+
+class TestOROperator:
+
+    def test_repr(self):
         assert repr(OR) == 'OR'
+
+    def test_pops(self):
         assert OR.pops == 2
+
+    def test_puts(self):
         assert OR.puts == 1
+
+    def test_no_copy(self):
+        assert copy(OR) is OR
+        assert deepcopy(OR) is OR
+
+    def test_call(self):
         assert_token(OR, [2, 3], [2])
         assert_token(OR, [2, float('nan')], [float('nan')])
         assert_token(
@@ -1448,10 +2231,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             OR([1], {})
 
-    def test_iand(self):
+
+class TestIANDOperator:
+
+    def test_repr(self):
         assert repr(IAND) == 'IAND'
+
+    def test_pops(self):
         assert IAND.pops == 2
+
+    def test_puts(self):
         assert IAND.puts == 1
+
+    def test_no_copy(self):
+        assert copy(IAND) is IAND
+        assert deepcopy(IAND) is IAND
+
+    def test_call(self):
         assert_token(IAND, [5, 3], [1])
         assert_token(IAND, [15, 21], [5])
         assert_token(IAND, [21, 15], [5])
@@ -1480,10 +2276,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             IAND([1], {})
 
-    def test_ior(self):
+
+class TestIOROperator:
+
+    def test_repr(self):
         assert repr(IOR) == 'IOR'
+
+    def test_pops(self):
         assert IOR.pops == 2
+
+    def test_puts(self):
         assert IOR.puts == 1
+
+    def test_no_copy(self):
+        assert copy(IOR) is IOR
+        assert deepcopy(IOR) is IOR
+
+    def test_call(self):
         assert_token(IOR, [5, 3], [7])
         assert_token(IOR, [15, 21], [31])
         assert_token(IOR, [21, 15], [31])
@@ -1512,10 +2321,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             IOR([1], {})
 
-    def test_btest(self):
+
+class TestBTESTOperator:
+
+    def test_repr(self):
         assert repr(BTEST) == 'BTEST'
+
+    def test_pops(self):
         assert BTEST.pops == 2
+
+    def test_puts(self):
         assert BTEST.puts == 1
+
+    def test_no_copy(self):
+        assert copy(BTEST) is BTEST
+        assert deepcopy(BTEST) is BTEST
+
+    def test_call(self):
         assert_token(BTEST, [9, 0], [True])
         assert_token(BTEST, [9, 1], [False])
         assert_token(BTEST, [9, 2], [False])
@@ -1548,7 +2370,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             BTEST([1], {})
 
-    def test_avg(self):
+
+class TestAVGOperator:
+
+    def test_repr(self):
+        assert repr(AVG) == 'AVG'
+
+    def test_pops(self):
+        assert AVG.pops == 2
+
+    def test_puts(self):
+        assert AVG.puts == 1
+
+    def test_no_copy(self):
+        assert copy(AVG) is AVG
+        assert deepcopy(AVG) is AVG
+
+    def test_call(self):
         assert repr(AVG) == 'AVG'
         assert AVG.pops == 2
         assert AVG.puts == 1
@@ -1575,10 +2413,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             AVG([1], {})
 
-    def test_dxdy(self):
+
+class TestDXDYOperator:
+
+    def test_repr(self):
         assert repr(DXDY) == 'DXDY'
+
+    def test_pops(self):
         assert DXDY.pops == 2
+
+    def test_puts(self):
         assert DXDY.puts == 1
+
+    def test_no_copy(self):
+        assert copy(DXDY) is DXDY
+        assert deepcopy(DXDY) is DXDY
+
+    def test_call(self):
         assert_token(DXDY, [5, 11], [float('nan')])
         assert_token(
             DXDY, [3, np.array([5, 11])], [np.array([np.nan, np.nan])])
@@ -1612,10 +2463,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             DXDY([1], {})
 
-    def test_exch(self):
+
+class TestEXCHOperator:
+
+    def test_rerpr(self):
         assert repr(EXCH) == 'EXCH'
+
+    def test_pops(self):
         assert EXCH.pops == 2
+
+    def test_puts(self):
         assert EXCH.puts == 2
+
+    def test_no_copy(self):
+        assert copy(EXCH) is EXCH
+        assert deepcopy(EXCH) is EXCH
+
+    def test_call(self):
         assert_token(EXCH, [5, 11], [11, 5])
         assert_token(
             EXCH, [3, np.array([5, 11])], [np.array([5, 11]), 3])
@@ -1633,10 +2497,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             EXCH([1], {})
 
-    def test_inrange(self):
+
+class TestINRANGEOperator:
+
+    def test_repr(self):
         assert repr(INRANGE) == 'INRANGE'
+
+    def test_pops(self):
         assert INRANGE.pops == 3
+
+    def test_puts(self):
         assert INRANGE.puts == 1
+
+    def test_no_copy(self):
+        assert copy(INRANGE) is INRANGE
+        assert deepcopy(INRANGE) is INRANGE
+
+    def test_call(self):
         assert_token(INRANGE, [0, 1, 3], [False])
         assert_token(INRANGE, [1, 1, 3], [True])
         assert_token(INRANGE, [2, 1, 3], [True])
@@ -1668,10 +2545,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             INRANGE([1, 2], {})
 
-    def test_boxcar(self):
+
+class TestBOXCAROperator:
+
+    def test_repr(self):
         assert repr(BOXCAR) == 'BOXCAR'
+
+    def test_pops(self):
         assert BOXCAR.pops == 3
+
+    def test_puts(self):
         assert BOXCAR.puts == 1
+
+    def test_no_copy(self):
+        assert copy(BOXCAR) is BOXCAR
+        assert deepcopy(BOXCAR) is BOXCAR
+
+    def test_call(self):
         # returns value if scalar
         assert_token(BOXCAR, [1, 2, 3], [1])
         # simple
@@ -1727,10 +2617,23 @@ class TestOperator:
         with pytest.raises(StackUnderflowError):
             BOXCAR([1, 2], {})
 
-    def test_gauss(self):
+
+class TestGAUSSOperator:
+
+    def test_repr(self):
         assert repr(GAUSS) == 'GAUSS'
+
+    def test_pops(self):
         assert GAUSS.pops == 3
+
+    def test_puts(self):
         assert GAUSS.puts == 1
+
+    def test_no_copy(self):
+        assert copy(GAUSS) is GAUSS
+        assert deepcopy(GAUSS) is GAUSS
+
+    def test_call(self):
         # returns value if scalar
         assert_token(GAUSS, [1, 2, 3], [1])
         # simple
