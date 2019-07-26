@@ -3,8 +3,6 @@
 # NOTE: The major version should match the current major version of RADS.
 __version__ = '0.1.0rc'
 
-from datetime import datetime
+from .constants import EPOCH
 
-
-# Unless otherwise specified RADS uses an epoch of 1985-01-01 00:00:00 UTC
-EPOCH = datetime(1985, 1, 1, 0, 0, 0)
+__all__ = ['EPOCH']

@@ -125,7 +125,7 @@ import numpy as np  # type: ignore
 from astropy.convolution import (  # type: ignore
     Box1DKernel, Gaussian1DKernel, convolve)
 
-from . import EPOCH
+from .constants import EPOCH
 from ._typing import Number, NumberOrArray
 from ._utility import fortran_float
 from .datetime64util import ymdhmsus
