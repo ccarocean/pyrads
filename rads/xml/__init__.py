@@ -8,12 +8,12 @@ RADS v4 configuration file.
 """
 
 try:
-    from .lxml import Element
+    from .lxml import Element, ParseError
 except ImportError:
     # TODO: Remove 'ignore' when https://github.com/python/mypy/issues/1153 is
     #  fixed.
-    from .etree import Element  # type: ignore
+    from .etree import Element, ParseError  # type: ignore
 
 from .utility import parse, fromstring, fromstringlist
 
-__all__ = ['Element', 'parse', 'fromstring', 'fromstringlist']
+__all__ = ['ParseError', 'Element', 'parse', 'fromstring', 'fromstringlist']
