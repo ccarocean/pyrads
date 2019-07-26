@@ -15,6 +15,11 @@ def read(filename):
     return text
 
 
+docs_require = ['sphinx>=1.7', 'sphinx_paramlinks']
+tests_require = ['flake8>=3.7.7', 'mypy', 'pytest', 'pytest-cov',
+                 'pytest-mock', 'pylint', 'pycodestyle>=2.1.0',
+                 'pyflakes>=2.1.0']
+
 setup(
     name='rads',
     version=read_version('rads/__init__.py'),
@@ -40,7 +45,10 @@ setup(
         'yzal',
     ],
     extras_require={
-        'libxml2': ['lxml']  # use libxml2 to read configuration files
+        'libxml2': ['lxml'],  # use libxml2 to read configuration files
+        'docs': docs_require,
+        'tests': tests_require,
+        'dev': docs_require + tests_require
     },
     tests_require=[
         'pytest',

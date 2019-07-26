@@ -15,7 +15,7 @@ all:
 	@echo 'clean-all        also removes tox and eggs'
 
 init:
-	@pip install -q -r requirements.txt
+	@pip install -q -e ".[libxml2,dev]"
 
 todo:
 	@grep -roI --color 'TODO:.*' $(module)

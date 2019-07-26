@@ -1,10 +1,10 @@
 dist: xenial  # required for Python >= 3.7
 language: python
 before_install:
-  - sudo apt-get install -y libudunits2-dev
+  - sudo apt-get install -y libudunits2-dev, libxml2
 install:
   - pip install codecov
-  - pip install -r dev-requirements.txt
+  - pip install -e ".[libxml2,dev]"
 script:
   - python -m pytest --cov=rads --cov-branch
 python:
