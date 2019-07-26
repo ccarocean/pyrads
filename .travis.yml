@@ -8,18 +8,22 @@ matrix:
       install:
         - pip install codecov
         - pip install -e ".[libxml2,dev]"
+      env: LIBXML2=yes
     - python: '3.6'
       install:
         - pip install codecov
         - pip install -e ".[dev]"
+      env: LIBXML2=no
     - python: '3.7'
       install:
         - pip install codecov
         - pip install -e ".[libxml2,dev]"
+      env: LIBXML2=yes
     - python: '3.7'
       install:
         - pip install codecov
         - pip install -e ".[dev]"
+      env: LIBXML2=no
 script:
   - python -m pytest --cov=rads --cov-branch
 after_success:
