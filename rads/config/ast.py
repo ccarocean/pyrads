@@ -402,6 +402,7 @@ class ASTEvaluationError(Exception):
 
     def __init__(self, message: str = 'evaluation failed',
                  source: Optional[Source] = None):
+        self.message = message
         if source:
             self.line = source.line
             self.file = source.file
