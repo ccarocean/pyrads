@@ -4,7 +4,7 @@ from typing import (Mapping, Optional, Iterator, Union, IO, Any, Text,
                     Sequence, cast, TYPE_CHECKING)
 
 from lxml import etree  # type: ignore
-from lxml.etree import XMLParser, ETCompatXMLParser  # type: ignore
+from lxml.etree import ParseError, XMLParser, ETCompatXMLParser  # type: ignore
 
 from ..xml import base
 
@@ -17,7 +17,8 @@ if TYPE_CHECKING:
 else:
     from cached_property import cached_property  # type: ignore
 
-__all__ = ['Element', 'XMLParser', 'parse', 'fromstring', 'fromstringlist']
+__all__ = ['ParseError', 'Element', 'XMLParser', 'parse', 'fromstring',
+           'fromstringlist', 'error_with_file']
 
 
 class Element(base.Element):
@@ -175,3 +176,25 @@ def fromstringlist(sequence: Sequence[_ParserInputType],
     if parser is None:
         parser = ETCompatXMLParser()
     return etree.fromstringlist(sequence, parser)
+
+
+def error_with_file(error: ParseError, file: str) -> ParseError:
+    """Add filename to an XML parse error.
+
+    Parameters
+    ----------
+    error
+        Original XML parse error.
+    file
+        Filename to add.
+
+    Returns
+    -------
+    ParseError
+        A new parse error (of the same type as :paramref:`error`) with the
+        :paramref:`filename` added.
+
+    """
+    error.filename = file
+    return type(error)(
+        error.msg, error.code, error.position[0], error.position[1], file)

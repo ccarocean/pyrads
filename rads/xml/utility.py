@@ -41,13 +41,15 @@ def _wrap_with_root_helper(
 
 
 def _wrap_with_root(sequence: Sequence[AnyStr]) -> Sequence[AnyStr]:
+    if not sequence:
+        return []
     if sequence and isinstance(sequence[0], bytes):
         return _wrap_with_root_helper(
             sequence, b'<rootless>', b'</rootless>', b'<?')
     if sequence and isinstance(sequence[0], str):
         return _wrap_with_root_helper(
             sequence, '<rootless>', '</rootless>', '<?')
-    raise TypeError("'sequence' bust be a sequence of 'bytes' or 'str'")
+    raise TypeError("'sequence' must be a sequence of 'bytes' or 'str'")
 
 
 def parse(source: PathOrFile,
@@ -117,7 +119,8 @@ def fromstring(text: AnyStr,
 
     """
     if rootless:
-        return fromstringlist(text.splitlines(), parser, rootless=True)
+        return fromstringlist(text.splitlines(), parser,
+                              rootless=True, file=file)
     return xml.Element(xml.fromstring(text, parser), file=file)
 
 
@@ -152,6 +155,16 @@ def fromstringlist(sequence: Sequence[AnyStr],
         element.
 
     """
-    if rootless:
-        sequence = _wrap_with_root(sequence)
-    return xml.Element(xml.fromstringlist(sequence, parser), file=file)
+    sequence_ = _wrap_with_root(sequence) if rootless else sequence
+    try:
+        result = xml.Element(xml.fromstringlist(sequence_, parser), file=file)
+        # ensure rootless file is valid
+        if rootless:
+            try:
+                result.down()
+            except StopIteration:
+                xml.fromstringlist(sequence, parser)
+    except xml.ParseError as err:
+        raise xml.error_with_file(err, file)
+    return result
+

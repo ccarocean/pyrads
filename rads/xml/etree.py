@@ -2,11 +2,13 @@
 
 import xml.etree.ElementTree as etree
 from typing import Optional, Mapping, Iterator
-from xml.etree.ElementTree import XMLParser, parse, fromstring, fromstringlist
+from xml.etree.ElementTree import (ParseError, XMLParser, parse, fromstring,
+                                   fromstringlist)
 
 from ..xml import base
 
-__all__ = ['Element', 'XMLParser', 'parse', 'fromstring', 'fromstringlist']
+__all__ = ['ParseError', 'Element', 'XMLParser', 'parse', 'fromstring',
+           'fromstringlist', 'error_with_file']
 
 
 class Element(base.Element):
@@ -99,3 +101,28 @@ class Element(base.Element):
     @property
     def attributes(self) -> Mapping[str, str]:
         return self._element.attrib
+
+
+def error_with_file(error: ParseError, file: str) -> ParseError:
+    """Add filename to an XML parse error.
+
+    Parameters
+    ----------
+    error
+        Original XML parse error.
+    file
+        Filename to add.
+
+    Returns
+    -------
+    ParseError
+        A new parse error (of the same type as :paramref:`error`) with the
+        :paramref:`filename` added.
+
+    """
+    error.filename = file
+    new_error = type(error)(
+        error.msg, (file, error.position[0], error.position[1], error.text))
+    new_error.code = error.code
+    new_error.position = error.position
+    return new_error
