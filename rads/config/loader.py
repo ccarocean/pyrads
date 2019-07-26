@@ -413,7 +413,7 @@ def _rads_xml(dataroot: PathLike) -> Path:
 
 
 def _site_config() -> Path:
-    """Path to the PyRADS site/system configuration file.
+    r"""Path to the PyRADS site/system configuration file.
 
     ================  ================================================
     Operating System  Path
