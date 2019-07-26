@@ -10,10 +10,20 @@ from cf_units import Unit  # type: ignore
 from .._typing import PathLike, Number, IntOrArray, NumberOrArray
 from ..rpn import CompleteExpression
 
-__all__ = ['Cycles', 'ReferencePass', 'Repeat', 'SubCycles', 'Phase',
-           'Compress', 'Constant', 'Flags', 'MultiBitFlag', 'SingleBitFlag',
-           'SurfaceType', 'Grid', 'NetCDFAttribute', 'NetCDFVariable', 'Range',
-           'Variable', 'Satellite', 'Config']
+__all__ = ['PreConfig', 'Cycles', 'ReferencePass', 'Repeat', 'SubCycles',
+           'Phase', 'Compress', 'Constant', 'Flags', 'MultiBitFlag',
+           'SingleBitFlag', 'SurfaceType', 'Grid', 'NetCDFAttribute',
+           'NetCDFVariable', 'Range', 'Variable', 'Satellite', 'Config']
+
+
+
+
+@dataclass
+class PreConfig:
+    dataroot: PathLike
+    config_files: Sequence[PathLike]
+    satellites: Sequence[str]
+    blacklist: Sequence[str] = field(default_factory=list)
 
 
 @dataclass
@@ -207,6 +217,11 @@ class Satellite:
 
 @dataclass
 class Config:
+    dataroot: PathLike
+    config_files: Sequence[PathLike]
     satellites: Mapping[str, Satellite]
-    config_file: PathLike
-    data_path: PathLike
+
+    def __init__(self, pre_config: PreConfig):
+        self.dataroot = pre_config.dataroot
+        self.config_files = pre_config.config_files[:]
+        self.satellites = dict()
