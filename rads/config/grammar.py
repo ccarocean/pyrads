@@ -1,5 +1,5 @@
 from typing import (Any, Callable, Iterable, Mapping, Optional, Sequence,
-                    Tuple, cast)
+                    Tuple)
 
 import fortran_format_converter as ffc
 
@@ -119,6 +119,30 @@ def satellites() -> Parser:
                 satellites_.append(
                     SatelliteID(id_, id3, set(names), source=id_source))
         return Satellites(*satellites_, source=source)
+
+    return tag('satellites') ^ process
+
+
+def satellite_ids() -> Parser:
+    def process(element: Element) -> Assignment:
+        source = source_from_element(element)
+        if not element.text:
+            return Assignment(name='satellites', value=[], source=source)
+        satellites_ = []
+        for num, line in enumerate(element.text.strip().splitlines()):
+            line = line.strip()
+            if line:
+                id_source = Source(
+                    line=element.opening_line + num + 1,
+                    file=element.file)
+                id_, *_ = line.split()
+                if len(id_) != 2:
+                    raise GlobalParseFailure(
+                        id_source.file, id_source.line,
+                        'satellite id must be exactly 2 characters, found '
+                        f"'{id_}'")
+                satellites_.append(id_)
+        return Assignment(name='satellites', value=satellites_, source=source)
 
     return tag('satellites') ^ process
 
@@ -250,7 +274,7 @@ def variable_overrides() -> Parser:
     return overrides
 
 
-def parse(root: Element) -> Statement:
+def satellite_grammar() -> Parser:
     root_block = block(
         # ignore the global attributes
         ignore('global_attributes') |
@@ -274,14 +298,27 @@ def parse(root: Element) -> Statement:
 
         # variables
         variable() |
-        variable_overrides()
+        variable_overrides() |
+
+        # pyrads specific tags
+        ignore('dataroot') |
+        ignore('blacklist')
     )
-    return cast(Statement, root_block(root.down())[0])
+    return root_block
 
 
-def preparse(root: Element) -> Statement:
-    def process(elements: Sequence[Element]) -> Element:
-        return elements[-1]
+def pre_config_grammar() -> Parser:
+    root_block = block(
+        satellite_ids() |
+        value(list_of(lift(str)), 'blacklist') |
+        ignore()  # ignore everything else
+    )
+    return root_block
 
-    parser = until(tag('satellites')) + satellites() ^ process
-    return cast(Statement, parser(root.down())[0])
+
+def dataroot_grammar() -> Parser:
+    root_block = block(
+        value(lift(str), 'dataroot') |
+        ignore()  # ignore everything else
+    )
+    return root_block
