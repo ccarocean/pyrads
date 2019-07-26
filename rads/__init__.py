@@ -1,7 +1,7 @@
 """Python library for the Radar Altimeter Database System (RADS)."""
 
 # NOTE: The major version should match the current major version of RADS.
-__version__ = '4.0.1a1'
+__version__ = '0.1.0rc'
 
 from datetime import datetime
 
