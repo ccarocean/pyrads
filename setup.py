@@ -30,6 +30,7 @@ setup(
         'appdirs',
         'astropy',
         'cached_property',
+        'cf_units>=2.1.1',
         'dataclasses;python_version=="3.6"',
         'dataclass-builder>=1.1.2',
         'fortran_format_converter>=0.1.2',
@@ -38,7 +39,7 @@ setup(
         'wrapt',
         'yzal',
     ],
-    extras_require = {
+    extras_require={
         'libxml2': ['lxml']  # use libxml2 to read configuration files
     },
     tests_require=[
