@@ -27,6 +27,7 @@ setup(
     packages=find_packages(),
     setup_requires=['pytest-runner'],
     install_requires=[
+        'appdirs',
         'astropy',
         'cached_property',
         'dataclasses;python_version=="3.6"',
