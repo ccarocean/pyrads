@@ -14,7 +14,6 @@ all:
 	@echo 'clean            cleanup source tree'
 	@echo 'clean-all        also removes tox and eggs'
 
-
 init:
 	@pip install -q -r requirements.txt
 
@@ -36,6 +35,7 @@ check:
 	@python -m pycodestyle $(module) tests
 	@python -m pydocstyle $(module)
 
+apidoc: export SPHINX_APIDOC_OPTIONS=members,no-undoc-members,show-inheritance,special-members
 apidoc:
 	@sphinx-apidoc -o docs/api -e $(module)
 	@rm docs/api/modules.rst
