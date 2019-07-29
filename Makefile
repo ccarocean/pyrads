@@ -5,6 +5,7 @@ module=rads
 all:
 	@echo 'init             install development requirements'
 	@echo 'todo             list TODO statements (requires grep)'
+	@echo 'format           run code formatter (black)'
 	@echo 'check            run static code checkers'
 	@echo 'test             run unit tests'
 	@echo 'coverage         generate HTML coverage report'
@@ -19,6 +20,9 @@ init:
 
 todo:
 	@grep -roI --color 'TODO:.*' $(module)
+
+format:
+	@black .
 
 test: check
 	@python -m pytest -v --cov=$(module) --cov-branch
