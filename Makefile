@@ -5,7 +5,7 @@ module=rads
 all:
 	@echo 'init             install development requirements'
 	@echo 'todo             list TODO statements (requires grep)'
-	@echo 'format           run code formatter (black)'
+	@echo 'format           run code formatter (isort + black)'
 	@echo 'check            run static code checkers'
 	@echo 'test             run unit tests'
 	@echo 'coverage         generate HTML coverage report'
@@ -22,6 +22,7 @@ todo:
 	@grep -roI --color 'TODO:.*' $(module)
 
 format:
+	@isort -rc .
 	@black .
 
 test: check

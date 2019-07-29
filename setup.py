@@ -1,6 +1,7 @@
 import os
 import re
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 
 def read_version(filename):
@@ -55,7 +56,7 @@ setup(
         "libxml2": ["lxml"],  # use libxml2 to read configuration files
         "docs": docs_require,
         "tests": tests_require,
-        "dev": docs_require + tests_require + ["black"],
+        "dev": docs_require + tests_require + ["black", "isort"],
     },
     tests_require=["pytest", "pytest-mock"],
     classifiers=[

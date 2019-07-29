@@ -16,7 +16,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.abspath(".."))
-from rads import __version__
+from rads import __version__  # isort:skip
 
 # -- Project information -----------------------------------------------------
 

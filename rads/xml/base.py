@@ -1,9 +1,9 @@
 """Generic XML tools, not relating to a specific backend."""
 
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from collections.abc import Sized
 from itertools import chain
-from typing import Optional, Mapping, Union, Iterable, Iterator
+from typing import Iterable, Iterator, Mapping, Optional, Union
 
 __all__ = ["Element"]
 

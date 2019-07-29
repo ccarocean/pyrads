@@ -30,6 +30,8 @@ import numpy as np  # type: ignore
 import regex
 from cf_units import Unit
 
+from .._utility import fortran_float
+from ..rpn import Expression
 from .tree import (
     Compress,
     Constant,
@@ -45,8 +47,6 @@ from .tree import (
     SingleBitFlag,
     SurfaceType,
 )
-from .._utility import fortran_float
-from ..rpn import Expression
 
 __all__ = [
     "TerminalTextParseError",

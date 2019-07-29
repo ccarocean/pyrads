@@ -1,20 +1,20 @@
 """XML tools using the :mod:`lxml` library."""
 
 from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    Iterator,
     Mapping,
     Optional,
-    Iterator,
-    Union,
-    IO,
-    Any,
-    Text,
     Sequence,
+    Text,
+    Union,
     cast,
-    TYPE_CHECKING,
 )
 
 from lxml import etree  # type: ignore
-from lxml.etree import ParseError, XMLParser, ETCompatXMLParser  # type: ignore
+from lxml.etree import ETCompatXMLParser, ParseError, XMLParser  # type: ignore
 
 from ..xml import base
 

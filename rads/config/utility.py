@@ -2,7 +2,9 @@
 
 from typing import Callable, Mapping, cast
 
+from ..xml.base import Element
 from .ast import (
+    ActionType,
     Condition,
     NamedBlock,
     NullStatement,
@@ -10,15 +12,13 @@ from .ast import (
     Source,
     Statement,
     TrueCondition,
-    ActionType,
-    edit_append,
-    replace,
     append,
     delete,
+    edit_append,
     merge,
+    replace,
 )
 from .xml_parsers import GlobalParseFailure, LocalParseFailure, Parser
-from ..xml.base import Element
 
 __all__ = [
     "error_at",

@@ -1,13 +1,13 @@
 """XML tools using :mod:`xml.etree.ElementTree`."""
 
 import xml.etree.ElementTree as etree
-from typing import Optional, Mapping, Iterator
+from typing import Iterator, Mapping, Optional
 from xml.etree.ElementTree import (
     ParseError,
     XMLParser,
-    parse,
     fromstring,
     fromstringlist,
+    parse,
 )
 
 from ..xml import base

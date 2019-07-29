@@ -2,12 +2,12 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from numbers import Integral, Real
-from typing import Sequence, Mapping, Optional, Union, cast
+from typing import Mapping, Optional, Sequence, Union, cast
 
 import numpy as np  # type: ignore
 from cf_units import Unit  # type: ignore
 
-from .._typing import PathLike, Number, IntOrArray, NumberOrArray
+from .._typing import IntOrArray, Number, NumberOrArray, PathLike
 from ..rpn import CompleteExpression
 
 __all__ = [

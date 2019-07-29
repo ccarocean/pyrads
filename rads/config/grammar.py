@@ -2,6 +2,7 @@ from typing import Any, Callable, Iterable, Mapping, Optional, Sequence, Tuple
 
 import fortran_format_converter as ffc
 
+from ..xml.base import Element
 from .ast import (
     Alias,
     Assignment,
@@ -17,14 +18,14 @@ from .ast import (
 )
 from .text_parsers import (
     TextParseError,
-    lift,
-    list_of,
-    one_of,
-    range_of,
     compress,
     cycles,
     data,
+    lift,
+    list_of,
     nop,
+    one_of,
+    range_of,
     ref_pass,
     repeat,
     time,
@@ -33,14 +34,14 @@ from .text_parsers import (
 from .tree import SubCycles
 from .utility import (
     error_at,
-    source_from_element,
+    named_block_processor,
     parse_action,
     parse_condition,
-    named_block_processor,
+    source_from_element,
 )
 from .xml_parsers import (
-    GlobalParseFailure,
     Apply,
+    GlobalParseFailure,
     Parser,
     any,
     end,
@@ -50,7 +51,6 @@ from .xml_parsers import (
     start,
     tag,
 )
-from ..xml.base import Element
 
 
 def alias() -> Parser:

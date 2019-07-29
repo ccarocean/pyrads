@@ -20,11 +20,11 @@ from typing import (
     cast,
 )
 
-from dataclass_builder import UndefinedFieldError, MissingFieldError, MISSING
+from dataclass_builder import MISSING, MissingFieldError, UndefinedFieldError
 
-from ._builders import PhaseBuilder, VariableBuilder
-from .._utility import xor, delete_sublist, merge_sublist
+from .._utility import delete_sublist, merge_sublist, xor
 from ..rpn import CompleteExpression, Expression
+from ._builders import PhaseBuilder, VariableBuilder
 
 ActionType = Callable[[Any, str, Any], None]
 

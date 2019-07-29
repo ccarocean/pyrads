@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Union, IO, Any, TYPE_CHECKING
+from typing import IO, TYPE_CHECKING, Any, Union
 
 import numpy as np  # type: ignore
 

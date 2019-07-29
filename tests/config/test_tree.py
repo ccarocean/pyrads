@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from rads.config.tree import SingleBitFlag, MultiBitFlag, SurfaceType
+from rads.config.tree import MultiBitFlag, SingleBitFlag, SurfaceType
 
 
 class TestSingleBitFlag:

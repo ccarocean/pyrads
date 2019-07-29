@@ -118,6 +118,7 @@ from datetime import timedelta
 from itertools import chain
 from numbers import Integral
 from typing import (
+    TYPE_CHECKING,
     AbstractSet,
     Any,
     Iterable,
@@ -131,15 +132,10 @@ from typing import (
     Union,
     cast,
     overload,
-    TYPE_CHECKING,
 )
 
 import numpy as np  # type: ignore
-from astropy.convolution import (  # type: ignore
-    Box1DKernel,
-    Gaussian1DKernel,
-    convolve,
-)
+from astropy.convolution import Box1DKernel, Gaussian1DKernel, convolve  # type: ignore
 
 from ._typing import Number, NumberOrArray
 from ._utility import fortran_float

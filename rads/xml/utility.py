@@ -1,10 +1,10 @@
 """XML tools for reading the RADS's configuration files."""
 
 import os
-from itertools import chain, tee, takewhile, dropwhile
-from typing import Optional, AnyStr, Sequence, cast, Any
+from itertools import chain, dropwhile, takewhile, tee
+from typing import Any, AnyStr, Optional, Sequence, cast
 
-from .._typing import PathOrFile, PathLike
+from .._typing import PathLike, PathOrFile
 from .._utility import ensure_open, filestring
 
 try:

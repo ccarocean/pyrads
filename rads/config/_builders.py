@@ -1,6 +1,6 @@
 from dataclass_builder import dataclass_builder
 
-from .tree import Satellite, Phase, Variable, PreConfig
+from .tree import Phase, PreConfig, Satellite, Variable
 
 __all__ = ["SatelliteBuilder", "PhaseBuilder", "VariableBuilder", "PreConfigBuilder"]
 

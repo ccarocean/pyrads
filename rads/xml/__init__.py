@@ -14,6 +14,6 @@ except ImportError:
     #  fixed.
     from .etree import Element, ParseError  # type: ignore
 
-from .utility import parse, fromstring, fromstringlist
+from .utility import fromstring, fromstringlist, parse
 
 __all__ = ["ParseError", "Element", "parse", "fromstring", "fromstringlist"]

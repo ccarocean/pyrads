@@ -1,10 +1,11 @@
 import pytest  # type: ignore
+
 from rads._utility import (
-    xor,
     contains_sublist,
-    merge_sublist,
     delete_sublist,
     fortran_float,
+    merge_sublist,
+    xor,
 )
 
 

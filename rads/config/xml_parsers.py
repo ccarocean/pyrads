@@ -6,16 +6,16 @@ This module is heavily based on PEGTL_, a parser combinator library for C++.
 
 """
 import typing
-from abc import abstractmethod, ABC
+from abc import ABC, abstractmethod
 from typing import (
-    Callable,
-    List,
     Any,
-    Tuple,
+    Callable,
+    Collection,
+    List,
+    MutableSequence,
     NoReturn,
     Optional,
-    MutableSequence,
-    Collection,
+    Tuple,
     Union,
     cast,
 )

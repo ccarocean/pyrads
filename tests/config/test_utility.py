@@ -1,6 +1,6 @@
 import pytest  # type: ignore
 
-from rads.config.ast import replace, append, delete, merge, edit_append
+from rads.config.ast import append, delete, edit_append, merge, replace
 from rads.config.utility import parse_action
 from rads.config.xml_parsers import GlobalParseFailure
 

@@ -1,16 +1,15 @@
-from rads.datetime64util import (
-    year,
-    month,
-    day,
-    hour,
-    minute,
-    second,
-    microsecond,
-    ymdhmsus,
-)
-
 import numpy as np  # type: ignore
 
+from rads.datetime64util import (
+    day,
+    hour,
+    microsecond,
+    minute,
+    month,
+    second,
+    year,
+    ymdhmsus,
+)
 
 DATE = np.datetime64("2002-02-03T13:56:03.172")
 LEAP_YEAR = np.datetime64("2020-02-29T18:25:40.12850")

@@ -7,14 +7,14 @@ from cf_units import Unit
 from rads.config.text_parsers import (
     TerminalTextParseError,
     TextParseError,
-    lift,
-    list_of,
-    range_of,
-    one_of,
     compress,
     cycles,
     data,
+    lift,
+    list_of,
     nop,
+    one_of,
+    range_of,
     ref_pass,
     repeat,
     time,
@@ -32,8 +32,8 @@ from rads.config.tree import (
     Range,
     ReferencePass,
     Repeat,
-    SurfaceType,
     SingleBitFlag,
+    SurfaceType,
 )
 from rads.rpn import Expression
 
