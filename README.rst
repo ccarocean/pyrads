@@ -1,12 +1,14 @@
 PyRADS
 ======
 
+|build-status|
+|coverage-status|
+|code-style|
+
 WORK IN PROGRESS - This will be removed upon first release.
 
 Python library for access to the `Radar Altimeter Database System`_ (RADS).
 
-|build-status|
-|coverage-status|
 
 Requirements
 ------------
@@ -86,3 +88,6 @@ documentation.
 .. |coverage-status| image:: http://codecov.io/github/ccarocean/pyrads/coverage.svg?branch=master
    :target: http://codecov.io/github/ccarocean/pyrads?branch=master
    :alt: Test coverage
+.. |code-style| image:: https://img.shields.io/badge/code%20style-black-000000.svg
+   :target: https://github.com/psf/black
+   :alt: Code style is black
