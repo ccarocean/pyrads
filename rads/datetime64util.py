@@ -1,6 +1,6 @@
 """Additional utility for numpy.datetime64."""
 
-from typing import Tuple, overload
+from typing import Tuple
 
 import numpy as np  # type: ignore
 

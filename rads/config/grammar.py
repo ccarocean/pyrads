@@ -49,7 +49,6 @@ from .xml_parsers import (
     star,
     start,
     tag,
-    until,
 )
 from ..xml.base import Element
 

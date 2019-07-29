@@ -141,9 +141,9 @@ from astropy.convolution import (  # type: ignore
     convolve,
 )
 
-from .constants import EPOCH
 from ._typing import Number, NumberOrArray
 from ._utility import fortran_float
+from .constants import EPOCH
 from .datetime64util import ymdhmsus
 
 # TODO: Change to functools.cached_property when dropping support for

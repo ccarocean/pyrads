@@ -28,8 +28,8 @@ from typing import (
 
 import numpy as np  # type: ignore
 import regex
-
 from cf_units import Unit
+
 from .tree import (
     Compress,
     Constant,
