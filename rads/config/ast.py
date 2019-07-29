@@ -5,8 +5,20 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, fields
 from difflib import get_close_matches
-from typing import (Any, Callable, Collection, Container, Iterator, List,
-                    Mapping, MutableMapping, Optional, Sequence, Union, cast)
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Container,
+    Iterator,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
 from dataclass_builder import UndefinedFieldError, MissingFieldError, MISSING
 
@@ -17,17 +29,14 @@ from ..rpn import CompleteExpression, Expression
 ActionType = Callable[[Any, str, Any], None]
 
 
-def _get_mapping(environment: Any, attr: str,
-                 mapping: Callable[[], Mapping] = dict):
-    if (not hasattr(environment, attr) or
-            getattr(environment, attr) == MISSING):
+def _get_mapping(environment: Any, attr: str, mapping: Callable[[], Mapping] = dict):
+    if not hasattr(environment, attr) or getattr(environment, attr) == MISSING:
         setattr(environment, attr, mapping())
     return getattr(environment, attr)
 
 
 def _suggest_field(dataclass: Any, attempt: str) -> Optional[str]:
-    matches = get_close_matches(
-        attempt, [f.name for f in fields(dataclass)], 1, 0.1)
+    matches = get_close_matches(attempt, [f.name for f in fields(dataclass)], 1, 0.1)
     if matches:
         return matches[0]
     return None
@@ -92,8 +101,11 @@ def replace(environment: Any, attr: str, value: Any) -> None:
         _set(environment, attr, value)
 
 
-def append(environment: MutableMapping[str, Any], attr: str,
-           value: Union[str, List[Any], Expression]) -> None:
+def append(
+    environment: MutableMapping[str, Any],
+    attr: str,
+    value: Union[str, List[Any], Expression],
+) -> None:
     """Set/append key/value pair in the given environment.
 
     Sets :paramref:`attr` to the given :paramref:`value` in the given
@@ -140,20 +152,25 @@ def append(environment: MutableMapping[str, Any], attr: str,
     # has current value
     current_value = _get(environment, attr)
     if isinstance(current_value, str):
-        new_value = current_value + ' ' + value
+        new_value = current_value + " " + value
     elif isinstance(current_value, Expression):
         # force CompleteExpression's
         new_value = (current_value + value).complete()
     elif isinstance(current_value, List):
         new_value = current_value + value
     else:
-        raise TypeError("current value is of unsupported type"
-                        f"'{type(current_value)}' for the 'append' action")
+        raise TypeError(
+            "current value is of unsupported type"
+            f"'{type(current_value)}' for the 'append' action"
+        )
     _set(environment, attr, new_value)
 
 
-def delete(environment: MutableMapping[str, Any], attr: str,
-           value: Union[str, List[Any], Expression]) -> None:
+def delete(
+    environment: MutableMapping[str, Any],
+    attr: str,
+    value: Union[str, List[Any], Expression],
+) -> None:
     """Remove/edit key/value pair in the given environment.
 
     Removes matching :paramref:`value` from the part of the existing
@@ -200,21 +217,25 @@ def delete(environment: MutableMapping[str, Any], attr: str,
     # has current value
     current_value = _get(environment, attr)
     if isinstance(current_value, str):
-        new_value = current_value.replace(value, '')
+        new_value = current_value.replace(value, "")
     elif isinstance(current_value, Expression):
         # force CompleteExpression's
-        new_value = CompleteExpression(
-            delete_sublist(list(current_value), list(value)))
+        new_value = CompleteExpression(delete_sublist(list(current_value), list(value)))
     elif isinstance(current_value, List):
         new_value = delete_sublist(current_value, value)
     else:
-        raise TypeError("current value is of unsupported type"
-                        f"'{type(current_value)}' for the 'append' action")
+        raise TypeError(
+            "current value is of unsupported type"
+            f"'{type(current_value)}' for the 'append' action"
+        )
     _set(environment, attr, new_value)
 
 
-def merge(environment: MutableMapping[str, Any], attr: str,
-          value: Union[str, List[Any], Expression]) -> None:
+def merge(
+    environment: MutableMapping[str, Any],
+    attr: str,
+    value: Union[str, List[Any], Expression],
+) -> None:
     """Set/merge key/value pair in the given environment.
 
     Sets :paramref:`attr` to the given :paramref:`value` in the given
@@ -267,21 +288,21 @@ def merge(environment: MutableMapping[str, Any], attr: str,
         if value in current_value:
             new_value = current_value
         else:
-            new_value = current_value + ' ' + value
+            new_value = current_value + " " + value
     elif isinstance(current_value, Expression):
         # force CompleteExpression's
-        new_value = CompleteExpression(
-            merge_sublist(list(current_value), list(value)))
+        new_value = CompleteExpression(merge_sublist(list(current_value), list(value)))
     elif isinstance(current_value, List):
         new_value = merge_sublist(current_value, value)
     else:
-        raise TypeError("current value is of unsupported type"
-                        f"'{type(current_value)}' for the 'append' action")
+        raise TypeError(
+            "current value is of unsupported type"
+            f"'{type(current_value)}' for the 'append' action"
+        )
     _set(environment, attr, new_value)
 
 
-def edit_append(
-        environment: MutableMapping[str, Any], attr: str, string: str) -> None:
+def edit_append(environment: MutableMapping[str, Any], attr: str, string: str) -> None:
     """Set key/value pair in the given environment.
 
     Sets :paramref:`attr` to the given :paramref:`string` in the given
@@ -312,14 +333,14 @@ def edit_append(
     if not _has(environment, attr) or _get(environment, attr) == MISSING:
         _set(environment, attr, string)
     else:
-        _set(environment, attr, _get(environment, attr) + '. ' + string)
+        _set(environment, attr, _get(environment, attr) + ". " + string)
 
 
 class Condition(ABC):
     """Base class of AST node conditionals."""
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__qualname__}()'
+        return f"{self.__class__.__qualname__}()"
 
     @abstractmethod
     def test(self, selectors: Mapping[str, Any]) -> bool:
@@ -377,14 +398,14 @@ class SatelliteCondition(Condition):
         self.invert = invert
 
     def __repr__(self):
-        prefix = f'{self.__class__.__qualname__}({repr(self.satellites)}'
+        prefix = f"{self.__class__.__qualname__}({repr(self.satellites)}"
         if self.invert:
-            return prefix + f', invert={repr(self.invert)})'
-        return prefix + ')'
+            return prefix + f", invert={repr(self.invert)})"
+        return prefix + ")"
 
     def test(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
         try:
-            return xor(selectors['id'] in self.satellites, self.invert)
+            return xor(selectors["id"] in self.satellites, self.invert)
         except KeyError:
             return False
 
@@ -400,15 +421,16 @@ class ASTEvaluationError(Exception):
     line: Optional[int] = None
     file: Optional[str] = None
 
-    def __init__(self, message: str = 'evaluation failed',
-                 source: Optional[Source] = None):
+    def __init__(
+        self, message: str = "evaluation failed", source: Optional[Source] = None
+    ):
         self.message = message
         if source:
             self.line = source.line
             self.file = source.file
-        file = self.file if self.file else ''
-        line = self.line if self.line else ''
-        super().__init__(f'{file}:{line}: {message}')
+        file = self.file if self.file else ""
+        line = self.line if self.line else ""
+        super().__init__(f"{file}:{line}: {message}")
 
 
 class Statement(ABC):
@@ -420,7 +442,7 @@ class Statement(ABC):
         self.source = source
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__qualname__}()'
+        return f"{self.__class__.__qualname__}()"
 
     @abstractmethod
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
@@ -439,7 +461,6 @@ class Statement(ABC):
 
 
 class NullStatement(Statement):
-
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         pass
 
@@ -454,8 +475,7 @@ class CompoundStatement(Sequence[Statement], Statement):
 
     """
 
-    def __init__(self, *statements: Statement,
-                 source: Optional[Source] = None) -> None:
+    def __init__(self, *statements: Statement, source: Optional[Source] = None) -> None:
         super().__init__(source=source)
         self._statements = statements
 
@@ -464,11 +484,12 @@ class CompoundStatement(Sequence[Statement], Statement):
         pass
 
     @typing.overload
-    def __getitem__(self, key: slice) -> 'CompoundStatement':
+    def __getitem__(self, key: slice) -> "CompoundStatement":
         pass
 
-    def __getitem__(self, key: Union[int, slice]) -> \
-            Union[Statement, 'CompoundStatement']:
+    def __getitem__(
+        self, key: Union[int, slice]
+    ) -> Union[Statement, "CompoundStatement"]:
         if isinstance(key, slice):
             return CompoundStatement(*self._statements[key])
         return self._statements[key]
@@ -477,8 +498,10 @@ class CompoundStatement(Sequence[Statement], Statement):
         return len(self._statements)
 
     def __repr__(self) -> str:
-        return (f'{self.__class__.__qualname__}'
-                f'({", ".join(repr(s) for s in self._statements)})')
+        return (
+            f"{self.__class__.__qualname__}"
+            f"({', '.join(repr(s) for s in self._statements)})"
+        )
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         """Evaluate compound statement, adding to the environment dictionary.
@@ -520,20 +543,27 @@ class If(Statement):
     true_statement: Statement
     false_statement: Optional[Statement]
 
-    def __init__(self, condition: Condition, true_statement: Statement,
-                 false_statement: Optional[Statement] = None,
-                 *, source: Optional[Source] = None) -> None:
+    def __init__(
+        self,
+        condition: Condition,
+        true_statement: Statement,
+        false_statement: Optional[Statement] = None,
+        *,
+        source: Optional[Source] = None,
+    ) -> None:
         super().__init__(source=source)
         self.condition = condition
         self.true_statement = true_statement
         self.false_statement = false_statement
 
     def __repr__(self) -> str:
-        prefix = (f'{self.__class__.__qualname__}'
-                  f'({repr(self.condition)}, {repr(self.true_statement)}')
+        prefix = (
+            f"{self.__class__.__qualname__}"
+            f"({repr(self.condition)}, {repr(self.true_statement)}"
+        )
         if self.false_statement is None:
-            return prefix + ')'
-        return prefix + f', {repr(self.false_statement)})'
+            return prefix + ")"
+        return prefix + f", {repr(self.false_statement)})"
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         """Evaluate if/else statement, adding to the environment dictionary.
@@ -582,10 +612,15 @@ class Assignment(Statement):
     #  fixed.
     action: Optional[ActionType] = staticmethod(replace)
 
-    def __init__(self, name: Any, value: Any,
-                 condition: Optional[Condition] = None,
-                 action: Optional[ActionType] = None,
-                 *, source: Optional[Source] = None) -> None:
+    def __init__(
+        self,
+        name: Any,
+        value: Any,
+        condition: Optional[Condition] = None,
+        action: Optional[ActionType] = None,
+        *,
+        source: Optional[Source] = None,
+    ) -> None:
         super().__init__(source=source)
         self.name = name
         self.value = value
@@ -595,13 +630,14 @@ class Assignment(Statement):
             self.action = action
 
     def __repr__(self):
-        prefix = (f'{self.__class__.__qualname__}'
-                  f'({repr(self.name)}, {repr(self.value)}')
+        prefix = (
+            f"{self.__class__.__qualname__}" f"({repr(self.name)}, {repr(self.value)}"
+        )
         if not isinstance(self.condition, TrueCondition):
-            prefix += f', {repr(self.condition)}'
+            prefix += f", {repr(self.condition)}"
         if self.action == replace:
-            return prefix + ')'
-        return prefix + f', {self.action.__qualname__})'
+            return prefix + ")"
+        return prefix + f", {self.action.__qualname__})"
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         """Evaluate assignment, adding to the environment dictionary.
@@ -638,10 +674,15 @@ class Alias(Statement):
     #  fixed.
     action: Optional[ActionType] = staticmethod(replace)
 
-    def __init__(self, alias: Any, variables: Sequence[str],
-                 condition: Optional[Condition] = None,
-                 action: Optional[ActionType] = None,
-                 *, source: Optional[Source] = None) -> None:
+    def __init__(
+        self,
+        alias: Any,
+        variables: Sequence[str],
+        condition: Optional[Condition] = None,
+        action: Optional[ActionType] = None,
+        *,
+        source: Optional[Source] = None,
+    ) -> None:
         super().__init__(source=source)
         self.alias = alias
         self.variables = variables
@@ -651,18 +692,20 @@ class Alias(Statement):
             self.action = action
 
     def __repr__(self):
-        prefix = (f'{self.__class__.__qualname__}'
-                  f'({repr(self.alias)}, {repr(self.variables)}')
+        prefix = (
+            f"{self.__class__.__qualname__}"
+            f"({repr(self.alias)}, {repr(self.variables)}"
+        )
         if not isinstance(self.condition, TrueCondition):
-            prefix += f', {repr(self.condition)}'
+            prefix += f", {repr(self.condition)}"
         if self.action == replace:
-            return prefix + ')'
-        return prefix + f', {self.action.__qualname__})'
+            return prefix + ")"
+        return prefix + f", {self.action.__qualname__})"
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         if self.condition.test(selectors):
             action = cast(ActionType, self.action)
-            aliases = _get_mapping(environment, 'aliases')
+            aliases = _get_mapping(environment, "aliases")
             try:
                 action(aliases, self.alias, deepcopy(self.variables))
             except (TypeError, ValueError, KeyError) as err:
@@ -674,9 +717,14 @@ class SatelliteID(Statement):
     id3: str
     names: Collection[str]
 
-    def __init__(self, id: str, id3: str,
-                 names: Optional[Collection[str]] = None,
-                 *, source: Optional[Source] = None) -> None:
+    def __init__(
+        self,
+        id: str,
+        id3: str,
+        names: Optional[Collection[str]] = None,
+        *,
+        source: Optional[Source] = None,
+    ) -> None:
         super().__init__(source=source)
         self.id = id
         self.id3 = id3
@@ -686,23 +734,22 @@ class SatelliteID(Statement):
             self.names = names
 
     def __repr__(self) -> str:
-        prefix = (f'{self.__class__.__qualname__}'
-                  f'({repr(self.id)}, {repr(self.id3)}')
+        prefix = f"{self.__class__.__qualname__}" f"({repr(self.id)}, {repr(self.id3)}"
         if self.names:
-            return prefix + f', {self.names})'
-        return prefix + ')'
+            return prefix + f", {self.names})"
+        return prefix + ")"
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        if 'id' in selectors and selectors['id'] == self.id:
-            setattr(environment, 'id', self.id)
-            setattr(environment, 'id3', self.id3)
-            setattr(environment, 'names', self.names)
+        if "id" in selectors and selectors["id"] == self.id:
+            setattr(environment, "id", self.id)
+            setattr(environment, "id3", self.id3)
+            setattr(environment, "names", self.names)
 
 
 class Satellites(Mapping[str, Statement], Statement):
-
-    def __init__(self, *satellites: SatelliteID,
-                 source: Optional[Source] = None) -> None:
+    def __init__(
+        self, *satellites: SatelliteID, source: Optional[Source] = None
+    ) -> None:
         super().__init__(source=source)
         self._satellites: MutableMapping[str, SatelliteID] = {}
         for satellite in satellites:
@@ -718,14 +765,15 @@ class Satellites(Mapping[str, Statement], Statement):
         return self._satellites.__len__()
 
     def __repr__(self) -> str:
-        return (f'{self.__class__.__qualname__}('
-                f'{", ".join(repr(v) for v in self._satellites.values())})')
+        return (
+            f"{self.__class__.__qualname__}("
+            f"{', '.join(repr(v) for v in self._satellites.values())})"
+        )
 
-    def eval(self, environment: Any,
-             selectors: Mapping[str, Any]) -> None:
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         try:
-            if selectors['id'] in self:
-                self[selectors['id']].eval(environment, selectors)
+            if selectors["id"] in self:
+                self[selectors["id"]].eval(environment, selectors)
         except KeyError:
             pass
 
@@ -735,9 +783,14 @@ class NamedBlock(Statement, ABC):
     inner_statement: Statement
     condition: Condition = TrueCondition()
 
-    def __init__(self, name: str, inner_statement,
-                 condition: Optional[Condition] = None,
-                 *, source: Optional[Source] = None):
+    def __init__(
+        self,
+        name: str,
+        inner_statement,
+        condition: Optional[Condition] = None,
+        *,
+        source: Optional[Source] = None,
+    ):
         super().__init__(source=source)
         self.name = name
         self.inner_statement = inner_statement
@@ -745,14 +798,17 @@ class NamedBlock(Statement, ABC):
             self.condition = condition
 
     def __repr__(self):
-        prefix = (f'{self.__class__.__qualname__}'
-                  f'({repr(self.name)}, {repr(self.inner_statement)}')
+        prefix = (
+            f"{self.__class__.__qualname__}"
+            f"({repr(self.name)}, {repr(self.inner_statement)}"
+        )
         if isinstance(self.condition, TrueCondition):
-            return prefix + ')'
-        return prefix + f', {self.condition})'
+            return prefix + ")"
+        return prefix + f", {self.condition})"
 
-    def _eval_runner(self, mapping: str, builder: Any,
-                     environment: Any, selectors: Mapping[str, Any]):
+    def _eval_runner(
+        self, mapping: str, builder: Any, environment: Any, selectors: Mapping[str, Any]
+    ):
         if self.condition and not self.condition.test(selectors):
             return
 
@@ -767,14 +823,14 @@ class NamedBlock(Statement, ABC):
             mapping_[self.name].append(builder_.build())
         except MissingFieldError as err:
             raise ASTEvaluationError(
-                f"missing required attribute '{err.field.name}'",
-                source=self.source)
+                f"missing required attribute '{err.field.name}'", source=self.source
+            )
 
 
 class UniqueNamedBlock(NamedBlock, ABC):
-
-    def _eval_runner(self, mapping: str, builder: Any,
-                     environment: Any, selectors: Mapping[str, Any]):
+    def _eval_runner(
+        self, mapping: str, builder: Any, environment: Any, selectors: Mapping[str, Any]
+    ):
         if self.condition and not self.condition.test(selectors):
             return
 
@@ -792,18 +848,15 @@ class UniqueNamedBlock(NamedBlock, ABC):
                 mapping_[self.name] = builder_.build()
             except MissingFieldError as err:
                 raise ASTEvaluationError(
-                    f"missing required attribute '{err.field.name}'",
-                    source=self.source)
+                    f"missing required attribute '{err.field.name}'", source=self.source
+                )
 
 
 class Phase(NamedBlock):
-
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        self._eval_runner('phases', PhaseBuilder, environment, selectors)
+        self._eval_runner("phases", PhaseBuilder, environment, selectors)
 
 
 class Variable(UniqueNamedBlock):
-
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        self._eval_runner(
-            'variables', VariableBuilder, environment, selectors)
+        self._eval_runner("variables", VariableBuilder, environment, selectors)

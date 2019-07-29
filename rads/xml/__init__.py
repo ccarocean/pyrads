@@ -16,4 +16,4 @@ except ImportError:
 
 from .utility import parse, fromstring, fromstringlist
 
-__all__ = ['ParseError', 'Element', 'parse', 'fromstring', 'fromstringlist']
+__all__ = ["ParseError", "Element", "parse", "fromstring", "fromstringlist"]

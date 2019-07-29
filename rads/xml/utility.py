@@ -14,23 +14,24 @@ except ImportError:
     #  fixed.
     from ..xml import etree as xml  # type: ignore
 
-__all__ = ['parse', 'fromstring', 'fromstringlist']
+__all__ = ["parse", "fromstring", "fromstringlist"]
 
 
 # TODO: Remove when ElementTree.parse accepts PathLike objects.
 def _fix_source(source: PathOrFile) -> Any:
     if isinstance(source, int):
         return source
-    if hasattr(source, 'read'):
+    if hasattr(source, "read"):
         return source
     return os.fspath(cast(PathLike, source))
 
 
 def _wrap_with_root_helper(
-        sequence: Sequence[AnyStr],
-        start_tag: AnyStr,
-        end_tag: AnyStr,
-        processing_instruction: AnyStr) -> Sequence[AnyStr]:
+    sequence: Sequence[AnyStr],
+    start_tag: AnyStr,
+    end_tag: AnyStr,
+    processing_instruction: AnyStr,
+) -> Sequence[AnyStr]:
     def is_prolog(text: AnyStr) -> bool:
         return text.lstrip().startswith(processing_instruction)
 
@@ -44,17 +45,15 @@ def _wrap_with_root(sequence: Sequence[AnyStr]) -> Sequence[AnyStr]:
     if not sequence:
         return []
     if sequence and isinstance(sequence[0], bytes):
-        return _wrap_with_root_helper(
-            sequence, b'<rootless>', b'</rootless>', b'<?')
+        return _wrap_with_root_helper(sequence, b"<rootless>", b"</rootless>", b"<?")
     if sequence and isinstance(sequence[0], str):
-        return _wrap_with_root_helper(
-            sequence, '<rootless>', '</rootless>', '<?')
+        return _wrap_with_root_helper(sequence, "<rootless>", "</rootless>", "<?")
     raise TypeError("'sequence' must be a sequence of 'bytes' or 'str'")
 
 
-def parse(source: PathOrFile,
-          parser: Optional[xml.XMLParser] = None,
-          rootless: bool = False) -> xml.Element:
+def parse(
+    source: PathOrFile, parser: Optional[xml.XMLParser] = None, rootless: bool = False
+) -> xml.Element:
     """Parse an XML document from a file or file-like object.
 
     Parameters
@@ -82,15 +81,19 @@ def parse(source: PathOrFile,
     if rootless:
         with ensure_open(source) as file:
             return fromstringlist(
-                file.readlines(), parser, rootless=True, file=filestring(file))
-    return xml.Element(xml.parse(
-        _fix_source(source), parser).getroot(), file=filestring(source))
+                file.readlines(), parser, rootless=True, file=filestring(file)
+            )
+    return xml.Element(
+        xml.parse(_fix_source(source), parser).getroot(), file=filestring(source)
+    )
 
 
-def fromstring(text: AnyStr,
-               parser: Optional[xml.XMLParser] = None,
-               rootless: bool = False,
-               file: Optional[str] = None) -> xml.Element:
+def fromstring(
+    text: AnyStr,
+    parser: Optional[xml.XMLParser] = None,
+    rootless: bool = False,
+    file: Optional[str] = None,
+) -> xml.Element:
     """Parse an XML document or section from a string constant.
 
     Parameters
@@ -119,15 +122,16 @@ def fromstring(text: AnyStr,
 
     """
     if rootless:
-        return fromstringlist(text.splitlines(), parser,
-                              rootless=True, file=file)
+        return fromstringlist(text.splitlines(), parser, rootless=True, file=file)
     return xml.Element(xml.fromstring(text, parser), file=file)
 
 
-def fromstringlist(sequence: Sequence[AnyStr],
-                   parser: Optional[xml.XMLParser] = None,
-                   rootless: bool = False,
-                   file: Optional[str] = None) -> xml.Element:
+def fromstringlist(
+    sequence: Sequence[AnyStr],
+    parser: Optional[xml.XMLParser] = None,
+    rootless: bool = False,
+    file: Optional[str] = None,
+) -> xml.Element:
     """Parse an XML document or section from a sequence of string fragments.
 
     Parameters
@@ -167,4 +171,3 @@ def fromstringlist(sequence: Sequence[AnyStr],
     except xml.ParseError as err:
         raise xml.error_with_file(err, file)
     return result
-

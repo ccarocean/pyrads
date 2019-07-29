@@ -2,13 +2,25 @@
 
 import xml.etree.ElementTree as etree
 from typing import Optional, Mapping, Iterator
-from xml.etree.ElementTree import (ParseError, XMLParser, parse, fromstring,
-                                   fromstringlist)
+from xml.etree.ElementTree import (
+    ParseError,
+    XMLParser,
+    parse,
+    fromstring,
+    fromstringlist,
+)
 
 from ..xml import base
 
-__all__ = ['ParseError', 'Element', 'XMLParser', 'parse', 'fromstring',
-           'fromstringlist', 'error_with_file']
+__all__ = [
+    "ParseError",
+    "Element",
+    "XMLParser",
+    "parse",
+    "fromstring",
+    "fromstringlist",
+    "error_with_file",
+]
 
 
 class Element(base.Element):
@@ -38,9 +50,13 @@ class Element(base.Element):
 
     """
 
-    def __init__(self, element: etree.Element, index: Optional[int] = None,
-                 parent: Optional['Element'] = None,
-                 file: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        element: etree.Element,
+        index: Optional[int] = None,
+        parent: Optional["Element"] = None,
+        file: Optional[str] = None,
+    ) -> None:
         assert parent is None or isinstance(parent, Element)
         self._element = element
         self._index = index
@@ -50,36 +66,33 @@ class Element(base.Element):
     def __len__(self) -> int:
         return len(self._element)
 
-    def __iter__(self) -> Iterator['Element']:
-        return (Element(e, i, self, self._file)
-                for i, e in enumerate(self._element))
+    def __iter__(self) -> Iterator["Element"]:
+        return (Element(e, i, self, self._file) for i, e in enumerate(self._element))
 
-    def next(self) -> 'Element':  # noqa: D102
+    def next(self) -> "Element":  # noqa: D102
         if self._parent is None or self._index is None:
             raise StopIteration()
         siblings = list(self._parent._element)
         new_index = self._index + 1
         if new_index >= len(siblings):
             raise StopIteration()
-        return Element(siblings[new_index], new_index,
-                       self._parent, self._file)
+        return Element(siblings[new_index], new_index, self._parent, self._file)
 
-    def prev(self) -> 'Element':  # noqa: D102
+    def prev(self) -> "Element":  # noqa: D102
         if self._parent is None or self._index is None:
             raise StopIteration()
         siblings = list(self._parent._element)
         new_index = self._index - 1
         if new_index < 0:
             raise StopIteration()
-        return Element(siblings[new_index], new_index,
-                       self._parent, self._file)
+        return Element(siblings[new_index], new_index, self._parent, self._file)
 
-    def up(self) -> 'Element':  # noqa: D102
+    def up(self) -> "Element":  # noqa: D102
         if self._parent is None:
             raise StopIteration()
         return self._parent
 
-    def down(self) -> 'Element':  # noqa: D102
+    def down(self) -> "Element":  # noqa: D102
         try:
             element = list(self._element)[0]
             return Element(element, 0, self, self.file)
@@ -122,7 +135,8 @@ def error_with_file(error: ParseError, file: str) -> ParseError:
     """
     error.filename = file
     new_error = type(error)(
-        error.msg, (file, error.position[0], error.position[1], error.text))
+        error.msg, (file, error.position[0], error.position[1], error.text)
+    )
     new_error.code = error.code
     new_error.position = error.position
     return new_error

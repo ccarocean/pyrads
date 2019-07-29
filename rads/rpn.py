@@ -117,13 +117,29 @@ from abc import ABC, abstractmethod
 from datetime import timedelta
 from itertools import chain
 from numbers import Integral
-from typing import (AbstractSet, Any, Iterable, Iterator, List, Mapping,
-                    MutableSequence, Optional, Sequence, Tuple, Union,
-                    cast, overload, TYPE_CHECKING)
+from typing import (
+    AbstractSet,
+    Any,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    MutableSequence,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+    overload,
+    TYPE_CHECKING,
+)
 
 import numpy as np  # type: ignore
 from astropy.convolution import (  # type: ignore
-    Box1DKernel, Gaussian1DKernel, convolve)
+    Box1DKernel,
+    Gaussian1DKernel,
+    convolve,
+)
 
 from .constants import EPOCH
 from ._typing import Number, NumberOrArray
@@ -139,16 +155,87 @@ if TYPE_CHECKING:
 else:
     from cached_property import cached_property
 
-__all__ = ['StackUnderflowError', 'Expression', 'CompleteExpression', 'Token',
-           'Literal', 'PI', 'E', 'Variable', 'Operator', 'token', 'SUB', 'ADD',
-           'MUL', 'POP', 'NEG', 'ABS', 'INV', 'SQRT', 'SQR', 'EXP', 'LOG',
-           'LOG10', 'SIN', 'COS', 'TAN', 'SIND', 'COSD', 'TAND', 'SINH',
-           'COSH', 'TANH', 'ASIN', 'ACOS', 'ATAN', 'ASIND', 'ACOSD', 'ATAND',
-           'ASINH', 'ACOSH', 'ATANH', 'ISNAN', 'ISAN', 'RINT', 'NINT', 'CEIL',
-           'CEILING', 'FLOOR', 'D2R', 'R2D', 'YMDHMS', 'SUM', 'DIF', 'DUP',
-           'DIV', 'POW', 'FMOD', 'MIN', 'MAX', 'ATAN2', 'HYPOT', 'R2', 'EQ',
-           'NE', 'LT', 'LE', 'GT', 'GE', 'NAN', 'AND', 'OR', 'IAND', 'IOR',
-           'BTEST', 'AVG', 'DXDY', 'EXCH', 'INRANGE', 'BOXCAR', 'GAUSS']
+__all__ = [
+    "StackUnderflowError",
+    "Expression",
+    "CompleteExpression",
+    "Token",
+    "Literal",
+    "PI",
+    "E",
+    "Variable",
+    "Operator",
+    "token",
+    "SUB",
+    "ADD",
+    "MUL",
+    "POP",
+    "NEG",
+    "ABS",
+    "INV",
+    "SQRT",
+    "SQR",
+    "EXP",
+    "LOG",
+    "LOG10",
+    "SIN",
+    "COS",
+    "TAN",
+    "SIND",
+    "COSD",
+    "TAND",
+    "SINH",
+    "COSH",
+    "TANH",
+    "ASIN",
+    "ACOS",
+    "ATAN",
+    "ASIND",
+    "ACOSD",
+    "ATAND",
+    "ASINH",
+    "ACOSH",
+    "ATANH",
+    "ISNAN",
+    "ISAN",
+    "RINT",
+    "NINT",
+    "CEIL",
+    "CEILING",
+    "FLOOR",
+    "D2R",
+    "R2D",
+    "YMDHMS",
+    "SUM",
+    "DIF",
+    "DUP",
+    "DIV",
+    "POW",
+    "FMOD",
+    "MIN",
+    "MAX",
+    "ATAN2",
+    "HYPOT",
+    "R2",
+    "EQ",
+    "NE",
+    "LT",
+    "LE",
+    "GT",
+    "GE",
+    "NAN",
+    "AND",
+    "OR",
+    "IAND",
+    "IOR",
+    "BTEST",
+    "AVG",
+    "DXDY",
+    "EXCH",
+    "INRANGE",
+    "BOXCAR",
+    "GAUSS",
+]
 
 
 class StackUnderflowError(Exception):
@@ -191,8 +278,11 @@ class Token(ABC):
         """Elements placed on the stack by calling the token."""
 
     @abstractmethod
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Perform token's action on the given :paramref:`stack`.
 
         The actions currently supported are:
@@ -251,8 +341,11 @@ class Literal(Token):
             raise TypeError("'value' must be an int, float, or bool")
         self._value: Union[int, float, bool] = value
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Place literal value on top of the given :paramref:`stack`.
 
         Parameters
@@ -293,7 +386,7 @@ class Literal(Token):
         return self.value >= other.value
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__qualname__}({repr(self._value)})'
+        return f"{self.__class__.__qualname__}({repr(self._value)})"
 
     def __str__(self) -> str:
         return str(self._value)
@@ -332,12 +425,14 @@ class Variable(Token):
         if not isinstance(name, str):
             raise TypeError(f"'name' must be a string, got '{type(name)}'")
         if not name.isidentifier():
-            raise ValueError(
-                f"'name' must be a valid identifier, got '{name}'")
+            raise ValueError(f"'name' must be a valid identifier, got '{name}'")
         self._name = name
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Get variable value from :paramref:`environment` and place on stack.
 
         Parameters
@@ -363,7 +458,7 @@ class Variable(Token):
         return not isinstance(other, Variable) or other.name != self.name
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__qualname__}({repr(self._name)})'
+        return f"{self.__class__.__qualname__}({repr(self._name)})"
 
     def __str__(self) -> str:
         return str(self._name)
@@ -464,13 +559,12 @@ class Expression(Sequence[Token], Token):
         ...
 
     @overload  # noqa: F811
-    def __init__(self, tokens: Iterable[Union[Number, str, Token]]) \
-            -> None:
+    def __init__(self, tokens: Iterable[Union[Number, str, Token]]) -> None:
         ...
 
-    def __init__(self,  # noqa: F811
-                 tokens: Union[str, Iterable[Union[Number, str, Token]]]) \
-            -> None:
+    def __init__(
+        self, tokens: Union[str, Iterable[Union[Number, str, Token]]]  # noqa: F811
+    ) -> None:
         if isinstance(tokens, str):
             self._tokens = [token(t) for t in tokens.split()]
         else:
@@ -483,7 +577,7 @@ class Expression(Sequence[Token], Token):
                 else:
                     self._tokens.append(token(token_))
 
-    def complete(self) -> 'CompleteExpression':
+    def complete(self) -> "CompleteExpression":
         """Upgrade to a :class:`CompleteExpression` if possible.
 
         Returns
@@ -513,8 +607,11 @@ class Expression(Sequence[Token], Token):
         """
         return self.pops == 0 and self.puts == 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Evaluate the expression as a token on the given :paramref:`stack`.
 
         Parameters
@@ -548,11 +645,12 @@ class Expression(Sequence[Token], Token):
         ...
 
     @overload  # noqa: F811
-    def __getitem__(self, item: slice) -> 'Expression':
+    def __getitem__(self, item: slice) -> "Expression":
         ...
 
-    def __getitem__(self, item: Union[int, slice]  # noqa: F811
-                    ) -> Union[Token, 'Expression']:
+    def __getitem__(
+        self, item: Union[int, slice]  # noqa: F811
+    ) -> Union[Token, "Expression"]:
         if isinstance(item, slice):
             return Expression(self._tokens[item])
         return self._tokens[item]
@@ -574,7 +672,7 @@ class Expression(Sequence[Token], Token):
             return NotImplemented
         return self._tokens != other._tokens
 
-    def __add__(self, other: Any) -> 'Expression':
+    def __add__(self, other: Any) -> "Expression":
         if not isinstance(other, Expression):
             return NotImplemented
         try:
@@ -586,7 +684,7 @@ class Expression(Sequence[Token], Token):
         return f"{self.__class__.__qualname__}({repr(self._tokens)})"
 
     def __str__(self) -> str:
-        return ' '.join(str(t) for t in self._tokens)
+        return " ".join(str(t) for t in self._tokens)
 
     def _simulate(self) -> Tuple[int, int]:
         """Simulate the expression to determine inputs and outputs.
@@ -642,23 +740,23 @@ class CompleteExpression(Expression):
     #       Also, update pylint require
 
     @overload  # noqa: F811
-    def __init__(self, tokens: str) -> None:  \
-            # pylint: disable=super-init-not-called
+    def __init__(self, tokens: str) -> None:  # pylint: disable=super-init-not-called
         ...
 
     @overload  # noqa: F811
-    def __init__(self, tokens: Iterable[Union[Number, str, Token]]) -> None: \
-            # pylint: disable=super-init-not-called
+    def __init__(
+        self, tokens: Iterable[Union[Number, str, Token]]
+    ) -> None:  # pylint: disable=super-init-not-called
         ...
 
     def __init__(  # noqa: F811
-            self,
-            tokens: Union[str, Iterable[Union[Number, str, Token]]]) -> None:
+        self, tokens: Union[str, Iterable[Union[Number, str, Token]]]
+    ) -> None:
         super().__init__(tokens)
         # check the syntax, raise ValueError if invalid
         self._check()
 
-    def complete(self) -> 'CompleteExpression':
+    def complete(self) -> "CompleteExpression":
         """Return this expression as it is already complete.
 
         Returns
@@ -669,8 +767,9 @@ class CompleteExpression(Expression):
         """
         return self
 
-    def eval(self, environment: Optional[Mapping[str, NumberOrArray]] = None) \
-            -> NumberOrArray:
+    def eval(
+        self, environment: Optional[Mapping[str, NumberOrArray]] = None
+    ) -> NumberOrArray:
         """Evaluate the expression and return a numerical or logical result.
 
         Parameters
@@ -730,16 +829,14 @@ class CompleteExpression(Expression):
         #       due to the static checker that runs at initialization.
         return stack[0]
 
-    def _format_syntax_error(
-            self, string: str, token_: Optional[int] = None) -> str:
+    def _format_syntax_error(self, string: str, token_: Optional[int] = None) -> str:
         tokens_str = [str(t) for t in self._tokens]
         result = f"{string}\n{' '.join(tokens_str)}"
         if token_ is None:
             return result
         if token_ == 0:
-            return result + '\n^'
-        return (result +
-                f"\n{' ' * len(' '.join(tokens_str[:token_])) + ' ^'}")
+            return result + "\n^"
+        return result + f"\n{' ' * len(' '.join(tokens_str[:token_])) + ' ^'}"
 
     def _check(self) -> None:
         """Check the syntax of the expression.
@@ -755,18 +852,25 @@ class CompleteExpression(Expression):
         for i, token_ in enumerate(self._tokens):
             stack_size -= token_.pops
             if stack_size < 0:
-                raise ValueError(self._format_syntax_error(
-                    f"'{token_}' takes {token_.pops} argument(s) but the stack"
-                    f" will only have {stack_size + token_.pops} element(s)",
-                    i))
+                raise ValueError(
+                    self._format_syntax_error(
+                        f"'{token_}' takes {token_.pops} argument(s) but the stack"
+                        f" will only have {stack_size + token_.pops} element(s)",
+                        i,
+                    )
+                )
             stack_size += token_.puts
         if stack_size == 0:
-            raise ValueError(self._format_syntax_error(
-                'expression does not produce a result'))
+            raise ValueError(
+                self._format_syntax_error("expression does not produce a result")
+            )
         if stack_size > 1:
-            raise ValueError(self._format_syntax_error(
-                f'expression produces too many results ({stack_size}), '
-                'expected 1'))
+            raise ValueError(
+                self._format_syntax_error(
+                    f"expression produces too many results ({stack_size}), "
+                    "expected 1"
+                )
+            )
 
 
 def token(string: str) -> Token:
@@ -816,7 +920,6 @@ def token(string: str) -> Token:
 
 
 class _SUBType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -825,8 +928,11 @@ class _SUBType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Subtract one number/array from another.
 
         x y SUB a
@@ -852,7 +958,6 @@ class _SUBType(Operator):
 
 # TODO: write as many as possible to use operators instead of numpy functions
 class _ADDType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -861,8 +966,11 @@ class _ADDType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Add two numbers/arrays.
 
         x y ADD a
@@ -887,7 +995,6 @@ class _ADDType(Operator):
 
 
 class _MULType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -896,8 +1003,11 @@ class _MULType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Multiply two numbers/arrays.
 
         x y MUL a
@@ -922,7 +1032,6 @@ class _MULType(Operator):
 
 
 class _POPType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -931,8 +1040,11 @@ class _POPType(Operator):
     def puts(self) -> int:
         return 0
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Remove top of stack.
 
         x POP
@@ -956,7 +1068,6 @@ class _POPType(Operator):
 
 
 class _NEGType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -965,8 +1076,11 @@ class _NEGType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Negate number/array.
 
         x NEG a
@@ -991,7 +1105,6 @@ class _NEGType(Operator):
 
 
 class _ABSType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1000,8 +1113,11 @@ class _ABSType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         r"""Absolute value of number/array.
 
         x ABS a
@@ -1026,7 +1142,6 @@ class _ABSType(Operator):
 
 
 class _INVType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1035,8 +1150,11 @@ class _INVType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Invert number/array.
 
         x INV a
@@ -1061,7 +1179,6 @@ class _INVType(Operator):
 
 
 class _SQRTType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1070,8 +1187,11 @@ class _SQRTType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Compute square root of number/array.
 
         x SQRT a
@@ -1096,7 +1216,6 @@ class _SQRTType(Operator):
 
 
 class _SQRType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1105,8 +1224,11 @@ class _SQRType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Square number/array.
 
         x SQR a
@@ -1131,7 +1253,6 @@ class _SQRType(Operator):
 
 
 class _EXPType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1140,8 +1261,11 @@ class _EXPType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Exponential of number/array.
 
         x EXP a
@@ -1166,7 +1290,6 @@ class _EXPType(Operator):
 
 
 class _LOGType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1175,8 +1298,11 @@ class _LOGType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Natural logarithm of number/array.
 
         x LOG a
@@ -1201,7 +1327,6 @@ class _LOGType(Operator):
 
 
 class _LOG10Type(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1210,8 +1335,11 @@ class _LOG10Type(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Compute base 10 logarithm of number/array.
 
         x LOG10 a
@@ -1236,7 +1364,6 @@ class _LOG10Type(Operator):
 
 
 class _SINType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1245,8 +1372,11 @@ class _SINType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Sine of number/array [in radians].
 
         x SIN a
@@ -1271,7 +1401,6 @@ class _SINType(Operator):
 
 
 class _COSType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1280,8 +1409,11 @@ class _COSType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Cosine of number/array [in radians].
 
         x COS a
@@ -1306,7 +1438,6 @@ class _COSType(Operator):
 
 
 class _TANType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1315,8 +1446,11 @@ class _TANType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Tangent of number/array [in radians].
 
         x TAN a
@@ -1341,7 +1475,6 @@ class _TANType(Operator):
 
 
 class _SINDType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1350,8 +1483,11 @@ class _SINDType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Sine of number/array [in degrees].
 
         x SIND a
@@ -1376,7 +1512,6 @@ class _SINDType(Operator):
 
 
 class _COSDType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1385,8 +1520,11 @@ class _COSDType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Cosine of number/array [in degrees].
 
         x COSD a
@@ -1411,7 +1549,6 @@ class _COSDType(Operator):
 
 
 class _TANDType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1420,8 +1557,11 @@ class _TANDType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Tangend of number/array [in degrees].
 
         x TAND a
@@ -1446,7 +1586,6 @@ class _TANDType(Operator):
 
 
 class _SINHType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1455,8 +1594,11 @@ class _SINHType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Hyperbolic sine of number/array.
 
         x SINH a
@@ -1481,7 +1623,6 @@ class _SINHType(Operator):
 
 
 class _COSHType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1490,8 +1631,11 @@ class _COSHType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Hyperbolic cosine of number/array.
 
         x COSH a
@@ -1516,7 +1660,6 @@ class _COSHType(Operator):
 
 
 class _TANHType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1525,8 +1668,11 @@ class _TANHType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Hyperbolic tangent of number/array.
 
         x TANH a
@@ -1551,7 +1697,6 @@ class _TANHType(Operator):
 
 
 class _ASINType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1560,8 +1705,11 @@ class _ASINType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Inverse sine of number/array [in radians].
 
         x ASIN a
@@ -1586,7 +1734,6 @@ class _ASINType(Operator):
 
 
 class _ACOSType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1595,8 +1742,11 @@ class _ACOSType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Inverse cosine of number/array [in radians].
 
         x ACOS a
@@ -1621,7 +1771,6 @@ class _ACOSType(Operator):
 
 
 class _ATANType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1630,8 +1779,11 @@ class _ATANType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Inverse tangent of number/array [in radians].
 
         x ATAN a
@@ -1656,7 +1808,6 @@ class _ATANType(Operator):
 
 
 class _ASINDType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1665,8 +1816,11 @@ class _ASINDType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Inverse sine of number/array [in degrees].
 
         x ASIND a
@@ -1691,7 +1845,6 @@ class _ASINDType(Operator):
 
 
 class _ACOSDType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1700,8 +1853,11 @@ class _ACOSDType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Inverse cosine of number/array [in degrees].
 
         x ACOSD a
@@ -1726,7 +1882,6 @@ class _ACOSDType(Operator):
 
 
 class _ATANDType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1735,8 +1890,11 @@ class _ATANDType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Inverse tangent of number/array [in degrees].
 
         x ATAND a
@@ -1761,7 +1919,6 @@ class _ATANDType(Operator):
 
 
 class _ASINHType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1770,8 +1927,11 @@ class _ASINHType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Inverse hyperbolic sine of number/array.
 
         x ASINH a
@@ -1796,7 +1956,6 @@ class _ASINHType(Operator):
 
 
 class _ACOSHType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1805,8 +1964,11 @@ class _ACOSHType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Inverse hyperbolic cosine of number/array.
 
         x ACOSH a
@@ -1831,7 +1993,6 @@ class _ACOSHType(Operator):
 
 
 class _ATANHType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1840,8 +2001,11 @@ class _ATANHType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Inverse hyperbolic tangent of number/array.
 
         x ATANH a
@@ -1866,7 +2030,6 @@ class _ATANHType(Operator):
 
 
 class _ISNANType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1875,8 +2038,11 @@ class _ISNANType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Determine if number/array is NaN.
 
         x ISNAN a
@@ -1906,7 +2072,6 @@ class _ISNANType(Operator):
 
 
 class _ISANType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1915,8 +2080,11 @@ class _ISANType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Determine if number/array is not NaN.
 
         x ISAN a
@@ -1946,7 +2114,6 @@ class _ISANType(Operator):
 
 
 class _RINTType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1955,8 +2122,11 @@ class _RINTType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Round number/array to nearest integer.
 
         x RINT a
@@ -1981,7 +2151,6 @@ class _RINTType(Operator):
 
 
 class _CEILType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -1990,8 +2159,11 @@ class _CEILType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Round number/array up to nearest integer.
 
         x CEIL a
@@ -2016,7 +2188,6 @@ class _CEILType(Operator):
 
 
 class _FLOORType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -2025,8 +2196,11 @@ class _FLOORType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Round number/array down to nearest integer.
 
         x FLOOR a
@@ -2051,7 +2225,6 @@ class _FLOORType(Operator):
 
 
 class _D2RType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -2060,8 +2233,11 @@ class _D2RType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Convert number/array from degrees to radians.
 
         x D2R a
@@ -2086,7 +2262,6 @@ class _D2RType(Operator):
 
 
 class _R2DType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -2095,8 +2270,11 @@ class _R2DType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Convert number/array from radians to degrees.
 
         x R2D a
@@ -2121,7 +2299,6 @@ class _R2DType(Operator):
 
 
 class _YMDHMSType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -2130,8 +2307,11 @@ class _YMDHMSType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Convert number/array from seconds since RADS epoch to YYMMDDHHMMSS.
 
         x YMDHMS a
@@ -2163,21 +2343,32 @@ class _YMDHMSType(Operator):
         """
         x = _get_x(stack)
         if isinstance(x, np.ndarray):
-            time = np.datetime64(EPOCH) + (x * 1e6).astype('timedelta64[us]')
-            year, month, day, hour, minute, second, microsecond = \
-                ymdhmsus(time)
-            a = ((year % 100) * 1e10 + month * 1e8 + day * 1e6 +
-                 hour * 1e4 + minute * 1e2 + second + microsecond * 1e-6)
+            time = np.datetime64(EPOCH) + (x * 1e6).astype("timedelta64[us]")
+            year, month, day, hour, minute, second, microsecond = ymdhmsus(time)
+            a = (
+                (year % 100) * 1e10
+                + month * 1e8
+                + day * 1e6
+                + hour * 1e4
+                + minute * 1e2
+                + second
+                + microsecond * 1e-6
+            )
         else:
-            time = (EPOCH + timedelta(seconds=x))
-            a = ((time.year % 100) * 1e10 + time.month * 1e8 + time.day * 1e6 +
-                 time.hour * 1e4 + time.minute * 1e2 + time.second +
-                 time.microsecond * 1e-6)
+            time = EPOCH + timedelta(seconds=x)
+            a = (
+                (time.year % 100) * 1e10
+                + time.month * 1e8
+                + time.day * 1e6
+                + time.hour * 1e4
+                + time.minute * 1e2
+                + time.second
+                + time.microsecond * 1e-6
+            )
         stack.append(a)
 
 
 class _SUMType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -2186,8 +2377,11 @@ class _SUMType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Compute sum over number/array [ignoring NaNs].
 
         x SUM a
@@ -2212,7 +2406,6 @@ class _SUMType(Operator):
 
 
 class _DIFType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -2221,8 +2414,11 @@ class _DIFType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Compute difference over number/array.
 
         x DIF a
@@ -2247,7 +2443,6 @@ class _DIFType(Operator):
 
 
 class _DUPType(Operator):
-
     @property
     def pops(self) -> int:
         return 1
@@ -2256,8 +2451,11 @@ class _DUPType(Operator):
     def puts(self) -> int:
         return 2
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Duplicate top of stack.
 
         x DUP a b
@@ -2287,7 +2485,6 @@ class _DUPType(Operator):
 
 
 class _DIVType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2296,8 +2493,11 @@ class _DIVType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Divide one number/array from another.
 
         x y DIV a
@@ -2322,7 +2522,6 @@ class _DIVType(Operator):
 
 
 class _POWType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2331,8 +2530,11 @@ class _POWType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Raise a number/array to the power of another number/array.
 
         x y POW a
@@ -2357,7 +2559,6 @@ class _POWType(Operator):
 
 
 class _FMODType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2366,8 +2567,11 @@ class _FMODType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Remainder of dividing one number/array by another.
 
         x y FMOD a
@@ -2392,7 +2596,6 @@ class _FMODType(Operator):
 
 
 class _MINType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2401,8 +2604,11 @@ class _MINType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Minimum of two numbers/arrays [element wise].
 
         x y MIN a
@@ -2427,7 +2633,6 @@ class _MINType(Operator):
 
 
 class _MAXType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2436,8 +2641,11 @@ class _MAXType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Maximum of two numbers/arrays [element wise].
 
         x y MAX a
@@ -2462,7 +2670,6 @@ class _MAXType(Operator):
 
 
 class _ATAN2Type(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2471,8 +2678,11 @@ class _ATAN2Type(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Inverse tangent of two numbers/arrays giving x and y.
 
         x y ATAN2 a
@@ -2497,7 +2707,6 @@ class _ATAN2Type(Operator):
 
 
 class _HYPOTType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2506,8 +2715,11 @@ class _HYPOTType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Hypotenuse from numbers/arrays giving legs.
 
         x y HYPOT a
@@ -2532,7 +2744,6 @@ class _HYPOTType(Operator):
 
 
 class _R2Type(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2541,8 +2752,11 @@ class _R2Type(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Sum of squares of two numbers/arrays.
 
         x y R2 a
@@ -2567,7 +2781,6 @@ class _R2Type(Operator):
 
 
 class _EQType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2576,8 +2789,11 @@ class _EQType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Compare two numbers/arrays for equality [element wise].
 
         x y EQ a
@@ -2607,7 +2823,6 @@ class _EQType(Operator):
 
 
 class _NEType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2616,8 +2831,11 @@ class _NEType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Compare two numbers/arrays for inequality [element wise].
 
         x y NE a
@@ -2647,7 +2865,6 @@ class _NEType(Operator):
 
 
 class _LTType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2656,8 +2873,11 @@ class _LTType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Compare two numbers/arrays with < [element wise].
 
         x y LT a
@@ -2687,7 +2907,6 @@ class _LTType(Operator):
 
 
 class _LEType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2696,8 +2915,11 @@ class _LEType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Compare two numbers/arrays with <= [element wise].
 
         x y LE a
@@ -2727,7 +2949,6 @@ class _LEType(Operator):
 
 
 class _GTType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2736,8 +2957,11 @@ class _GTType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Compare two numbers/arrays with > [element wise].
 
         x y GT a
@@ -2767,7 +2991,6 @@ class _GTType(Operator):
 
 
 class _GEType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2776,8 +2999,11 @@ class _GEType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Compare two numbers/arrays with >= [element wise].
 
         x y GE a
@@ -2807,7 +3033,6 @@ class _GEType(Operator):
 
 
 class _NANType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2816,8 +3041,11 @@ class _NANType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Replace number/array with NaN where it is equal to another.
 
         x y NAN a
@@ -2842,7 +3070,7 @@ class _NANType(Operator):
             x, y = np.broadcast_arrays(x, y)
             # upgrade integers to doubles
             if np.issubdtype(x.dtype, np.integer):
-                a = np.copy(x).astype('double')
+                a = np.copy(x).astype("double")
             else:
                 a = np.copy(x)
             a[x == y] = np.nan
@@ -2852,7 +3080,6 @@ class _NANType(Operator):
 
 
 class _ANDType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2861,8 +3088,11 @@ class _ANDType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Fallback to second number/array when first is NaN [element wise].
 
         x y AND a
@@ -2894,7 +3124,6 @@ class _ANDType(Operator):
 
 
 class _ORType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2903,8 +3132,11 @@ class _ORType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Replace number/array with NaN where second is NaN.
 
         x y OR a
@@ -2929,7 +3161,7 @@ class _ORType(Operator):
             x, y = np.broadcast_arrays(x, y)
             # upgrade integers to doubles
             if np.issubdtype(x.dtype, np.integer):
-                a = np.copy(x).astype('double')
+                a = np.copy(x).astype("double")
             else:
                 a = np.copy(x)
             a[np.isnan(y)] = np.nan
@@ -2941,7 +3173,6 @@ class _ORType(Operator):
 
 
 class _IANDType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2950,8 +3181,11 @@ class _IANDType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Bitwise AND of two numbers/arrays [element wise].
 
         x y IAND a
@@ -2976,7 +3210,6 @@ class _IANDType(Operator):
 
 
 class _IORType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -2985,8 +3218,11 @@ class _IORType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Bitwise OR of two numbers/arrays [element wise].
 
         x y IOR a
@@ -3011,7 +3247,6 @@ class _IORType(Operator):
 
 
 class _BTESTType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -3020,8 +3255,11 @@ class _BTESTType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Test bit, given by second number/array, in first [element wise].
 
         x y BTEST a
@@ -3050,7 +3288,6 @@ class _BTESTType(Operator):
 
 
 class _AVGType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -3059,8 +3296,11 @@ class _AVGType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Average of two numbers/arrays ignoring NaNs [element wise].
 
         x y AVG a
@@ -3096,7 +3336,6 @@ class _AVGType(Operator):
 
 
 class _DXDYType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -3105,8 +3344,11 @@ class _DXDYType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Compute dx/dy from two numbers/arrays.
 
         x y DXDY a
@@ -3138,12 +3380,11 @@ class _DXDYType(Operator):
                 dxdy = (x[2:] - x[:-2]) / (y[2:] - y[:-2])
                 a = np.concatenate(([np.nan], dxdy, [np.nan]))
         else:
-            a = float('nan')
+            a = float("nan")
         stack.append(a)
 
 
 class _EXCHType(Operator):
-
     @property
     def pops(self) -> int:
         return 2
@@ -3152,8 +3393,11 @@ class _EXCHType(Operator):
     def puts(self) -> int:
         return 2
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Exchange top two elements of stack.
 
         x y EXCH a b
@@ -3179,7 +3423,6 @@ class _EXCHType(Operator):
 
 
 class _INRANGEType(Operator):
-
     @property
     def pops(self) -> int:
         return 3
@@ -3188,8 +3431,11 @@ class _INRANGEType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Determine if number/array is between two numbers [element wise].
 
         x y z INRANGE a
@@ -3220,7 +3466,6 @@ class _INRANGEType(Operator):
 
 
 class _BOXCARType(Operator):
-
     @property
     def pops(self) -> int:
         return 3
@@ -3229,8 +3474,11 @@ class _BOXCARType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Filter number/array with a boxcar filter along a given dimension.
 
         x y z BOXCAR a
@@ -3269,23 +3517,25 @@ class _BOXCARType(Operator):
             if np.size(z) != 1:
                 raise ValueError("'z' of 'x y z BOXCAR a' must be a scalar")
             if len(np.shape(x)) <= y:
-                raise IndexError(f"requested filter along dimension {y} but "
-                                 f"'x' has only {len(np.shape(x))} dimensions")
+                raise IndexError(
+                    f"requested filter along dimension {y} but "
+                    f"'x' has only {len(np.shape(x))} dimensions"
+                )
             kernel = Box1DKernel(z)
             # split into slices along dimension y
             tmp = np.moveaxis(x, y, -1)
             slices = []
             for slice_ in tmp.reshape(-1, np.shape(x)[y]):
                 # filter each slice
-                slices.append(convolve(
-                    slice_, kernel, boundary='extend', preserve_nan=True))
+                slices.append(
+                    convolve(slice_, kernel, boundary="extend", preserve_nan=True)
+                )
             # recombine slices
             a = np.moveaxis(np.array(slices).reshape(tmp.shape), -1, y)
         stack.append(a)
 
 
 class _GAUSSType(Operator):
-
     @property
     def pops(self) -> int:
         return 3
@@ -3294,8 +3544,11 @@ class _GAUSSType(Operator):
     def puts(self) -> int:
         return 1
 
-    def __call__(self, stack: MutableSequence[NumberOrArray],
-                 environment: Mapping[str, NumberOrArray]) -> None:
+    def __call__(
+        self,
+        stack: MutableSequence[NumberOrArray],
+        environment: Mapping[str, NumberOrArray],
+    ) -> None:
         """Filter number/array with a gaussian filter along a given dimension.
 
         x y z GAUSS a
@@ -3329,16 +3582,19 @@ class _GAUSSType(Operator):
             if np.size(z) != 1:
                 raise ValueError("'z' of 'x y z GAUSS a' must be a scalar")
             if len(np.shape(x)) <= y:
-                raise IndexError(f"requested filter along dimension {y} but "
-                                 f"'x' has only {len(np.shape(x))} dimensions")
+                raise IndexError(
+                    f"requested filter along dimension {y} but "
+                    f"'x' has only {len(np.shape(x))} dimensions"
+                )
             kernel = Gaussian1DKernel(z)
             # split into slices along dimension y
             tmp = np.moveaxis(x, y, -1)
             slices = []
             for slice_ in tmp.reshape(-1, np.shape(x)[y]):
                 # filter each slice
-                slices.append(convolve(
-                    slice_, kernel, boundary='extend', preserve_nan=True))
+                slices.append(
+                    convolve(slice_, kernel, boundary="extend", preserve_nan=True)
+                )
             # recombine slices
             a = np.moveaxis(np.array(slices).reshape(tmp.shape), -1, y)
         stack.append(a)
@@ -3351,7 +3607,7 @@ E = Literal(np.e)
 
 # operators
 
-SUB = _SUBType('SUB')
+SUB = _SUBType("SUB")
 """Subtract one number/array from another.
 
 x y SUB a
@@ -3359,7 +3615,7 @@ x y SUB a
 
 """
 
-ADD = _ADDType('ADD')
+ADD = _ADDType("ADD")
 """Add two numbers/arrays.
 
 x y ADD a
@@ -3367,7 +3623,7 @@ x y ADD a
 
 """
 
-MUL = _MULType('MUL')
+MUL = _MULType("MUL")
 """Multiply two numbers/arrays.
 
 x y MUL a
@@ -3375,7 +3631,7 @@ x y MUL a
 
 """
 
-POP = _POPType('POP')
+POP = _POPType("POP")
 """Remove top of stack.
 
 x POP
@@ -3383,7 +3639,7 @@ x POP
 
 """
 
-NEG = _NEGType('NEG')
+NEG = _NEGType("NEG")
 """Negate number/array.
 
 x NEG a
@@ -3391,7 +3647,7 @@ x NEG a
 
 """
 
-ABS = _ABSType('ABS')
+ABS = _ABSType("ABS")
 r"""Absolute value of number/array.
 
 x ABS a
@@ -3399,7 +3655,7 @@ x ABS a
 
 """
 
-INV = _INVType('INV')
+INV = _INVType("INV")
 """Invert number/array.
 
 x INV a
@@ -3407,7 +3663,7 @@ x INV a
 
 """
 
-SQRT = _SQRTType('SQRT')
+SQRT = _SQRTType("SQRT")
 """Compute square root of number/array.
 
 x SQRT a
@@ -3415,7 +3671,7 @@ x SQRT a
 
 """
 
-SQR = _SQRType('SQR')
+SQR = _SQRType("SQR")
 """Square number/array.
 
 x SQR a
@@ -3423,7 +3679,7 @@ x SQR a
 
 """
 
-EXP = _EXPType('EXP')
+EXP = _EXPType("EXP")
 """Exponential of number/array.
 
 x EXP a
@@ -3431,7 +3687,7 @@ x EXP a
 
 """
 
-LOG = _LOGType('LOG')
+LOG = _LOGType("LOG")
 """Natural logarithm of number/array.
 
 x LOG a
@@ -3439,7 +3695,7 @@ x LOG a
 
 """
 
-LOG10 = _LOG10Type('LOG10')
+LOG10 = _LOG10Type("LOG10")
 """Compute base 10 logarithm of number/array.
 
 x LOG10 a
@@ -3447,7 +3703,7 @@ x LOG10 a
 
 """
 
-SIN = _SINType('SIN')
+SIN = _SINType("SIN")
 """Sine of number/array [in radians].
 
 x SIN a
@@ -3455,7 +3711,7 @@ x SIN a
 
 """
 
-COS = _COSType('COS')
+COS = _COSType("COS")
 """Cosine of number/array [in radians].
 
 x COS a
@@ -3463,7 +3719,7 @@ x COS a
 
 """
 
-TAN = _TANType('TAN')
+TAN = _TANType("TAN")
 """Tangent of number/array [in radians].
 
 x TAN a
@@ -3471,7 +3727,7 @@ x TAN a
 
 """
 
-SIND = _SINDType('SIND')
+SIND = _SINDType("SIND")
 """Sine of number/array [in degrees].
 
 x SIND a
@@ -3479,7 +3735,7 @@ x SIND a
 
 """
 
-COSD = _COSDType('COSD')
+COSD = _COSDType("COSD")
 """Cosine of number/array [in degrees].
 
 x COSD a
@@ -3487,7 +3743,7 @@ x COSD a
 
 """
 
-TAND = _TANDType('TAND')
+TAND = _TANDType("TAND")
 """Tangend of number/array [in degrees].
 
 x TAND a
@@ -3495,7 +3751,7 @@ x TAND a
 
 """
 
-SINH = _SINHType('SINH')
+SINH = _SINHType("SINH")
 """Hyperbolic sine of number/array.
 
 x SINH a
@@ -3503,7 +3759,7 @@ x SINH a
 
 """
 
-COSH = _COSHType('COSH')
+COSH = _COSHType("COSH")
 """Hyperbolic cosine of number/array.
 
 x COSH a
@@ -3511,7 +3767,7 @@ x COSH a
 
 """
 
-TANH = _TANHType('TANH')
+TANH = _TANHType("TANH")
 """Hyperbolic tangent of number/array.
 
 x TANH a
@@ -3519,7 +3775,7 @@ x TANH a
 
 """
 
-ASIN = _ASINType('ASIN')
+ASIN = _ASINType("ASIN")
 """Inverse sine of number/array [in radians].
 
 x ASIN a
@@ -3527,7 +3783,7 @@ x ASIN a
 
 """
 
-ACOS = _ACOSType('ACOS')
+ACOS = _ACOSType("ACOS")
 """Inverse cosine of number/array [in radians].
 
 x ACOS a
@@ -3535,7 +3791,7 @@ x ACOS a
 
 """
 
-ATAN = _ATANType('ATAN')
+ATAN = _ATANType("ATAN")
 """Inverse tangent of number/array [in radians].
 
 x ATAN a
@@ -3543,7 +3799,7 @@ x ATAN a
 
 """
 
-ASIND = _ASINDType('ASIND')
+ASIND = _ASINDType("ASIND")
 """Inverse sine of number/array [in degrees].
 
 x ASIND a
@@ -3551,7 +3807,7 @@ x ASIND a
 
 """
 
-ACOSD = _ACOSDType('ACOSD')
+ACOSD = _ACOSDType("ACOSD")
 """Inverse cosine of number/array [in degrees].
 
 x ACOSD a
@@ -3559,7 +3815,7 @@ x ACOSD a
 
 """
 
-ATAND = _ATANDType('ATAND')
+ATAND = _ATANDType("ATAND")
 """Inverse tangent of number/array [in degrees].
 
 x ATAND a
@@ -3567,7 +3823,7 @@ x ATAND a
 
 """
 
-ASINH = _ASINHType('ASINH')
+ASINH = _ASINHType("ASINH")
 """Inverse hyperbolic sine of number/array.
 
 x ASINH a
@@ -3575,7 +3831,7 @@ x ASINH a
 
 """
 
-ACOSH = _ACOSHType('ACOSH')
+ACOSH = _ACOSHType("ACOSH")
 """Inverse hyperbolic cosine of number/array.
 
 x ACOSH a
@@ -3583,7 +3839,7 @@ x ACOSH a
 
 """
 
-ATANH = _ATANHType('ATANH')
+ATANH = _ATANHType("ATANH")
 """Inverse hyperbolic tangent of number/array.
 
 x ATANH a
@@ -3591,7 +3847,7 @@ x ATANH a
 
 """
 
-ISNAN = _ISNANType('ISNAN')
+ISNAN = _ISNANType("ISNAN")
 """Determine if number/array is NaN.
 
 x ISNAN a
@@ -3599,7 +3855,7 @@ x ISNAN a
 
 """
 
-ISAN = _ISANType('ISAN')
+ISAN = _ISANType("ISAN")
 """Determine if number/array is not NaN.
 
 x ISAN a
@@ -3607,7 +3863,7 @@ x ISAN a
 
 """
 
-RINT = _RINTType('RINT')
+RINT = _RINTType("RINT")
 """Round number/array to nearest integer.
 
 x RINT a
@@ -3615,7 +3871,7 @@ x RINT a
 
 """
 
-NINT = _RINTType('NINT')
+NINT = _RINTType("NINT")
 """Round number/array to nearest integer.
 
 x NINT a
@@ -3623,7 +3879,7 @@ x NINT a
 
 """
 
-CEIL = _CEILType('CEIL')
+CEIL = _CEILType("CEIL")
 """Round number/array up to nearest integer.
 
 x CEIL a
@@ -3631,7 +3887,7 @@ x CEIL a
 
 """
 
-CEILING = _CEILType('CEILING')
+CEILING = _CEILType("CEILING")
 """Round number/array up to nearest integer.
 
 x CEILING a
@@ -3639,7 +3895,7 @@ x CEILING a
 
 """
 
-FLOOR = _FLOORType('FLOOR')
+FLOOR = _FLOORType("FLOOR")
 """Round number/array down to nearest integer.
 
 x FLOOR a
@@ -3647,7 +3903,7 @@ x FLOOR a
 
 """
 
-D2R = _D2RType('D2R')
+D2R = _D2RType("D2R")
 """Convert number/array from degrees to radians.
 
 x D2R a
@@ -3655,7 +3911,7 @@ x D2R a
 
 """
 
-R2D = _R2DType('R2D')
+R2D = _R2DType("R2D")
 """Convert number/array from radians to degrees.
 
 x R2D a
@@ -3663,7 +3919,7 @@ x R2D a
 
 """
 
-YMDHMS = _YMDHMSType('YMDHMS')
+YMDHMS = _YMDHMSType("YMDHMS")
 """Convert number/array from seconds since RADS epoch to YYMMDDHHMMSS.
 
 x YMDHMS a
@@ -3671,7 +3927,7 @@ x YMDHMS a
 
 """
 
-SUM = _SUMType('SUM')
+SUM = _SUMType("SUM")
 """Compute sum over number/array [ignoring NaNs].
 
 x SUM a
@@ -3679,7 +3935,7 @@ x SUM a
 
 """
 
-DIF = _DIFType('DIF')
+DIF = _DIFType("DIF")
 """Compute difference over number/array.
 
 x DIF a
@@ -3687,7 +3943,7 @@ x DIF a
 
 """
 
-DUP = _DUPType('DUP')
+DUP = _DUPType("DUP")
 """Duplicate top of stack.
 
 x DUP a b
@@ -3695,7 +3951,7 @@ x DUP a b
 
 """
 
-DIV = _DIVType('DIV')
+DIV = _DIVType("DIV")
 """Divide one number/array from another.
 
 x y DIV a
@@ -3703,7 +3959,7 @@ x y DIV a
 
 """
 
-POW = _POWType('POW')
+POW = _POWType("POW")
 """Raise a number/array to the power of another number/array.
 
 x y POW a
@@ -3711,7 +3967,7 @@ x y POW a
 
 """
 
-FMOD = _FMODType('FMOD')
+FMOD = _FMODType("FMOD")
 """Remainder of dividing one number/array by another.
 
 x y FMOD a
@@ -3719,7 +3975,7 @@ x y FMOD a
 
 """
 
-MIN = _MINType('MIN')
+MIN = _MINType("MIN")
 """Minimum of two numbers/arrays [element wise].
 
 x y MIN a
@@ -3727,7 +3983,7 @@ x y MIN a
 
 """
 
-MAX = _MAXType('MAX')
+MAX = _MAXType("MAX")
 """Maximum of two numbers/arrays [element wise].
 
 x y MAX a
@@ -3735,7 +3991,7 @@ x y MAX a
 
 """
 
-ATAN2 = _ATAN2Type('ATAN2')
+ATAN2 = _ATAN2Type("ATAN2")
 """Inverse tangent of two numbers/arrays giving x and y.
 
 x y ATAN2 a
@@ -3743,7 +3999,7 @@ x y ATAN2 a
 
 """
 
-HYPOT = _HYPOTType('HYPOT')
+HYPOT = _HYPOTType("HYPOT")
 """Hypotenuse from numbers/arrays giving legs.
 
 x y HYPOT a
@@ -3751,7 +4007,7 @@ x y HYPOT a
 
 """
 
-R2 = _R2Type('R2')
+R2 = _R2Type("R2")
 """Sum of squares of two numbers/arrays.
 
 x y R2 a
@@ -3759,7 +4015,7 @@ x y R2 a
 
 """
 
-EQ = _EQType('EQ')
+EQ = _EQType("EQ")
 """Compare two numbers/arrays for equality [element wise].
 
 x y EQ a
@@ -3767,7 +4023,7 @@ x y EQ a
 
 """
 
-NE = _NEType('NE')
+NE = _NEType("NE")
 """Compare two numbers/arrays for inequality [element wise].
 
 x y NE a
@@ -3775,7 +4031,7 @@ x y NE a
 
 """
 
-LT = _LTType('LT')
+LT = _LTType("LT")
 """Compare two numbers/arrays with < [element wise].
 
 x y LT a
@@ -3783,7 +4039,7 @@ x y LT a
 
 """
 
-LE = _LEType('LE')
+LE = _LEType("LE")
 """Compare two numbers/arrays with <= [element wise].
 
 x y LE a
@@ -3791,7 +4047,7 @@ x y LE a
 
 """
 
-GT = _GTType('GT')
+GT = _GTType("GT")
 """Compare two numbers/arrays with > [element wise].
 
 x y GT a
@@ -3799,7 +4055,7 @@ x y GT a
 
 """
 
-GE = _GEType('GE')
+GE = _GEType("GE")
 """Compare two numbers/arrays with >= [element wise].
 
 x y GE a
@@ -3807,7 +4063,7 @@ x y GE a
 
 """
 
-NAN = _NANType('NAN')
+NAN = _NANType("NAN")
 """Replace number/array with NaN where it is equal to another.
 
 x y NAN a
@@ -3815,7 +4071,7 @@ x y NAN a
 
 """
 
-AND = _ANDType('AND')
+AND = _ANDType("AND")
 """Fallback to second number/array when first is NaN [element wise].
 
 x y AND a
@@ -3823,7 +4079,7 @@ x y AND a
 
 """
 
-OR = _ORType('OR')
+OR = _ORType("OR")
 """Replace number/array with NaN where second is NaN.
 
 x y OR a
@@ -3831,7 +4087,7 @@ x y OR a
 
 """
 
-IAND = _IANDType('IAND')
+IAND = _IANDType("IAND")
 """Bitwise AND of two numbers/arrays [element wise].
 
 x y IAND a
@@ -3839,7 +4095,7 @@ x y IAND a
 
 """
 
-IOR = _IORType('IOR')
+IOR = _IORType("IOR")
 """Bitwise OR of two numbers/arrays [element wise].
 
 x y IOR a
@@ -3847,7 +4103,7 @@ x y IOR a
 
 """
 
-BTEST = _BTESTType('BTEST')
+BTEST = _BTESTType("BTEST")
 """Test bit, given by second number/array, in first [element wise].
 
 x y BTEST a
@@ -3855,7 +4111,7 @@ x y BTEST a
 
 """
 
-AVG = _AVGType('AVG')
+AVG = _AVGType("AVG")
 """Average of two numbers/arrays ignoring NaNs [element wise].
 
 x y AVG a
@@ -3863,7 +4119,7 @@ x y AVG a
 
 """
 
-DXDY = _DXDYType('DXDY')
+DXDY = _DXDYType("DXDY")
 """Compute dx/dy from two numbers/arrays.
 
 x y DXDY a
@@ -3871,7 +4127,7 @@ x y DXDY a
 
 """
 
-EXCH = _EXCHType('EXCH')
+EXCH = _EXCHType("EXCH")
 """Exchange top two elements of stack.
 
 x y EXCH a b
@@ -3879,7 +4135,7 @@ x y EXCH a b
 
 """
 
-INRANGE = _INRANGEType('INRANGE')
+INRANGE = _INRANGEType("INRANGE")
 """Determine if number/array is between two numbers [element wise].
 
 x y z INRANGE a
@@ -3888,7 +4144,7 @@ x y z INRANGE a
 
 """
 
-BOXCAR = _BOXCARType('BOXCAR')
+BOXCAR = _BOXCARType("BOXCAR")
 """Filter number/array with a boxcar filter along a given dimension.
 
 x y z BOXCAR a
@@ -3897,7 +4153,7 @@ x y z BOXCAR a
 
 """
 
-GAUSS = _GAUSSType('GAUSS')
+GAUSS = _GAUSSType("GAUSS")
 """Filter number/array with a gaussian filter along a given dimension.
 
 x y z GAUSS a
@@ -3907,77 +4163,77 @@ x y z GAUSS a
 """
 
 _KEYWORDS = {
-    'SUB': SUB,
-    'ADD': ADD,
-    'MUL': MUL,
-    'PI': PI,
-    'E': E,
-    'POP': POP,
-    'NEG': NEG,
-    'ABS': ABS,
-    'INV': INV,
-    'SQRT': SQRT,
-    'SQR': SQR,
-    'EXP': EXP,
-    'LOG': LOG,
-    'LOG10': LOG10,
-    'SIN': SIN,
-    'COS': COS,
-    'TAN': TAN,
-    'SIND': SIND,
-    'COSD': COSD,
-    'TAND': TAND,
-    'SINH': SINH,
-    'COSH': COSH,
-    'TANH': TANH,
-    'ASIN': ASIN,
-    'ACOS': ACOS,
-    'ATAN': ATAN,
-    'ASIND': ASIND,
-    'ACOSD': ACOSD,
-    'ATAND': ATAND,
-    'ASINH': ASINH,
-    'ACOSH': ACOSH,
-    'ATANH': ATANH,
-    'ISNAN': ISNAN,
-    'ISAN': ISAN,
-    'RINT': RINT,
-    'NINT': NINT,
-    'CEIL': CEIL,
-    'CEILING': CEILING,
-    'FLOOR': FLOOR,
-    'D2R': D2R,
-    'R2D': R2D,
-    'YMDHMS': YMDHMS,
-    'SUM': SUM,
-    'DIF': DIF,
-    'DUP': DUP,
-    'DIV': DIV,
-    'POW': POW,
-    'FMOD': FMOD,
-    'MIN': MIN,
-    'MAX': MAX,
-    'ATAN2': ATAN2,
-    'HYPOT': HYPOT,
-    'R2': R2,
-    'EQ': EQ,
-    'NE': NE,
-    'LT': LT,
-    'LE': LE,
-    'GT': GT,
-    'GE': GE,
-    'NAN': NAN,
-    'AND': AND,
-    'OR': OR,
-    'IAND': IAND,
-    'IOR': IOR,
-    'BTEST': BTEST,
-    'AVG': AVG,
-    'DXDY': DXDY,
-    'EXCH': EXCH,
-    'INRANGE': INRANGE,
-    'BOXCAR': BOXCAR,
-    'GAUSS': GAUSS
+    "SUB": SUB,
+    "ADD": ADD,
+    "MUL": MUL,
+    "PI": PI,
+    "E": E,
+    "POP": POP,
+    "NEG": NEG,
+    "ABS": ABS,
+    "INV": INV,
+    "SQRT": SQRT,
+    "SQR": SQR,
+    "EXP": EXP,
+    "LOG": LOG,
+    "LOG10": LOG10,
+    "SIN": SIN,
+    "COS": COS,
+    "TAN": TAN,
+    "SIND": SIND,
+    "COSD": COSD,
+    "TAND": TAND,
+    "SINH": SINH,
+    "COSH": COSH,
+    "TANH": TANH,
+    "ASIN": ASIN,
+    "ACOS": ACOS,
+    "ATAN": ATAN,
+    "ASIND": ASIND,
+    "ACOSD": ACOSD,
+    "ATAND": ATAND,
+    "ASINH": ASINH,
+    "ACOSH": ACOSH,
+    "ATANH": ATANH,
+    "ISNAN": ISNAN,
+    "ISAN": ISAN,
+    "RINT": RINT,
+    "NINT": NINT,
+    "CEIL": CEIL,
+    "CEILING": CEILING,
+    "FLOOR": FLOOR,
+    "D2R": D2R,
+    "R2D": R2D,
+    "YMDHMS": YMDHMS,
+    "SUM": SUM,
+    "DIF": DIF,
+    "DUP": DUP,
+    "DIV": DIV,
+    "POW": POW,
+    "FMOD": FMOD,
+    "MIN": MIN,
+    "MAX": MAX,
+    "ATAN2": ATAN2,
+    "HYPOT": HYPOT,
+    "R2": R2,
+    "EQ": EQ,
+    "NE": NE,
+    "LT": LT,
+    "LE": LE,
+    "GT": GT,
+    "GE": GE,
+    "NAN": NAN,
+    "AND": AND,
+    "OR": OR,
+    "IAND": IAND,
+    "IOR": IOR,
+    "BTEST": BTEST,
+    "AVG": AVG,
+    "DXDY": DXDY,
+    "EXCH": EXCH,
+    "INRANGE": INRANGE,
+    "BOXCAR": BOXCAR,
+    "GAUSS": GAUSS,
 }
 
 
@@ -4003,35 +4259,40 @@ def _is_integer(x: NumberOrArray) -> bool:
 def _get_x(stack: MutableSequence[NumberOrArray]) -> NumberOrArray:
     if not stack:
         raise StackUnderflowError(
-            "attempted to get element from the 'stack' but the stack is empty")
+            "attempted to get element from the 'stack' but the stack is empty"
+        )
     return stack.pop()
 
 
-def _get_xy(stack: MutableSequence[NumberOrArray]) \
-        -> Tuple[NumberOrArray, NumberOrArray]:
+def _get_xy(
+    stack: MutableSequence[NumberOrArray]
+) -> Tuple[NumberOrArray, NumberOrArray]:
     if not stack:
         raise StackUnderflowError(
-            "attempted to get 2 elements from the 'stack' but the stack "
-            "is empty")
+            "attempted to get 2 elements from the 'stack' but the stack " "is empty"
+        )
     if len(stack) < 2:
         raise StackUnderflowError(
             f"attempted to get 2 elements from the 'stack' but the stack has "
-            f"only {len(stack)} elements")
+            f"only {len(stack)} elements"
+        )
     y = stack.pop()
     x = stack.pop()
     return x, y
 
 
-def _get_xyz(stack: MutableSequence[NumberOrArray]) \
-        -> Tuple[NumberOrArray, NumberOrArray, NumberOrArray]:
+def _get_xyz(
+    stack: MutableSequence[NumberOrArray]
+) -> Tuple[NumberOrArray, NumberOrArray, NumberOrArray]:
     if not stack:
         raise StackUnderflowError(
-            "attempted to get 3 elements from the 'stack' but the stack "
-            "is empty")
+            "attempted to get 3 elements from the 'stack' but the stack " "is empty"
+        )
     if len(stack) < 3:
         raise StackUnderflowError(
             f"attempted to get 3 elements from the 'stack' but the stack has "
-            f"only {len(stack)} elements")
+            f"only {len(stack)} elements"
+        )
     z = stack.pop()
     y = stack.pop()
     x = stack.pop()

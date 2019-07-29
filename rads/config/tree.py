@@ -10,12 +10,27 @@ from cf_units import Unit  # type: ignore
 from .._typing import PathLike, Number, IntOrArray, NumberOrArray
 from ..rpn import CompleteExpression
 
-__all__ = ['PreConfig', 'Cycles', 'ReferencePass', 'Repeat', 'SubCycles',
-           'Phase', 'Compress', 'Constant', 'Flags', 'MultiBitFlag',
-           'SingleBitFlag', 'SurfaceType', 'Grid', 'NetCDFAttribute',
-           'NetCDFVariable', 'Range', 'Variable', 'Satellite', 'Config']
-
-
+__all__ = [
+    "PreConfig",
+    "Cycles",
+    "ReferencePass",
+    "Repeat",
+    "SubCycles",
+    "Phase",
+    "Compress",
+    "Constant",
+    "Flags",
+    "MultiBitFlag",
+    "SingleBitFlag",
+    "SurfaceType",
+    "Grid",
+    "NetCDFAttribute",
+    "NetCDFVariable",
+    "Range",
+    "Variable",
+    "Satellite",
+    "Config",
+]
 
 
 @dataclass
@@ -29,6 +44,7 @@ class PreConfig:
 @dataclass
 class Cycles:
     """Cycle range 'inclusive'."""
+
     first: int
     last: int
 
@@ -45,6 +61,7 @@ class ReferencePass:
 @dataclass
 class Repeat:
     """Length of the repeat cycle."""
+
     days: float
     passes: int
     longitude_drift: Optional[float] = None
@@ -81,7 +98,6 @@ class Constant:
 
 
 class Flags(ABC):
-
     @abstractmethod
     def extract(self, flags: NumberOrArray) -> NumberOrArray:
         pass
@@ -106,7 +122,7 @@ class MultiBitFlag(Flags):
         result = (flags & ~(~0 << self.length) << self.bit) >> self.bit
 
         # if NumPy array cast down to smallest type
-        if hasattr(result, 'astype'):
+        if hasattr(result, "astype"):
             if self.length <= 8:
                 return cast(np.generic, result).astype(np.uint8)
             if self.length <= 16:
@@ -135,7 +151,6 @@ class SingleBitFlag(Flags):
 
 @dataclass
 class SurfaceType(Flags):
-
     def extract(self, flags: IntOrArray) -> IntOrArray:
         # NOTE: Enum not used because meanings are defined in XML config file
         if isinstance(flags, np.ndarray):
@@ -156,9 +171,9 @@ class SurfaceType(Flags):
 @dataclass
 class Grid:
     file: str
-    x: str = 'lon'
-    y: str = 'lat'
-    method: str = 'linear'
+    x: str = "lon"
+    y: str = "lat"
+    method: str = "linear"
 
 
 @dataclass
@@ -184,12 +199,13 @@ class Range:
 class Variable:
     id: str
     name: str
-    data: Union[Constant, CompleteExpression, Flags, Grid,
-                NetCDFAttribute, NetCDFVariable]
-    units: Union[Unit, str] = Unit('-')
+    data: Union[
+        Constant, CompleteExpression, Flags, Grid, NetCDFAttribute, NetCDFVariable
+    ]
+    units: Union[Unit, str] = Unit("-")
     standard_name: Optional[str] = None
-    source: str = ''
-    comment: str = ''
+    source: str = ""
+    comment: str = ""
     flag_values: Optional[Sequence[str]] = None
     flag_masks: Optional[Sequence[str]] = None
     limits: Optional[Range] = None

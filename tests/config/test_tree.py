@@ -5,7 +5,6 @@ from rads.config.tree import SingleBitFlag, MultiBitFlag, SurfaceType
 
 
 class TestSingleBitFlag:
-
     def test_init(self):
         for bit in range(0, 63):
             SingleBitFlag(bit)
@@ -33,14 +32,15 @@ class TestSingleBitFlag:
     def test_extract_with_array(self):
         np.testing.assert_equal(
             SingleBitFlag(0).extract(np.array([0, 1, 2, 3, 4])),
-            np.array([False, True, False, True, False]))
+            np.array([False, True, False, True, False]),
+        )
         np.testing.assert_equal(
             SingleBitFlag(1).extract(np.array([0, 1, 2, 3, 4])),
-            np.array([False, False, True, True, False]))
+            np.array([False, False, True, True, False]),
+        )
 
 
 class TestMutiBitFlag:
-
     def test_init(self):
         for bit in range(0, 63):
             for length in range(2, 65 - bit):
@@ -90,8 +90,9 @@ class TestMutiBitFlag:
         # extract from 0b111111...
         for bit in range(0, 64):
             for length in range(2, 65 - bit):
-                assert (MultiBitFlag(bit, length).extract(2 ** 64 - 1) ==
-                        (2 ** 64 - 1) >> (64 - length))
+                assert MultiBitFlag(bit, length).extract(2 ** 64 - 1) == (
+                    2 ** 64 - 1
+                ) >> (64 - length)
 
     def test_extract_with_array(self):
         input = np.array([0, 2 ** 64 - 1], dtype=np.uint64)
@@ -99,7 +100,8 @@ class TestMutiBitFlag:
             for length in range(2, 65 - bit):
                 result = MultiBitFlag(bit, length).extract(input)
                 expected = np.array(
-                    [0, (2 ** 64 - 1) >> (64 - length)], dtype=np.uint64)
+                    [0, (2 ** 64 - 1) >> (64 - length)], dtype=np.uint64
+                )
                 np.testing.assert_equal(result, expected)
                 if length <= 8:
                     assert result.dtype == np.uint8
@@ -112,7 +114,6 @@ class TestMutiBitFlag:
 
 
 class TestSurfaceType:
-
     def test_init(self):
         SurfaceType()
 
@@ -127,8 +128,7 @@ class TestSurfaceType:
         assert SurfaceType().extract(0b1111111) == 4  # ice
 
     def test_extract_with_array(self):
-        input = np.array(
-            [0b000000, 0b100000, 0b010000, 0b000100], dtype=np.int64)
+        input = np.array([0b000000, 0b100000, 0b010000, 0b000100], dtype=np.int64)
         np.testing.assert_equal(SurfaceType().extract(input), [0, 2, 3, 4])
         # with other bits set
         input = np.array([0b1101011, 0b1111011, 0b1111111], dtype=np.int64)

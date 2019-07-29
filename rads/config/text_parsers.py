@@ -12,24 +12,60 @@ belongs in rads.config.grammar.
 import re
 from datetime import datetime
 from numbers import Real
-from typing import (Any, Callable, Dict, Iterable, List, Mapping, NoReturn,
-                    Optional, Sequence, TypeVar, Union)
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Mapping,
+    NoReturn,
+    Optional,
+    Sequence,
+    TypeVar,
+    Union,
+)
 
 import numpy as np  # type: ignore
 import regex
 
 from cf_units import Unit
-from .tree import (Compress, Constant, Cycles, Flags, Grid, MultiBitFlag,
-                   NetCDFAttribute, NetCDFVariable, Range, ReferencePass,
-                   Repeat, SingleBitFlag, SurfaceType)
+from .tree import (
+    Compress,
+    Constant,
+    Cycles,
+    Flags,
+    Grid,
+    MultiBitFlag,
+    NetCDFAttribute,
+    NetCDFVariable,
+    Range,
+    ReferencePass,
+    Repeat,
+    SingleBitFlag,
+    SurfaceType,
+)
 from .._utility import fortran_float
 from ..rpn import Expression
 
-__all__ = ['TerminalTextParseError', 'TextParseError', 'lift', 'list_of',
-           'one_of', 'range_of', 'compress', 'cycles', 'data', 'nop',
-           'ref_pass', 'repeat', 'time', 'unit']
+__all__ = [
+    "TerminalTextParseError",
+    "TextParseError",
+    "lift",
+    "list_of",
+    "one_of",
+    "range_of",
+    "compress",
+    "cycles",
+    "data",
+    "nop",
+    "ref_pass",
+    "repeat",
+    "time",
+    "unit",
+]
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class TerminalTextParseError(Exception):
@@ -48,8 +84,9 @@ class TextParseError(TerminalTextParseError):
 # text parsers together and return a new text parser.
 
 
-def lift(string_parser: Callable[[str], T], *, terminal: bool = False) \
-        -> Callable[[str, Mapping[str, str]], T]:
+def lift(
+    string_parser: Callable[[str], T], *, terminal: bool = False
+) -> Callable[[str, Mapping[str, str]], T]:
     """Lift a simple string parser to a text parser that accepts attributes.
 
     This is very similar to lifting a plain function into a monad.
@@ -93,9 +130,12 @@ def lift(string_parser: Callable[[str], T], *, terminal: bool = False) \
     return _parser
 
 
-def list_of(parser: Callable[[str, Mapping[str, str]], T],
-            *, sep: Optional[str] = None, terminal: bool = False) \
-        -> Callable[[str, Mapping[str, str]], List[T]]:
+def list_of(
+    parser: Callable[[str, Mapping[str, str]], T],
+    *,
+    sep: Optional[str] = None,
+    terminal: bool = False,
+) -> Callable[[str, Mapping[str, str]], List[T]]:
     """Convert parser into a parser of lists.
 
     Parameters
@@ -127,9 +167,9 @@ def list_of(parser: Callable[[str, Mapping[str, str]], T],
     return _terminal_parser if terminal else _parser
 
 
-def range_of(parser: Callable[[str, Mapping[str, str]], Real],
-             *, terminal: bool = False) \
-        -> Callable[[str, Mapping[str, str]], Range]:
+def range_of(
+    parser: Callable[[str, Mapping[str, str]], Real], *, terminal: bool = False
+) -> Callable[[str, Mapping[str, str]], Range]:
     """Create a range parser from a given parser for each range element.
 
     The resulting parser will parse space separated lists of length 2 and use
@@ -165,15 +205,15 @@ def range_of(parser: Callable[[str, Mapping[str, str]], Real],
     def _parser(string: str, attr: Mapping[str, str]) -> Range:
         minmax = [parser(s, attr) for s in string.split()]
         if not minmax:
-            raise TextParseError(
-                'ranges require exactly 2 values, but none were given')
+            raise TextParseError("ranges require exactly 2 values, but none were given")
         if len(minmax) == 1:
             raise TextParseError(
-                'ranges require exactly 2 values, but only 1 was given')
+                "ranges require exactly 2 values, but only 1 was given"
+            )
         if len(minmax) > 2:
             raise TextParseError(
-                'ranges require exactly 2 values, '
-                f'but {len(minmax)} were given')
+                "ranges require exactly 2 values, " f"but {len(minmax)} were given"
+            )
         return Range(*minmax)
 
     def _terminal_parser(string: str, attr: Mapping[str, str]) -> Range:
@@ -185,9 +225,11 @@ def range_of(parser: Callable[[str, Mapping[str, str]], Real],
     return _terminal_parser if terminal else _parser
 
 
-def one_of(parsers: Iterable[Callable[[str, Mapping[str, str]], Any]],
-           *, terminal: bool = False) \
-        -> Callable[[str, Mapping[str, str]], Any]:
+def one_of(
+    parsers: Iterable[Callable[[str, Mapping[str, str]], Any]],
+    *,
+    terminal: bool = False,
+) -> Callable[[str, Mapping[str, str]], Any]:
     """Convert parsers into a parser that tries each one in sequence.
 
     .. note::
@@ -236,8 +278,10 @@ def one_of(parsers: Iterable[Callable[[str, Mapping[str, str]], Any]],
             except AttributeError:
                 parser_types.append(parser.__qualname__)
 
-        err_str = (f"cannot convert '{string}' to any of the following "
-                   f"types: {', '.join(parser_types)}")
+        err_str = (
+            f"cannot convert '{string}' to any of the following "
+            f"types: {', '.join(parser_types)}"
+        )
         if terminal:
             raise TerminalTextParseError(err_str)
         raise TextParseError(err_str)
@@ -292,7 +336,11 @@ def compress(string: str, _: Mapping[str, str]) -> Compress:
     parts = string.split()
     try:
         funcs: Iterable[Callable[[str], Any]] = (
-            _rads_type, fortran_float, fortran_float, lambda x: x)
+            _rads_type,
+            fortran_float,
+            fortran_float,
+            lambda x: x,
+        )
         return Compress(*(f(s) for f, s in zip(funcs, parts)))
     except (KeyError, ValueError) as err:
         raise TextParseError(str(err)) from err
@@ -300,7 +348,8 @@ def compress(string: str, _: Mapping[str, str]) -> Compress:
         if len(parts) > 3:
             raise TextParseError(
                 "too many values given, expected only 'type', "
-                "'scale_factor', and 'add_offset'")
+                "'scale_factor', and 'add_offset'"
+            )
         raise TextParseError("'missing 'type'")
 
 
@@ -341,8 +390,7 @@ def cycles(string: str, _: Mapping[str, str]) -> Cycles:
             raise TextParseError("missing 'first' cycle")
         if num_values == 1:
             raise TextParseError("missing 'last' cycle")
-        raise TextParseError(
-            "too many cycles given, expected only 'first' and 'last'")
+        raise TextParseError("too many cycles given, expected only 'first' and 'last'")
 
 
 def data(string: str, attr: Mapping[str, str]) -> Any:
@@ -402,7 +450,8 @@ def data(string: str, attr: Mapping[str, str]) -> Any:
     """
     attr_ = {k: v.strip() for k, v in attr.items()}
     return one_of((_flags, _constant, _grid, _netcdf, _math, _invalid_data))(
-        string.strip(), attr_)
+        string.strip(), attr_
+    )
 
 
 def nop(string: str, _: Mapping[str, str]) -> str:
@@ -461,7 +510,13 @@ def ref_pass(string: str, _: Mapping[str, str]) -> ReferencePass:
     parts = string.split()
     try:
         funcs: Sequence[Callable[[str], Any]] = (
-            _time, float, int, int, int, lambda x: x)
+            _time,
+            float,
+            int,
+            int,
+            int,
+            lambda x: x,
+        )
         return ReferencePass(*(f(s) for f, s in zip(funcs, parts)))
     except ValueError as err:
         raise TextParseError(str(err)) from err
@@ -470,15 +525,18 @@ def ref_pass(string: str, _: Mapping[str, str]) -> ReferencePass:
             raise TextParseError("missing 'time' of reference pass")
         if len(parts) == 1:
             raise TextParseError(
-                "missing equator crossing 'longitude' of reference pass")
+                "missing equator crossing 'longitude' of reference pass"
+            )
         if len(parts) == 2:
             raise TextParseError("missing 'cycle number' of reference pass")
         if len(parts) == 3:
             raise TextParseError("missing 'pass number' of reference pass")
         # absolute orbit number is defaulted in ReferencePass
-        raise TextParseError("too many values given, expected only 'time', "
-                             "'longitude', 'cycle number', 'pass number', and "
-                             "optionally 'absolute orbit number'")
+        raise TextParseError(
+            "too many values given, expected only 'time', "
+            "'longitude', 'cycle number', 'pass number', and "
+            "optionally 'absolute orbit number'"
+        )
 
 
 def repeat(string: str, _: Mapping[str, str]) -> Repeat:
@@ -512,8 +570,7 @@ def repeat(string: str, _: Mapping[str, str]) -> Repeat:
     """
     parts = string.split()
     try:
-        funcs: Sequence[Callable[[str], Any]] = (
-            float, int, float, lambda x: x)
+        funcs: Sequence[Callable[[str], Any]] = (float, int, float, lambda x: x)
         return Repeat(*(f(s) for f, s in zip(funcs, parts)))
     except ValueError as err:
         raise TextParseError(str(err)) from err
@@ -524,7 +581,8 @@ def repeat(string: str, _: Mapping[str, str]) -> Repeat:
             raise TextParseError("missing length of repeat cycle in 'passes'")
         raise TextParseError(
             "too many values given, expected only 'days', "
-            "'passes', and 'longitude_drift'")
+            "'passes', and 'longitude_drift'"
+        )
 
 
 def time(string: str, _: Mapping[str, str]) -> datetime:
@@ -596,40 +654,38 @@ def unit(string: str, _: Mapping[str, str]) -> Unit:
         string = string.strip()
         # TODO: Remove this hack when
         #  https://github.com/SciTools/cf-units/issues/30 is fixed.
-        if string in ('dB', 'decibel'):
-            return Unit('no unit')
-        if string == 'yymmddhhmmss':
-            return Unit('unknown')
+        if string in ("dB", "decibel"):
+            return Unit("no unit")
+        if string == "yymmddhhmmss":
+            return Unit("unknown")
         raise TextParseError(f"failed to parse unit '{string}'")
 
 
 def _constant(string: str, attr: Mapping[str, str]) -> Constant:
     try:
-        if 'source' not in attr or attr['source'] == 'constant':
+        if "source" not in attr or attr["source"] == "constant":
             return Constant(one_of((lift(int), lift(float)))(string, attr))
     except TextParseError:
-        if 'source' in attr:  # constant, so hard fail
-            raise TerminalTextParseError(
-                f"invalid numerical constant '{string}'")
+        if "source" in attr:  # constant, so hard fail
+            raise TerminalTextParseError(f"invalid numerical constant '{string}'")
         raise  # pass on parsing
     raise TextParseError(f"'{string}' does not represent a constant")
 
 
 # regex is a loose match in order to allow more specific error message to take
 # precedence
-_FLAGS_RE = re.compile(r'([\+\-\d\.]+)(?:\s+([\+\-\d\.]+))?')
+_FLAGS_RE = re.compile(r"([\+\-\d\.]+)(?:\s+([\+\-\d\.]+))?")
 
 
 def _flags(string: str, attr: Mapping[str, str]) -> Flags:
-    if not attr.get('source') == 'flags':
+    if not attr.get("source") == "flags":
         raise TextParseError(f"'{string}' does not represent a flags source")
-    if string == 'surface_type':
+    if string == "surface_type":
         return SurfaceType()
     try:
         bit, length = _FLAGS_RE.fullmatch(string).groups(0)
     except AttributeError:
-        raise TerminalTextParseError(
-            f"'{string}' does not represent a flags source")
+        raise TerminalTextParseError(f"'{string}' does not represent a flags source")
     try:
         bit = int(bit)
     except ValueError as err:
@@ -644,26 +700,27 @@ def _flags(string: str, attr: Mapping[str, str]) -> Flags:
         raise TerminalTextParseError(err)
     if length < 2:
         raise TerminalTextParseError(
-            "multi bit flags must have length 2 or greater, "
-            f"length is '{length}'")
+            "multi bit flags must have length 2 or greater, " f"length is '{length}'"
+        )
     return MultiBitFlag(bit=bit, length=length)
 
 
 def _grid(string: str, attr: Mapping[str, str]) -> Grid:
     method = None
     try:
-        if attr['source'] in ('grid', 'grid_l'):
-            method = 'linear'
-        elif attr['source'] in ('grid_s', 'grid_c'):
-            method = 'spline'
-        elif attr['source'] in ('grid_q', 'grid_n'):
-            method = 'nearest'
+        if attr["source"] in ("grid", "grid_l"):
+            method = "linear"
+        elif attr["source"] in ("grid_s", "grid_c"):
+            method = "spline"
+        elif attr["source"] in ("grid_q", "grid_n"):
+            method = "nearest"
     except KeyError:
-        if re.fullmatch(r'\S[\S ]*\.nc', string):
-            method = 'linear'
+        if re.fullmatch(r"\S[\S ]*\.nc", string):
+            method = "linear"
     if method:
-        return Grid(file=string, x=attr.get('x', 'lon'),
-                    y=attr.get('y', 'lat'), method=method)
+        return Grid(
+            file=string, x=attr.get("x", "lon"), y=attr.get("y", "lat"), method=method
+        )
     # pass on parsing
     raise TextParseError(f"'{string}' does not represent a grid")
 
@@ -672,7 +729,7 @@ def _invalid_data(string: str, _: Mapping[str, str]) -> NoReturn:
     raise TerminalTextParseError(f"invalid <data> tag value '{string}'")
 
 
-_MATH_RE = re.compile(r'((\S+\s+)+)\S+')
+_MATH_RE = re.compile(r"((\S+\s+)+)\S+")
 
 
 def _math(string: str, attr: Mapping[str, str]) -> Expression:
@@ -685,8 +742,11 @@ def _math(string: str, attr: Mapping[str, str]) -> Expression:
     # because checking for a complete expression must be delayed until AST
     # evaluation due to append, delete, and merge.
     try:
-        if ('source' not in attr and _MATH_RE.fullmatch(string) or
-                attr.get('source') == 'math'):
+        if (
+            "source" not in attr
+            and _MATH_RE.fullmatch(string)
+            or attr.get("source") == "math"
+        ):
             return Expression(string)
     except ValueError as err:
         raise TerminalTextParseError(str(err)) from err
@@ -694,36 +754,36 @@ def _math(string: str, attr: Mapping[str, str]) -> Expression:
 
 
 _NETCDF_RE = regex.compile(
-    r'(?|([a-zA-Z][a-zA-Z0-9_]*)?:([a-zA-Z][a-zA-Z0-9_]+)|'
-    r'([a-zA-Z][a-zA-Z0-9_]+))')
+    r"(?|([a-zA-Z][a-zA-Z0-9_]*)?:([a-zA-Z][a-zA-Z0-9_]+)|" r"([a-zA-Z][a-zA-Z0-9_]+))"
+)
 
 
-def _netcdf(string: str, attr: Mapping[str, str]) \
-        -> Union[NetCDFVariable, NetCDFAttribute]:
-    if attr.get('source', 'nc') not in ('nc', 'netcdf'):
+def _netcdf(
+    string: str, attr: Mapping[str, str]
+) -> Union[NetCDFVariable, NetCDFAttribute]:
+    if attr.get("source", "nc") not in ("nc", "netcdf"):
         raise TextParseError(f"'{string}' does not represent a flags source")
     try:
         variable, attribute = _NETCDF_RE.fullmatch(string).groups(0)
     except AttributeError:
         str_ = f"'{string}' does not represent a netcdf attribute"
-        if attr.get('source') in ('nc', 'netcdf'):
+        if attr.get("source") in ("nc", "netcdf"):
             raise TerminalTextParseError(str_)
         raise TextParseError(str_)
     variable = variable if variable else None
-    branch = attr.get('branch', None)
+    branch = attr.get("branch", None)
     if attribute:
-        return NetCDFAttribute(
-            name=attribute, variable=variable, branch=branch)
+        return NetCDFAttribute(name=attribute, variable=variable, branch=branch)
     return NetCDFVariable(name=variable, branch=branch)
 
 
 def _rads_type(string: str) -> type:
     switch: Dict[str, type] = {
-        'int1': np.int8,
-        'int2': np.int16,
-        'int4': np.int32,
-        'real': np.float32,
-        'dble': np.float64
+        "int1": np.int8,
+        "int2": np.int16,
+        "int4": np.int32,
+        "real": np.float32,
+        "dble": np.float64,
     }
     try:
         return switch[string.lower()]
@@ -733,22 +793,23 @@ def _rads_type(string: str) -> type:
 
 def _time(string: str) -> datetime:
     try:
-        return datetime.strptime(string, '%Y-%m-%dT%H:%M:%S')
+        return datetime.strptime(string, "%Y-%m-%dT%H:%M:%S")
     except ValueError:
         try:
-            return datetime.strptime(string, '%Y-%m-%dT%H:%M')
+            return datetime.strptime(string, "%Y-%m-%dT%H:%M")
         except ValueError:
             try:
-                return datetime.strptime(string, '%Y-%m-%dT%H')
+                return datetime.strptime(string, "%Y-%m-%dT%H")
             except ValueError:
                 try:
-                    return datetime.strptime(string, '%Y-%m-%dT')
+                    return datetime.strptime(string, "%Y-%m-%dT")
                 except ValueError:
                     try:
-                        return datetime.strptime(string, '%Y-%m-%d')
+                        return datetime.strptime(string, "%Y-%m-%d")
                     except ValueError:
                         # required to avoid 'unconverted data' message from
                         # strptime
                         raise ValueError(
                             "time data '{:s}' does not match format "
-                            "'%Y-%m-%dT%H:%M:%S'".format(string))
+                            "'%Y-%m-%dT%H:%M:%S'".format(string)
+                        )

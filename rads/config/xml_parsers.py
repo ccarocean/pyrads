@@ -7,8 +7,18 @@ This module is heavily based on PEGTL_, a parser combinator library for C++.
 """
 import typing
 from abc import abstractmethod, ABC
-from typing import (Callable, List, Any, Tuple, NoReturn, Optional,
-                    MutableSequence, Collection, Union, cast)
+from typing import (
+    Callable,
+    List,
+    Any,
+    Tuple,
+    NoReturn,
+    Optional,
+    MutableSequence,
+    Collection,
+    Union,
+    cast,
+)
 
 import yzal
 
@@ -40,8 +50,9 @@ class ParseFailure(Exception):
 
     """
 
-    def __init__(self, file: Optional[str], line: Optional[int],
-                 message: str = 'parsing failed') -> None:
+    def __init__(
+        self, file: Optional[str], line: Optional[int], message: str = "parsing failed"
+    ) -> None:
         super().__init__()
         self.file = file
         self.line = line
@@ -65,9 +76,9 @@ class ParseFailure(Exception):
         """
         # the reason this is not done in the constructor is to speed up
         # exception handling when reporting is not necessary.
-        file = self.file if self.file else ''
-        line = str(self.line) if self.line else ''
-        return '{:s}:{:s}: {:s}'.format(file, line, self.message)
+        file = self.file if self.file else ""
+        line = str(self.line) if self.line else ""
+        return "{:s}:{:s}: {:s}".format(file, line, self.message)
 
 
 class GlobalParseFailure(ParseFailure):
@@ -123,8 +134,7 @@ def next_element(pos: Element) -> Element:
     try:
         return pos.next()
     except StopIteration:
-        raise LocalParseFailure(
-            pos.file, pos.closing_line, 'No more elements.')
+        raise LocalParseFailure(pos.file, pos.closing_line, "No more elements.")
 
 
 @yzal.lazy
@@ -134,8 +144,8 @@ def first_child(pos: Element) -> Element:
         return pos.down()
     except StopIteration:
         raise LocalParseFailure(
-            pos.file, pos.opening_line,
-            '<{:s}> has no children'.format(pos.tag))
+            pos.file, pos.opening_line, "<{:s}> has no children".format(pos.tag)
+        )
 
 
 class Parser(ABC):
@@ -177,7 +187,7 @@ class Parser(ABC):
 
         """
 
-    def __add__(self, other: 'Parser') -> 'Sequence':
+    def __add__(self, other: "Parser") -> "Sequence":
         """Combine two parsers, matching the first followed by the second.
 
         Multiple consecutive uses of '+' will result in a single
@@ -198,7 +208,7 @@ class Parser(ABC):
         """
         return Sequence(self, other)
 
-    def __or__(self, other: 'Parser') -> 'Alternate':
+    def __or__(self, other: "Parser") -> "Alternate":
         """Combine two parsers, matching the first or the second.
 
         Multiple consecutive uses of '|' will result in a single
@@ -219,7 +229,7 @@ class Parser(ABC):
         """
         return Alternate(self, other)
 
-    def __xor__(self, func: Callable[[Any], Any]) -> 'Apply':
+    def __xor__(self, func: Callable[[Any], Any]) -> "Apply":
         """Apply a function to the value result of this parser.
 
         Parameters
@@ -240,7 +250,7 @@ class Parser(ABC):
         """
         return Apply(self, func)
 
-    def __invert__(self) -> 'Not':
+    def __invert__(self) -> "Not":
         """Invert this parser.
 
         If this parser would match a given position, now it will not.  If it
@@ -256,7 +266,7 @@ class Parser(ABC):
         """
         return Not(self)
 
-    def __lshift__(self, message: str) -> 'Must':
+    def __lshift__(self, message: str) -> "Must":
         """Require the parser to succeed.
 
         This will convert all :class:`LocalParseFailure` s to
@@ -299,10 +309,15 @@ class Apply(Parser):
             be caught.
 
     """
+
     _catch: Optional[Union[type, Tuple[type, ...]]] = None
 
-    def __init__(self, parser: Parser, func: Callable[[Any], Any],
-                 catch: Optional[Collection[type]] = None) -> None:
+    def __init__(
+        self,
+        parser: Parser,
+        func: Callable[[Any], Any],
+        catch: Optional[Collection[type]] = None,
+    ) -> None:
         self._parser = parser
         self._function = func
         if catch:
@@ -321,7 +336,8 @@ class Apply(Parser):
             if not isinstance(err, self._catch):
                 raise  # don't catch this exception
             raise LocalParseFailure(
-                position.file, position.opening_line, str(err)) from err
+                position.file, position.opening_line, str(err)
+            ) from err
 
 
 class Lazy(Parser):
@@ -404,8 +420,7 @@ class Not(Parser):
     def __init__(self, parser: Parser) -> None:
         self._parser = parser
 
-    def __call__(self, position: Element) -> \
-            Tuple[None, Element]:  # noqa: D102
+    def __call__(self, position: Element) -> Tuple[None, Element]:  # noqa: D102
         try:
             self._parser(position)
         except LocalParseFailure:
@@ -426,8 +441,7 @@ class Repeat(Parser):
     def __init__(self, parser: Parser) -> None:
         self._parser = parser
 
-    def __call__(self, position: Element) \
-            -> Tuple[List[Any], Element]:  # noqa: D102
+    def __call__(self, position: Element) -> Tuple[List[Any], Element]:  # noqa: D102
         values = []
         try:
             while True:  # loop until parse failure
@@ -489,15 +503,14 @@ class Sequence(MultiParser):
     def __init__(self, *parsers: Parser) -> None:
         super().__init__(Sequence, *parsers)
 
-    def __call__(self, position: Element) \
-            -> Tuple[List[Any], Element]:  # noqa: D102
+    def __call__(self, position: Element) -> Tuple[List[Any], Element]:  # noqa: D102
         values = []
         for parser in self._parsers:
             value, position = parser(position)
             values.append(value)
         return values, position
 
-    def __add__(self, other: Parser) -> 'Sequence':
+    def __add__(self, other: Parser) -> "Sequence":
         """Combine this sequence and a parser, returning a new sequence.
 
         .. note::
@@ -520,7 +533,7 @@ class Sequence(MultiParser):
         """
         return Sequence(*self._parsers, other)
 
-    def __iadd__(self, other: Parser) -> 'Sequence':
+    def __iadd__(self, other: Parser) -> "Sequence":
         """Combine this sequence with the given parser (in place).
 
         .. note::
@@ -569,7 +582,7 @@ class Alternate(MultiParser):
                 pass
         raise LocalParseFailure(position.file, position.opening_line)
 
-    def __or__(self, other: Parser) -> 'Alternate':
+    def __or__(self, other: Parser) -> "Alternate":
         """Combine this alternate and a parser, returning a new alternate.
 
         .. note::
@@ -593,7 +606,7 @@ class Alternate(MultiParser):
         """
         return Alternate(*self._parsers, other)
 
-    def __ior__(self, other: Parser) -> 'Alternate':
+    def __ior__(self, other: Parser) -> "Alternate":
         """Combine this alternate with the given parser (in place).
 
         .. note::
@@ -620,8 +633,7 @@ class Alternate(MultiParser):
 class Success(Parser):
     """Parser that always succeeds, consuming nothing."""
 
-    def __call__(self, position: Element) \
-            -> Tuple[None, Element]:  # noqa: D102
+    def __call__(self, position: Element) -> Tuple[None, Element]:  # noqa: D102
         return None, position
 
 
@@ -635,12 +647,12 @@ class Failure(Parser):
 class Start(Parser):
     """Match start of an element, consuming nothing."""
 
-    def __call__(self, position: Element) \
-            -> Tuple[None, Element]:  # noqa: D102
+    def __call__(self, position: Element) -> Tuple[None, Element]:  # noqa: D102
         try:
             prev = position.prev()
             raise LocalParseFailure(
-                prev.file, prev.opening_line, 'Expected start of element.')
+                prev.file, prev.opening_line, "Expected start of element."
+            )
         except StopIteration:
             return None, position
 
@@ -648,8 +660,7 @@ class Start(Parser):
 class End(Parser):
     """Match end of an element, consuming nothing."""
 
-    def __call__(self, position: Element) \
-            -> Tuple[None, Element]:  # noqa: D102
+    def __call__(self, position: Element) -> Tuple[None, Element]:  # noqa: D102
         try:
             # Element is really a Thunk[Element] so we need to cast it and
             # force it's evaluation to determine if a parse error is thrown,
@@ -658,14 +669,14 @@ class End(Parser):
         except LocalParseFailure:
             return None, position
         raise LocalParseFailure(
-            position.file, position.closing_line, 'Expected end of element.')
+            position.file, position.closing_line, "Expected end of element."
+        )
 
 
 class AnyElement(Parser):
     """Parser that matches any element."""
 
-    def __call__(self, position: Element) \
-            -> Tuple[Element, Element]:  # noqa: D102
+    def __call__(self, position: Element) -> Tuple[Element, Element]:  # noqa: D102
         return yzal.strict(position), next_element(position)
 
 
@@ -682,8 +693,7 @@ class Tag(Parser):
     def __init__(self, name: str) -> None:
         self._name = name
 
-    def __call__(self, position: Element) \
-            -> Tuple[Element, Element]:  # noqa: D102
+    def __call__(self, position: Element) -> Tuple[Element, Element]:  # noqa: D102
         if position.tag == self._name:
             return yzal.strict(position), next_element(position)
         raise LocalParseFailure(position.file, position.opening_line)
@@ -907,14 +917,16 @@ def until(parser: Parser) -> Parser:
     def process(elements: typing.Sequence[Element]) -> Element:
         return elements[-1]
 
-    def process2(elements: Tuple[MutableSequence[Element], Element]) \
-            -> typing.Sequence[Element]:
+    def process2(
+        elements: Tuple[MutableSequence[Element], Element]
+    ) -> typing.Sequence[Element]:
         start_elements, last_element = elements
         start_elements.append(last_element)
         return start_elements
 
-    return star(not_at(parser) + not_at(end()) + any() ^ process
-                ) + at(parser) ^ process2
+    return (
+        star(not_at(parser) + not_at(end()) + any() ^ process) + at(parser) ^ process2
+    )
 
 
 def failure() -> Parser:

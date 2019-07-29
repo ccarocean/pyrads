@@ -1,14 +1,22 @@
-from rads.datetime64util import (year, month, day, hour, minute, second,
-                                 microsecond, ymdhmsus)
+from rads.datetime64util import (
+    year,
+    month,
+    day,
+    hour,
+    minute,
+    second,
+    microsecond,
+    ymdhmsus,
+)
 
 import numpy as np  # type: ignore
 
 
-DATE = np.datetime64('2002-02-03T13:56:03.172')
-LEAP_YEAR = np.datetime64('2020-02-29T18:25:40.12850')
-NEAR_EPOCH = np.datetime64('1970-01-01T00:00:00.080988')
-LOW = np.datetime64('0000-01-01T00:00:00.0')
-HIGH = np.datetime64('9999-12-31T23:59:59.999999')
+DATE = np.datetime64("2002-02-03T13:56:03.172")
+LEAP_YEAR = np.datetime64("2020-02-29T18:25:40.12850")
+NEAR_EPOCH = np.datetime64("1970-01-01T00:00:00.080988")
+LOW = np.datetime64("0000-01-01T00:00:00.0")
+HIGH = np.datetime64("9999-12-31T23:59:59.999999")
 
 
 def test_year():

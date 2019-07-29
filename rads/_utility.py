@@ -7,12 +7,18 @@ from wrapt import ObjectProxy  # type: ignore
 
 from ._typing import PathOrFile, PathLike
 
-__all__ = ['ensure_open', 'filestring', 'xor', 'contains_sublist',
-           'merge_sublist', 'delete_sublist', 'fortran_float']
+__all__ = [
+    "ensure_open",
+    "filestring",
+    "xor",
+    "contains_sublist",
+    "merge_sublist",
+    "delete_sublist",
+    "fortran_float",
+]
 
 
 class _NoCloseIOWrapper(ObjectProxy):  # type: ignore
-
     def __exit__(self, *args: object, **kwargs: object) -> None:
         pass
 
@@ -20,14 +26,16 @@ class _NoCloseIOWrapper(ObjectProxy):  # type: ignore
         pass
 
 
-def ensure_open(file: PathOrFile,
-                mode: str = 'r',
-                buffering: int = -1,
-                encoding: Optional[str] = None,
-                errors: Optional[str] = None,
-                newline: Optional[str] = None,
-                closefd: bool = True,
-                closeio: bool = False) -> IO[Any]:
+def ensure_open(
+    file: PathOrFile,
+    mode: str = "r",
+    buffering: int = -1,
+    encoding: Optional[str] = None,
+    errors: Optional[str] = None,
+    newline: Optional[str] = None,
+    closefd: bool = True,
+    closeio: bool = False,
+) -> IO[Any]:
     """Open file or leave file-like object open.
 
     This function behaves identically to :func:`open` but can also accept a
@@ -81,12 +89,19 @@ def ensure_open(file: PathOrFile,
     .. seealso:: :func:`open`
 
     """
-    if hasattr(file, 'read'):
+    if hasattr(file, "read"):
         if closeio:
             return cast(IO[Any], _NoCloseIOWrapper(file))
         return cast(IO[Any], file)
-    return open(cast(Union[PathLike, int], file), mode, buffering,
-                encoding, errors, newline, closefd)
+    return open(
+        cast(Union[PathLike, int], file),
+        mode,
+        buffering,
+        encoding,
+        errors,
+        newline,
+        closefd,
+    )
 
 
 def filestring(file: PathOrFile) -> Optional[str]:
@@ -107,7 +122,7 @@ def filestring(file: PathOrFile) -> Optional[str]:
     """
     if isinstance(file, int):
         return None
-    if hasattr(file, 'read'):
+    if hasattr(file, "read"):
         try:
             return cast(IO[Any], file).name
         except AttributeError:
@@ -116,13 +131,13 @@ def filestring(file: PathOrFile) -> Optional[str]:
         return file
     if isinstance(file, bytes):
         try:
-            return file.decode('utf-8')
+            return file.decode("utf-8")
         except UnicodeDecodeError:
             return None
     file_ = os.fspath(cast(PathLike, file))
     if isinstance(file_, bytes):
         try:
-            return file_.decode('utf-8')
+            return file_.decode("utf-8")
         except UnicodeDecodeError:
             return None
     return file_
@@ -179,8 +194,7 @@ def contains_sublist(list_: List[Any], sublist: List[Any]) -> bool:
     if not sublist:
         return False
     for i in range(len(list_)):
-        if (list_[i] == sublist[0] and
-                list_[i:i + len(sublist)] == sublist):
+        if list_[i] == sublist[0] and list_[i : i + len(sublist)] == sublist:
             return True
     return False
 
@@ -226,9 +240,8 @@ def delete_sublist(list_: List[Any], sublist: List[Any]) -> List[Any]:
     if not sublist:
         return list_[:]
     for i in range(len(list_)):
-        if (list_[i] == sublist[0] and
-                list_[i:i + len(sublist)] == sublist):
-            return list_[:i] + list_[i + len(sublist):]
+        if list_[i] == sublist[0] and list_[i : i + len(sublist)] == sublist:
+            return list_[:i] + list_[i + len(sublist) :]
     return list_[:]
 
 
@@ -284,9 +297,9 @@ def fortran_float(string: str) -> float:
         return float(string)
     except ValueError as err:
         try:
-            return float(string.replace('d', 'e').replace('D', 'E'))
+            return float(string.replace("d", "e").replace("D", "E"))
         except ValueError:
             try:
-                return float(string.replace('+', 'e+').replace('-', 'e-'))
+                return float(string.replace("+", "e+").replace("-", "e-"))
             except ValueError:
                 raise err
