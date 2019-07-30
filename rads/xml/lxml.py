@@ -174,7 +174,7 @@ def fromstring(
 
 
 def fromstringlist(
-    sequence: Sequence[_ParserInputType], parser: Optional[XMLParser] = ...
+    sequence: Sequence[_ParserInputType], parser: Optional[XMLParser] = None
 ) -> etree._Element:
     """Parse XML document from sequence of string fragments.
 

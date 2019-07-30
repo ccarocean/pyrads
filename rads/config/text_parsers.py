@@ -698,23 +698,22 @@ def _flags(string: str, attr: Mapping[str, str]) -> Flags:
     if match is None:
         raise TerminalTextParseError(f"'{string}' does not represent a flags source")
     bit, length = match.groups()
+    length = "1" if length is None else length
+    # import pdb; pdb.set_trace()
     try:
         bit_ = int(bit)
-    except ValueError as err:
-        raise TerminalTextParseError(err)
-    if bit_ < 0:
-        raise TerminalTextParseError(f"bit index '{bit_}' cannot be negative")
-    if length is None:
-        return SingleBitFlag(bit=bit_)
-    try:
         length_ = int(length)
     except ValueError as err:
-        raise TerminalTextParseError(err)
-    if length_ < 2:
-        raise TerminalTextParseError(
-            "multi bit flags must have length 2 or greater, " f"length is '{length_}'"
-        )
-    return MultiBitFlag(bit=bit_, length=length_)
+        raise TerminalTextParseError(err) from err
+    if bit_ < 0:
+        raise TerminalTextParseError(f"bit index '{bit_}' cannot be negative")
+    if length_ == 1:
+        return SingleBitFlag(bit=bit_)
+    if length_ >= 2:
+        return MultiBitFlag(bit=bit_, length=length_)
+    raise TerminalTextParseError(
+        "multi bit flags must have length 2 or greater, " f"length is '{length_}'"
+    )
 
 
 def _grid(string: str, attr: Mapping[str, str]) -> Grid:
@@ -804,24 +803,17 @@ def _rads_type(string: str) -> type:
 
 
 def _time(string: str) -> datetime:
-    try:
-        return datetime.strptime(string, "%Y-%m-%dT%H:%M:%S")
-    except ValueError:
+    formats = [
+        "%Y-%m-%dT%H:%M:%S",
+        "%Y-%m-%dT%H:%M",
+        "%Y-%m-%dT%H",
+        "%Y-%m-%dT",
+        "%Y-%m-%d",
+    ]
+    for format_ in formats:
         try:
-            return datetime.strptime(string, "%Y-%m-%dT%H:%M")
+            return datetime.strptime(string, format_)
         except ValueError:
-            try:
-                return datetime.strptime(string, "%Y-%m-%dT%H")
-            except ValueError:
-                try:
-                    return datetime.strptime(string, "%Y-%m-%dT")
-                except ValueError:
-                    try:
-                        return datetime.strptime(string, "%Y-%m-%d")
-                    except ValueError:
-                        # required to avoid 'unconverted data' message from
-                        # strptime
-                        raise ValueError(
-                            "time data '{:s}' does not match format "
-                            "'%Y-%m-%dT%H:%M:%S'".format(string)
-                        )
+            pass
+    # required to avoid 'unconverted data' message from strptime
+    raise ValueError(f"time data '{string}' does not match format '%Y-%m-%dT%H:%M:%S'")

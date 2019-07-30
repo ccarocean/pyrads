@@ -203,7 +203,7 @@ def test_data_as_flags():
     assert exc_info.type is TerminalTextParseError
     # multibit must have multiple bits
     with pytest.raises(TerminalTextParseError) as exc_info:
-        data("0 1", {"source": "flags"})
+        data("0 0", {"source": "flags"})
     assert exc_info.type is TerminalTextParseError
 
 

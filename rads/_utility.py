@@ -127,20 +127,16 @@ def filestring(file: PathOrFile) -> Optional[str]:
             return cast(IO[Any], file).name
         except AttributeError:
             return None
+    if not isinstance(file, (str, bytes)):
+        file = os.fspath(cast(PathLike, file))
     if isinstance(file, str):
         return file
     if isinstance(file, bytes):
         try:
-            return file.decode("utf-8")
+            return cast(bytes, file).decode("utf-8")
         except UnicodeDecodeError:
             return None
-    file_ = os.fspath(cast(PathLike, file))
-    if isinstance(file_, bytes):
-        try:
-            return file_.decode("utf-8")
-        except UnicodeDecodeError:
-            return None
-    return file_
+    raise TypeError(f"'{type(file)}' is not a file like object")
 
 
 def xor(a: bool, b: bool) -> bool:

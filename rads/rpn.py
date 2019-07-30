@@ -558,8 +558,8 @@ class Expression(Sequence[Token], Token):
     def __init__(self, tokens: Iterable[Union[Number, str, Token]]) -> None:
         ...
 
-    def __init__(
-        self, tokens: Union[str, Iterable[Union[Number, str, Token]]]  # noqa: F811
+    def __init__(  # noqa: F811
+        self, tokens: Union[str, Iterable[Union[Number, str, Token]]]
     ) -> None:
         if isinstance(tokens, str):
             self._tokens = [token(t) for t in tokens.split()]
@@ -644,8 +644,8 @@ class Expression(Sequence[Token], Token):
     def __getitem__(self, item: slice) -> "Expression":
         ...
 
-    def __getitem__(
-        self, item: Union[int, slice]  # noqa: F811
+    def __getitem__(  # noqa: F811
+        self, item: Union[int, slice]
     ) -> Union[Token, "Expression"]:
         if isinstance(item, slice):
             return Expression(self._tokens[item])

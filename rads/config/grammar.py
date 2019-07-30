@@ -260,14 +260,12 @@ def variable() -> Parser:
         | value(list_of(lift(str)), "flag_masks")
         | value(range_of(one_of((lift(int), lift(float)))), "limits")
         | value(range_of(one_of((lift(int), lift(float)))), "plot_range")
-        |
         # used by rads for database generation, has no effect on end users
-        ignore("parameters")
+        | ignore("parameters")
         | value(data, "data")
         | value(list_of(lift(str)), "quality_flag")
-        |
         # not currently used
-        value(lift(int), "dimensions")
+        | value(lift(int), "dimensions")
         | value(lift(ffc.convert), "format")
         | value(compress, "compress")
         | value(one_of((lift(int), lift(float))), "default")
@@ -312,14 +310,12 @@ def variable_overrides() -> Parser:
         | variable_override(list_of(lift(str)), "flag_masks")
         | variable_override(range_of(one_of((lift(int), lift(float)))), "limits")
         | variable_override(range_of(one_of((lift(int), lift(float)))), "plot_range")
-        |
         # used by rads for database generation, has no effect on end users
-        ignore("parameters")
+        | ignore("parameters")
         | variable_override(data, "data")
         | variable_override(list_of(lift(str)), "quality_flag")
-        |
         # not currently used
-        variable_override(lift(int), "dimensions")
+        | variable_override(lift(int), "dimensions")
         | variable_override(lift(ffc.convert), "format")
         | variable_override(compress, "compress")
         | variable_override(one_of((lift(int), lift(float))), "default")
@@ -331,30 +327,24 @@ def satellite_grammar() -> Parser:
     root_block = block(
         # ignore the global attributes
         ignore("global_attributes")
-        |
         # satellite id/names table
-        satellites()
-        |
+        | satellites()
         # top level satellite parameters
-        value(lift(str), "satellite", var="name")
+        | value(lift(str), "satellite", var="name")
         | ignore("satid")
         | value(lift(float), "dt1hz")
         | value(lift(float), "inclination")
         | value(list_of(lift(float)), "frequency")
         | ignore("xover_params")
-        |
         # satellite phase
-        phase()
-        |
+        | phase()
         # variable aliases
-        alias()
-        |
+        | alias()
         # variables
-        variable()
+        | variable()
         | variable_overrides()
-        |
         # pyrads specific tags
-        ignore("dataroot")
+        | ignore("dataroot")
         | ignore("blacklist")
     )
     return root_block

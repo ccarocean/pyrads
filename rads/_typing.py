@@ -1,7 +1,6 @@
 """Type aliases."""
 
 import os
-from pathlib import Path
 from typing import IO, TYPE_CHECKING, Any, Union
 
 import numpy as np  # type: ignore
