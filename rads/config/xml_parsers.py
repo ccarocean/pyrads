@@ -475,13 +475,13 @@ class MultiParser(Parser, ABC):
         self._parsers: List[Parser] = []
         for parser in parsers:
             if isinstance(parser, subtype):
-                self._parsers.extend(cast(MultiParser, parser)._parsers)
+                self._parsers.extend(parser._parsers)
             else:
                 self._parsers.append(parser)
 
     def _append(self, other: Parser) -> None:
         if isinstance(other, self._subtype):
-            self._parsers.extend(cast(MultiParser, other)._parsers)
+            self._parsers.extend(other._parsers)
         else:
             self._parsers.append(other)
 

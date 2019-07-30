@@ -1,8 +1,8 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
-from numbers import Integral, Real
-from typing import Mapping, Optional, Sequence, Union, cast
+from numbers import Integral
+from typing import Generic, Mapping, Optional, Sequence, TypeVar, Union, cast
 
 import numpy as np  # type: ignore
 from cf_units import Unit  # type: ignore
@@ -26,6 +26,7 @@ __all__ = [
     "Grid",
     "NetCDFAttribute",
     "NetCDFVariable",
+    "N",
     "Range",
     "Variable",
     "Satellite",
@@ -189,14 +190,17 @@ class NetCDFVariable:
     branch: Optional[str] = None
 
 
-@dataclass
-class Range:
-    min: Real
-    max: Real
+N = TypeVar("N", int, float)
 
 
 @dataclass
-class Variable:
+class Range(Generic[N]):
+    min: N
+    max: N
+
+
+@dataclass
+class Variable(Generic[N]):
     id: str
     name: str
     data: Union[
@@ -208,8 +212,8 @@ class Variable:
     comment: str = ""
     flag_values: Optional[Sequence[str]] = None
     flag_masks: Optional[Sequence[str]] = None
-    limits: Optional[Range] = None
-    plot_range: Optional[Range] = None
+    limits: Optional[Range[N]] = None
+    plot_range: Optional[Range[N]] = None
     quality_flag: Optional[Sequence[str]] = None
     dimensions: int = 1  # not currently used
     format: Optional[str] = None
@@ -228,7 +232,7 @@ class Satellite:
     frequency: Sequence[float]
     phases: Mapping[str, Phase] = field(default_factory=dict)
     aliases: Mapping[str, Sequence[str]] = field(default_factory=dict)
-    variables: Mapping[str, Variable] = field(default_factory=dict)
+    variables: Mapping[str, Variable[Union[int, float]]] = field(default_factory=dict)
 
 
 @dataclass
@@ -237,7 +241,7 @@ class Config:
     config_files: Sequence[PathLike]
     satellites: Mapping[str, Satellite]
 
-    def __init__(self, pre_config: PreConfig):
+    def __init__(self, pre_config: PreConfig, satellites: Mapping[str, Satellite]):
         self.dataroot = pre_config.dataroot
         self.config_files = pre_config.config_files[:]
-        self.satellites = dict()
+        self.satellites = satellites

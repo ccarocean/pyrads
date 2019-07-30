@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     # with the same type stub.
     cached_property = property
 else:
-    from cached_property import cached_property  # type: ignore
+    from cached_property import cached_property
 
 __all__ = [
     "ParseError",
@@ -98,7 +98,7 @@ class Element(base.Element):
 
     @cached_property
     def closing_line(self) -> int:
-        return cast(int, self.opening_line + self.num_lines - 1)
+        return self.opening_line + self.num_lines - 1
 
     @property
     def tag(self) -> str:

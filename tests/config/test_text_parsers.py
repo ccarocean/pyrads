@@ -1,8 +1,8 @@
 from datetime import datetime
 
-import numpy as np
-import pytest
-from cf_units import Unit
+import numpy as np  # type: ignore
+import pytest  # type: ignore
+from cf_units import Unit  # type: ignore
 
 from rads.config.text_parsers import (
     TerminalTextParseError,
@@ -53,7 +53,7 @@ def test_lift():
         lift(float)("not_a_float", {})
     with pytest.raises(TerminalTextParseError):
         lift(float, terminal=True)("not_a_float", {})
-    assert lift(int)._lifted == "int"
+    assert lift(int)._lifted == "int"  # type: ignore
 
 
 def test_list_of(mocker):
@@ -62,10 +62,10 @@ def test_list_of(mocker):
     assert list_of(lift(int))("", {}) == []
     m = mocker.Mock()
     m.return_value = 3
-    list_of(m)("abc 123", {"stuff": 3.14})
+    list_of(m)("abc 123", {"stuff": "3.14"})
     assert m.call_count == 2
-    m.assert_any_call("abc", {"stuff": 3.14})
-    m.assert_any_call("123", {"stuff": 3.14})
+    m.assert_any_call("abc", {"stuff": "3.14"})
+    m.assert_any_call("123", {"stuff": "3.14"})
     with pytest.raises(TextParseError):
         list_of(lift(int))("a b c", {})
     with pytest.raises(TerminalTextParseError):
@@ -77,10 +77,10 @@ def test_range_of(mocker):
     assert range_of(lift(float))("2.5 3.14", {}) == Range(2.5, 3.14)
     assert range_of(lift(int))("2   3", {}) == Range(2, 3)
     m = mocker.Mock()
-    range_of(m)("2.5 3.14", {"stuff": 3.14})
+    range_of(m)("2.5 3.14", {"stuff": "3.14"})
     assert m.call_count == 2
-    m.assert_any_call("2.5", {"stuff": 3.14})
-    m.assert_any_call("3.14", {"stuff": 3.14})
+    m.assert_any_call("2.5", {"stuff": "3.14"})
+    m.assert_any_call("3.14", {"stuff": "3.14"})
     with pytest.raises(TextParseError):
         range_of(lift(int))("2.5 3.14", {})
     with pytest.raises(TextParseError):
@@ -103,8 +103,8 @@ def test_one_of(mocker):
     assert type(int_float_str("3abc", {})) == str
     m1 = mocker.Mock()
     m2 = mocker.Mock()
-    one_of((m1, m2))("abc", {"stuff": 123})
-    m1.assert_called_once_with("abc", {"stuff": 123})
+    one_of((m1, m2))("abc", {"stuff": "123"})
+    m1.assert_called_once_with("abc", {"stuff": "123"})
     assert m2.call_count == 0
     with pytest.raises(TextParseError):
         one_of((lift(int), lift(float)))("abc", {})

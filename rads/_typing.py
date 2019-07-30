@@ -10,9 +10,9 @@ __all__ = ["PathLike", "PathOrFile", "Number", "IntOrArray", "NumberOrArray"]
 
 if TYPE_CHECKING:
     # pylint: disable=unsubscriptable-object
-    PathLike = Union[str, bytes, Path, os.PathLike[Any]]
+    PathLike = Union[str, os.PathLike[str]]
 else:
-    PathLike = Union[str, bytes, Path, os.PathLike]
+    PathLike = Union[str, os.PathLike]
 
 PathOrFile = Union[PathLike, IO[Any], int]
 

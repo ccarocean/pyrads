@@ -152,9 +152,8 @@ def satellites() -> Parser:
         for num, line in enumerate(element.text.strip().splitlines()):
             line = line.strip()
             if line:
-                id_source = Source(
-                    line=element.opening_line + num + 1, file=element.file
-                )
+                line_ = element.opening_line + num + 1 if element.opening_line else None
+                id_source = Source(line=line_, file=element.file)
                 try:
                     id_, id3, *names = line.split()
                 except ValueError:
@@ -178,9 +177,8 @@ def satellite_ids() -> Parser:
         for num, line in enumerate(element.text.strip().splitlines()):
             line = line.strip()
             if line:
-                id_source = Source(
-                    line=element.opening_line + num + 1, file=element.file
-                )
+                line_ = element.opening_line + num + 1 if element.opening_line else None
+                id_source = Source(line=line_, file=element.file)
                 id_, *_ = line.split()
                 if len(id_) != 2:
                     raise GlobalParseFailure(

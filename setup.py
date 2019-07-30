@@ -26,6 +26,7 @@ tests_require = [
     "pylint",
     "pycodestyle>=2.1.0",
     "pyflakes>=2.1.0",
+    "typing-extensions",
 ]
 
 setup(

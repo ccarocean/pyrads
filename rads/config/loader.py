@@ -1,8 +1,8 @@
 import os
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Dict, Iterable, Optional
 
-from appdirs import AppDirs, system
+from appdirs import AppDirs, system  # type: ignore
 from dataclass_builder import MissingFieldError
 
 from .._typing import PathLike
@@ -61,7 +61,7 @@ class ConfigError(Exception):
     message: str
     line: Optional[int] = None
     file: Optional[str] = None
-    original_exception = Optional[Exception]
+    original_exception: Optional[Exception] = None
 
     def __init__(
         self,
@@ -75,12 +75,12 @@ class ConfigError(Exception):
             self.line = line
         if file:
             self.file = file
-        if original:
+        if original is not None:
             self.original_exception = original
         if file or line:
-            file = self.file if self.file else ""
-            line = self.line if self.line is not None else ""
-            super().__init__(f"{file}:{line}: {message}")
+            file_ = self.file if self.file else ""
+            line_ = self.line if self.line is not None else ""
+            super().__init__(f"{file_}:{line_}: {message}")
         else:
             super().__init__(message)
 
@@ -246,7 +246,7 @@ def get_dataroot(
     if dataroot is not None:
         dataroot_ = Path(dataroot)
     elif os.getenv("RADSDATAROOT"):
-        dataroot_ = Path(os.getenv("RADSDATAROOT")).expanduser()
+        dataroot_ = Path(os.environ["RADSDATAROOT"]).expanduser()
     else:  # read from XML files
         if xml_files is None:
             config_paths = config_files(dataroot, rads=False, pyrads=True)
@@ -255,7 +255,7 @@ def get_dataroot(
                 Path(os.path.expanduser(os.path.expandvars(f))) for f in xml_files
             ]
         config_paths = [p for p in config_paths if p.is_file()]
-        env = {}
+        env: Dict[str, str] = {}
         for file in config_paths:
             try:
                 ast = dataroot_grammar()(parse(file, rootless=True).down())[0]
@@ -278,7 +278,7 @@ def load_config(
     dataroot: Optional[PathLike] = None,
     xml_files: Optional[Iterable[PathLike]] = None,
     satellites: Optional[Iterable[str]] = None,
-):
+) -> Config:
     """Load the PyRADS configuration from one or more XML files.
 
     Parameters
@@ -321,7 +321,6 @@ def load_config(
     )
 
     # initialize configuration object and satellite configuration builders
-    config = Config(pre_config)
     builders = {
         sat: SatelliteBuilder()
         for sat in pre_config.satellites
@@ -329,7 +328,7 @@ def load_config(
     }
 
     # parse and evaluate each configuration file for each satellite
-    for file in config.config_files:
+    for file in pre_config.config_files:
         # construct ast
         try:
             ast = satellite_grammar()(parse(file, rootless=True).down())[0]
@@ -343,13 +342,14 @@ def load_config(
                 raise _to_config_error(err) from err
 
     # build each satellite configuration object
+    satellites = {}
     for sat, builder in builders.items():
         try:
-            config.satellites[sat] = builder.build()
+            satellites[sat] = builder.build()
         except MissingFieldError as err:
             raise ConfigError(str(err)) from err
 
-    return config
+    return Config(pre_config, satellites)
 
 
 def _load_preconfig(
@@ -381,7 +381,7 @@ def _load_preconfig(
     builder.dataroot = dataroot_
     builder.config_files = list(xml_paths)
     try:
-        pre_config = builder.build()
+        pre_config: PreConfig = builder.build()
     except MissingFieldError as err:
         raise ConfigError(str(err)) from err
 

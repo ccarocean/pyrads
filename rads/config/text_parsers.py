@@ -11,8 +11,8 @@ belongs in rads.config.grammar.
 
 import re
 from datetime import datetime
-from numbers import Real
 from typing import (
+    TYPE_CHECKING,
     Any,
     Callable,
     Dict,
@@ -22,13 +22,14 @@ from typing import (
     NoReturn,
     Optional,
     Sequence,
+    Type,
     TypeVar,
     Union,
 )
 
 import numpy as np  # type: ignore
-import regex
-from cf_units import Unit
+import regex  # type: ignore
+from cf_units import Unit  # type: ignore
 
 from .._utility import fortran_float
 from ..rpn import Expression
@@ -39,6 +40,7 @@ from .tree import (
     Flags,
     Grid,
     MultiBitFlag,
+    N,
     NetCDFAttribute,
     NetCDFVariable,
     Range,
@@ -65,7 +67,7 @@ __all__ = [
     "unit",
 ]
 
-T = TypeVar("T")
+_T = TypeVar("_T")
 
 
 class TerminalTextParseError(Exception):
@@ -83,10 +85,19 @@ class TextParseError(TerminalTextParseError):
 # This section contains parser combinators that can be used to glue multiple
 # text parsers together and return a new text parser.
 
+if TYPE_CHECKING:
+    from typing_extensions import Protocol
+
+    class _SupportsFromString(Protocol):
+        def __init__(self, string: str) -> None:
+            ...
+
 
 def lift(
-    string_parser: Callable[[str], T], *, terminal: bool = False
-) -> Callable[[str, Mapping[str, str]], T]:
+    string_parser: "Union[Callable[[str], _T], Type[_SupportsFromString]]",
+    *,
+    terminal: bool = False,
+) -> Callable[[str, Mapping[str, str]], _T]:
     """Lift a simple string parser to a text parser that accepts attributes.
 
     This is very similar to lifting a plain function into a monad.
@@ -94,7 +105,8 @@ def lift(
     Parameters
     ----------
     string_parser
-        A simple parser that takes a string and returns a value.
+        A simple parser that takes a string and returns a value.  This can also
+        by a type that can be constructed from a string.
     terminal
         Set to True to use :class:`TerminalTextParseError` s instead of
         :class:`TextParseError` s.
@@ -118,9 +130,9 @@ def lift(
 
     """
 
-    def _parser(string: str, _: Mapping[str, str]) -> T:
+    def _parser(string: str, _: Mapping[str, str]) -> _T:
         try:
-            return string_parser(string)
+            return string_parser(string)  # type: ignore
         except (TypeError, ValueError, KeyError) as err:
             if terminal:
                 raise TerminalTextParseError(str(err)) from err
@@ -131,11 +143,11 @@ def lift(
 
 
 def list_of(
-    parser: Callable[[str, Mapping[str, str]], T],
+    parser: Callable[[str, Mapping[str, str]], _T],
     *,
     sep: Optional[str] = None,
     terminal: bool = False,
-) -> Callable[[str, Mapping[str, str]], List[T]]:
+) -> Callable[[str, Mapping[str, str]], List[_T]]:
     """Convert parser into a parser of lists.
 
     Parameters
@@ -155,10 +167,10 @@ def list_of(
 
     """
 
-    def _parser(string: str, attr: Mapping[str, str]) -> List[T]:
+    def _parser(string: str, attr: Mapping[str, str]) -> List[_T]:
         return [parser(s, attr) for s in string.split(sep=sep)]
 
-    def _terminal_parser(string: str, attr: Mapping[str, str]) -> List[T]:
+    def _terminal_parser(string: str, attr: Mapping[str, str]) -> List[_T]:
         try:
             return _parser(string, attr)
         except TextParseError as err:
@@ -168,8 +180,8 @@ def list_of(
 
 
 def range_of(
-    parser: Callable[[str, Mapping[str, str]], Real], *, terminal: bool = False
-) -> Callable[[str, Mapping[str, str]], Range]:
+    parser: Callable[[str, Mapping[str, str]], N], *, terminal: bool = False
+) -> Callable[[str, Mapping[str, str]], Range[N]]:
     """Create a range parser from a given parser for each range element.
 
     The resulting parser will parse space separated lists of length 2 and use
@@ -202,7 +214,7 @@ def range_of(
 
     """
 
-    def _parser(string: str, attr: Mapping[str, str]) -> Range:
+    def _parser(string: str, attr: Mapping[str, str]) -> Range[N]:
         minmax = [parser(s, attr) for s in string.split()]
         if not minmax:
             raise TextParseError("ranges require exactly 2 values, but none were given")
@@ -216,7 +228,7 @@ def range_of(
             )
         return Range(*minmax)
 
-    def _terminal_parser(string: str, attr: Mapping[str, str]) -> Range:
+    def _terminal_parser(string: str, attr: Mapping[str, str]) -> Range[N]:
         try:
             return _parser(string, attr)
         except TextParseError as err:
@@ -682,27 +694,27 @@ def _flags(string: str, attr: Mapping[str, str]) -> Flags:
         raise TextParseError(f"'{string}' does not represent a flags source")
     if string == "surface_type":
         return SurfaceType()
-    try:
-        bit, length = _FLAGS_RE.fullmatch(string).groups(0)
-    except AttributeError:
+    match = _FLAGS_RE.fullmatch(string)
+    if match is None:
         raise TerminalTextParseError(f"'{string}' does not represent a flags source")
+    bit, length = match.groups()
     try:
-        bit = int(bit)
+        bit_ = int(bit)
     except ValueError as err:
         raise TerminalTextParseError(err)
-    if bit < 0:
-        raise TerminalTextParseError(f"bit index '{bit}' cannot be negative")
-    if not length:
-        return SingleBitFlag(bit=bit)
+    if bit_ < 0:
+        raise TerminalTextParseError(f"bit index '{bit_}' cannot be negative")
+    if length is None:
+        return SingleBitFlag(bit=bit_)
     try:
-        length = int(length)
+        length_ = int(length)
     except ValueError as err:
         raise TerminalTextParseError(err)
-    if length < 2:
+    if length_ < 2:
         raise TerminalTextParseError(
-            "multi bit flags must have length 2 or greater, " f"length is '{length}'"
+            "multi bit flags must have length 2 or greater, " f"length is '{length_}'"
         )
-    return MultiBitFlag(bit=bit, length=length)
+    return MultiBitFlag(bit=bit_, length=length_)
 
 
 def _grid(string: str, attr: Mapping[str, str]) -> Grid:
@@ -763,13 +775,13 @@ def _netcdf(
 ) -> Union[NetCDFVariable, NetCDFAttribute]:
     if attr.get("source", "nc") not in ("nc", "netcdf"):
         raise TextParseError(f"'{string}' does not represent a flags source")
-    try:
-        variable, attribute = _NETCDF_RE.fullmatch(string).groups(0)
-    except AttributeError:
+    match = _NETCDF_RE.fullmatch(string)
+    if match is None:
         str_ = f"'{string}' does not represent a netcdf attribute"
         if attr.get("source") in ("nc", "netcdf"):
             raise TerminalTextParseError(str_)
         raise TextParseError(str_)
+    variable, attribute = match.groups()
     variable = variable if variable else None
     branch = attr.get("branch", None)
     if attribute:

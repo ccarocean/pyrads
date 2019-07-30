@@ -1,6 +1,6 @@
 """Utility functions for configuration parsing."""
 
-from typing import Callable, Mapping, cast
+from typing import Callable, Mapping, Type, cast
 
 from ..xml.base import Element
 from .ast import (
@@ -44,7 +44,7 @@ def continue_from(element: Element) -> Callable[[str], LocalParseFailure]:
     return error
 
 
-def source_from_element(element: Element):
+def source_from_element(element: Element) -> Source:
     return Source(line=element.opening_line, file=element.file)
 
 
@@ -79,7 +79,7 @@ def parse_condition(attr: Mapping[str, str]) -> Condition:
 
 
 def named_block_processor(
-    tag: str, parser: Parser, node: NamedBlock
+    tag: str, parser: Parser, node: Type[NamedBlock]
 ) -> Callable[[Element], NamedBlock]:
     def process(element: Element) -> NamedBlock:
         try:

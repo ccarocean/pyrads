@@ -169,5 +169,7 @@ def fromstringlist(
             except StopIteration:
                 xml.fromstringlist(sequence, parser)
     except xml.ParseError as err:
-        raise xml.error_with_file(err, file)
+        if file:
+            raise xml.error_with_file(err, file) from err
+        raise
     return result

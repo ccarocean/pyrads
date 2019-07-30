@@ -1,5 +1,5 @@
-import numpy as np
-import pytest
+import numpy as np  # type: ignore
+import pytest  # type: ignore
 
 from rads.config.tree import MultiBitFlag, SingleBitFlag, SurfaceType
 
@@ -9,7 +9,7 @@ class TestSingleBitFlag:
         for bit in range(0, 63):
             SingleBitFlag(bit)
         with pytest.raises(TypeError):
-            SingleBitFlag(1.5)
+            SingleBitFlag(1.5)  # type: ignore
         with pytest.raises(ValueError):
             SingleBitFlag(-1)
 
@@ -46,9 +46,9 @@ class TestMutiBitFlag:
             for length in range(2, 65 - bit):
                 MultiBitFlag(bit, length)
         with pytest.raises(TypeError):
-            MultiBitFlag(1.5, 5)
+            MultiBitFlag(1.5, 5)  # type: ignore
         with pytest.raises(TypeError):
-            MultiBitFlag(2, 3.5)
+            MultiBitFlag(2, 3.5)  # type: ignore
         with pytest.raises(ValueError):
             MultiBitFlag(-1, 3)
         with pytest.raises(ValueError):
@@ -103,6 +103,7 @@ class TestMutiBitFlag:
                     [0, (2 ** 64 - 1) >> (64 - length)], dtype=np.uint64
                 )
                 np.testing.assert_equal(result, expected)
+                assert isinstance(result, (np.generic, np.ndarray))
                 if length <= 8:
                     assert result.dtype == np.uint8
                 elif length <= 16:

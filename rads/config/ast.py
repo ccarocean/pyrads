@@ -29,7 +29,9 @@ from ._builders import PhaseBuilder, VariableBuilder
 ActionType = Callable[[Any, str, Any], None]
 
 
-def _get_mapping(environment: Any, attr: str, mapping: Callable[[], Mapping] = dict):
+def _get_mapping(
+    environment: Any, attr: str, mapping: Callable[[], Mapping[str, Any]] = dict
+) -> Any:
     if not hasattr(environment, attr) or getattr(environment, attr) == MISSING:
         setattr(environment, attr, mapping())
     return getattr(environment, attr)
@@ -38,7 +40,7 @@ def _get_mapping(environment: Any, attr: str, mapping: Callable[[], Mapping] = d
 def _suggest_field(dataclass: Any, attempt: str) -> Optional[str]:
     matches = get_close_matches(attempt, [f.name for f in fields(dataclass)], 1, 0.1)
     if matches:
-        return matches[0]
+        return cast(str, matches[0])
     return None
 
 
@@ -151,19 +153,18 @@ def append(
         return
     # has current value
     current_value = _get(environment, attr)
-    if isinstance(current_value, str):
-        new_value = current_value + " " + value
-    elif isinstance(current_value, Expression):
+    if isinstance(current_value, str) and isinstance(value, str):
+        _set(environment, attr, current_value + " " + value)
+    elif isinstance(current_value, Expression) and isinstance(value, Expression):
         # force CompleteExpression's
-        new_value = (current_value + value).complete()
-    elif isinstance(current_value, List):
-        new_value = current_value + value
+        _set(environment, attr, (current_value + value).complete())
+    elif isinstance(current_value, List) and isinstance(value, List):
+        _set(environment, attr, current_value + value)
     else:
         raise TypeError(
-            "current value is of unsupported type"
-            f"'{type(current_value)}' for the 'append' action"
+            "current value and new value are of unsupported types"
+            f"'{type(current_value)}' and '{type(value)}' for the 'append' action"
         )
-    _set(environment, attr, new_value)
 
 
 def delete(
@@ -216,19 +217,22 @@ def delete(
         return
     # has current value
     current_value = _get(environment, attr)
-    if isinstance(current_value, str):
-        new_value = current_value.replace(value, "")
-    elif isinstance(current_value, Expression):
+    if isinstance(current_value, str) and isinstance(value, str):
+        _set(environment, attr, current_value.replace(value, ""))
+    elif isinstance(current_value, Expression) and isinstance(value, Expression):
         # force CompleteExpression's
-        new_value = CompleteExpression(delete_sublist(list(current_value), list(value)))
-    elif isinstance(current_value, List):
-        new_value = delete_sublist(current_value, value)
+        _set(
+            environment,
+            attr,
+            CompleteExpression(delete_sublist(list(current_value), list(value))),
+        )
+    elif isinstance(current_value, List) and isinstance(value, List):
+        _set(environment, attr, delete_sublist(current_value, value))
     else:
         raise TypeError(
             "current value is of unsupported type"
             f"'{type(current_value)}' for the 'append' action"
         )
-    _set(environment, attr, new_value)
 
 
 def merge(
@@ -284,22 +288,24 @@ def merge(
         return
     # has current value
     current_value = _get(environment, attr)
-    if isinstance(current_value, str):
-        if value in current_value:
-            new_value = current_value
-        else:
-            new_value = current_value + " " + value
-    elif isinstance(current_value, Expression):
+    if isinstance(current_value, str) and isinstance(value, str):
+        if value not in current_value:
+            _set(environment, attr, current_value + " " + value)
+        # do nothing if value in current value
+    elif isinstance(current_value, Expression) and isinstance(value, Expression):
         # force CompleteExpression's
-        new_value = CompleteExpression(merge_sublist(list(current_value), list(value)))
-    elif isinstance(current_value, List):
-        new_value = merge_sublist(current_value, value)
+        _set(
+            environment,
+            attr,
+            CompleteExpression(merge_sublist(list(current_value), list(value))),
+        )
+    elif isinstance(current_value, List) and isinstance(value, List):
+        _set(environment, attr, merge_sublist(current_value, value))
     else:
         raise TypeError(
             "current value is of unsupported type"
             f"'{type(current_value)}' for the 'append' action"
         )
-    _set(environment, attr, new_value)
 
 
 def edit_append(environment: MutableMapping[str, Any], attr: str, string: str) -> None:
@@ -397,7 +403,7 @@ class SatelliteCondition(Condition):
         self.satellites = satellites
         self.invert = invert
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         prefix = f"{self.__class__.__qualname__}({repr(self.satellites)}"
         if self.invert:
             return prefix + f", invert={repr(self.invert)})"
@@ -412,7 +418,7 @@ class SatelliteCondition(Condition):
 
 @dataclass(frozen=True)
 class Source:
-    line: int
+    line: Optional[int] = None
     file: Optional[str] = None
 
 
@@ -610,7 +616,7 @@ class Assignment(Statement):
     condition: Condition = TrueCondition()
     # TODO: Remove Optional when https://github.com/python/mypy/issues/708 is
     #  fixed.
-    action: Optional[ActionType] = staticmethod(replace)
+    action: Optional[ActionType] = cast(ActionType, staticmethod(replace))
 
     def __init__(
         self,
@@ -629,7 +635,7 @@ class Assignment(Statement):
         if action is not None:
             self.action = action
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         prefix = (
             f"{self.__class__.__qualname__}" f"({repr(self.name)}, {repr(self.value)}"
         )
@@ -637,7 +643,7 @@ class Assignment(Statement):
             prefix += f", {repr(self.condition)}"
         if self.action == replace:
             return prefix + ")"
-        return prefix + f", {self.action.__qualname__})"
+        return prefix + f", {cast(ActionType, self.action).__qualname__})"
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         """Evaluate assignment, adding to the environment dictionary.
@@ -672,7 +678,7 @@ class Alias(Statement):
     condition: Condition = TrueCondition()
     # TODO: Remove Optional when https://github.com/python/mypy/issues/708 is
     #  fixed.
-    action: Optional[ActionType] = staticmethod(replace)
+    action: Optional[ActionType] = cast(ActionType, staticmethod(replace))
 
     def __init__(
         self,
@@ -691,7 +697,7 @@ class Alias(Statement):
         if action is not None:
             self.action = action
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         prefix = (
             f"{self.__class__.__qualname__}"
             f"({repr(self.alias)}, {repr(self.variables)}"
@@ -700,7 +706,7 @@ class Alias(Statement):
             prefix += f", {repr(self.condition)}"
         if self.action == replace:
             return prefix + ")"
-        return prefix + f", {self.action.__qualname__})"
+        return prefix + f", {cast(ActionType, self.action).__qualname__})"
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         if self.condition.test(selectors):
@@ -786,18 +792,18 @@ class NamedBlock(Statement, ABC):
     def __init__(
         self,
         name: str,
-        inner_statement,
+        inner_statement: Statement,
         condition: Optional[Condition] = None,
         *,
         source: Optional[Source] = None,
-    ):
+    ) -> None:
         super().__init__(source=source)
         self.name = name
         self.inner_statement = inner_statement
         if condition is not None:
             self.condition = condition
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         prefix = (
             f"{self.__class__.__qualname__}"
             f"({repr(self.name)}, {repr(self.inner_statement)}"
@@ -808,7 +814,7 @@ class NamedBlock(Statement, ABC):
 
     def _eval_runner(
         self, mapping: str, builder: Any, environment: Any, selectors: Mapping[str, Any]
-    ):
+    ) -> None:
         if self.condition and not self.condition.test(selectors):
             return
 
@@ -830,7 +836,7 @@ class NamedBlock(Statement, ABC):
 class UniqueNamedBlock(NamedBlock, ABC):
     def _eval_runner(
         self, mapping: str, builder: Any, environment: Any, selectors: Mapping[str, Any]
-    ):
+    ) -> None:
         if self.condition and not self.condition.test(selectors):
             return
 
