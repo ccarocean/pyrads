@@ -37,7 +37,6 @@ check:
 	@mypy --config-file tests/mypy.ini tests
 	@flake8 $(module) tests
 	@python -m pylint $(module)
-	@python -m pycodestyle $(module) tests
 	@python -m pydocstyle $(module)
 
 apidoc: export SPHINX_APIDOC_OPTIONS=members,no-undoc-members,show-inheritance,special-members

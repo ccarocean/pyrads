@@ -24,7 +24,6 @@ tests_require = [
     "pytest-cov",
     "pytest-mock",
     "pylint",
-    "pycodestyle>=2.1.0",
     "pyflakes>=2.1.0",
     "typing-extensions",
 ]
