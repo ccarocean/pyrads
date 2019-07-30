@@ -78,7 +78,7 @@ class ParseFailure(Exception):
         # exception handling when reporting is not necessary.
         file = self.file if self.file else ""
         line = str(self.line) if self.line else ""
-        return "{:s}:{:s}: {:s}".format(file, line, self.message)
+        return f"{file}:{line}: {self.message}"
 
 
 class GlobalParseFailure(ParseFailure):
@@ -144,7 +144,7 @@ def first_child(pos: Element) -> Element:
         return pos.down()
     except StopIteration:
         raise LocalParseFailure(
-            pos.file, pos.opening_line, "<{:s}> has no children".format(pos.tag)
+            pos.file, pos.opening_line, f"<{pos.tag}> has no children"
         )
 
 
