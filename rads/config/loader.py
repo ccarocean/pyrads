@@ -7,7 +7,7 @@ from dataclass_builder import MissingFieldError
 
 from .._typing import PathLike
 from ..xml import ParseError, parse
-from ._builders import PreConfigBuilder, SatelliteBuilder
+from .builders import PreConfigBuilder, SatelliteBuilder
 from .ast import ASTEvaluationError
 from .grammar import dataroot_grammar, pre_config_grammar, satellite_grammar
 from .tree import Config, PreConfig

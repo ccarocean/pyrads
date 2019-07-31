@@ -24,7 +24,7 @@ from dataclass_builder import MISSING, MissingFieldError, UndefinedFieldError
 
 from .._utility import delete_sublist, merge_sublist, xor
 from ..rpn import CompleteExpression, Expression
-from ._builders import PhaseBuilder, VariableBuilder
+from .builders import PhaseBuilder, VariableBuilder
 
 ActionType = Callable[[Any, str, Any], None]
 
