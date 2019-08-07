@@ -166,8 +166,8 @@ Finally, to cleanup temporary files:
 .. |build-status| image:: https://travis-ci.com/ccarocean/pyrads.svg?branch=master&style=flat
    :target: https://travis-ci.com/ccarocean/pyrads
    :alt: Build status
-.. |coverage-status| image:: http://codecov.io/github/ccarocean/pyrads/coverage.svg?branch=master
-   :target: http://codecov.io/github/ccarocean/pyrads?branch=master
+.. |coverage-status| image:: https://codecov.io/github/ccarocean/pyrads/coverage.svg?branch=master
+   :target: https://codecov.io/github/ccarocean/pyrads?branch=master
    :alt: Test coverage
 .. |code-style| image:: https://img.shields.io/badge/code%20style-black-000000.svg
    :target: https://github.com/psf/black
