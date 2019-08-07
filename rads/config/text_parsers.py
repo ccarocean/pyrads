@@ -472,7 +472,7 @@ def ref_pass(string: str, _: Mapping[str, str]) -> ReferencePass:
     try:
         funcs: Sequence[Callable[[str], Any]] = (
             _time,
-            float,
+            fortran_float,
             int,
             int,
             int,
@@ -525,7 +525,12 @@ def repeat(string: str, _: Mapping[str, str]) -> Repeat:
     """
     parts = string.split()
     try:
-        funcs: Sequence[Callable[[str], Any]] = (float, int, float, lambda x: x)
+        funcs: Sequence[Callable[[str], Any]] = (
+            fortran_float,
+            int,
+            fortran_float,
+            lambda x: x,
+        )
         return Repeat(*(f(s) for f, s in zip(funcs, parts)))
     except ValueError as err:
         raise TextParseError(str(err)) from err
@@ -606,7 +611,7 @@ def unit(string: str, _: Mapping[str, str]) -> Unit:
 def _constant(string: str, attr: Mapping[str, str]) -> Constant:
     try:
         if "source" not in attr or attr["source"] == "constant":
-            return Constant(one_of((lift(int), lift(float)))(string, attr))
+            return Constant(one_of((lift(int), lift(fortran_float)))(string, attr))
     except TextParseError:
         if "source" in attr:  # constant, so hard fail
             raise TerminalTextParseError(f"invalid numerical constant '{string}'")
