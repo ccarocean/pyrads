@@ -3,8 +3,10 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-.. image:: _static/logo_black.svg
-   :align: center
+.. only:: html
+
+   .. image:: _static/logo_black.svg
+      :align: center
 
 Python access to RADS
 =====================
