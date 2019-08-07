@@ -80,8 +80,89 @@ For more information on loading of RADS v4 XML configuration files consult the
 documentation.
 
 
+Development
+-----------
+
+The simplest way to get started working on PyRADS is:
+
+.. code-block:: bash
+
+    git pull git@github.com:ccarocean/pyrads.git
+    cd pyrads
+    python3 -m venv --prompt PyRADS .venv
+    source .venv/bin/activate
+    pip install --upgrade pip setuptools wheel
+    pip install -e ".[dev]"
+
+*Naturally, you should fork the repository first.*
+
+If you are working on a system where libxml2_ is installed you may wish to replace the last command with:
+
+.. code-block:: bash
+
+    pip install -e ".[libxml2,dev]"
+
+This will provide for faster XML parsing and more importantly better error messages.
+
+setup.py commands
+^^^^^^^^^^^^^^^^^
+
+PyRADS uses custom :code:`setup.py` commands to ease development.
+
+To run all all quality checks simply use:
+
+.. code-block:: bash
+
+    python setup.py quality
+
+To run isort_ and black_ before the quality checks (recommended) use
+
+.. code-block:: bash
+
+    python setup.py quality --format
+
+To run all tests:
+
+.. code-block:: bash
+
+    python setup.py test
+
+or with coverage reports:
+
+.. code-block:: bash
+
+    python setup.py test --coverage
+
+To build source and wheel distributions (and check them):
+
+.. code-block::
+
+    python setup.py dist
+
+To build the HTML documentation:
+
+.. code-block::
+
+    python setup.py doc
+
+or the PDF documentation:
+
+.. code-block::
+
+    python setup.py doc --pdf
+
+Finally, to cleanup temporary files:
+
+.. code-block::
+
+    python setup.py cleanup
+
+
 .. _Radar Altimeter Database System: https://github.com/remkos/rads
 .. _RADS User Manual: https://github.com/remkos/rads/blob/master/doc/manuals/rads4_user_manual.pdf
+.. _libxml2: http://www.xmlsoft.org/
+.. _isort: https://github.com/timothycrosley/isort
+.. _black: https://black.readthedocs.io/en/stable/
 .. |build-status| image:: https://travis-ci.com/ccarocean/pyrads.svg?branch=master&style=flat
    :target: https://travis-ci.com/ccarocean/pyrads
    :alt: Build status
