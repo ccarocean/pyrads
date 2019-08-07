@@ -37,6 +37,7 @@ setup(
     license="MIT",
     url="https://github.com/ccarocean/pyrads",
     packages=find_packages(),
+    python_requires=">=3.6",
     setup_requires=["pytest-runner"],
     install_requires=[
         "appdirs",
