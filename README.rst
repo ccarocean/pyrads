@@ -109,7 +109,7 @@ setup.py commands
 
 PyRADS uses custom :code:`setup.py` commands to ease development.
 
-To run all all quality checks simply use:
+To run all quality checks simply use:
 
 .. code-block:: bash
 
