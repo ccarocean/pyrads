@@ -827,9 +827,9 @@ class SatelliteID(Statement):
             of the configuration file.
         """
         if "id" in selectors and selectors["id"] == self.id:
-            setattr(environment, "id", self.id)
-            setattr(environment, "id3", self.id3)
-            setattr(environment, "names", self.names)
+            environment.id = self.id
+            environment.id3 = self.id3
+            environment.names = self.names
 
 
 class Satellites(Mapping[str, Statement], Statement):
