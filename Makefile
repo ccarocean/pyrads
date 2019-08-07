@@ -38,10 +38,9 @@ check:
 	@flake8 $(module) tests
 	@python -m pydocstyle $(module)
 
-apidoc: export SPHINX_APIDOC_OPTIONS=members,no-undoc-members,show-inheritance,special-members
+apidoc: export SPHINX_APIDOC_OPTIONS=members,undoc-members,show-inheritance,special-members
 apidoc:
-	@sphinx-apidoc -o docs/api -e $(module)
-	@rm docs/api/modules.rst
+	@sphinx-apidoc --private --no-toc -o docs/api/apidoc -e $(module)
 
 html: apidoc
 	@$(MAKE) -C docs html
@@ -54,7 +53,7 @@ package: test
 	@python setup.py bdist_wheel
 
 clean:
-	@rm -f docs/api/*.rst
+	@rm -f docs/api/apidoc/*.rst
 	@rm -f rads/*.pyc
 	@rm -f tests/*.pyc
 	@rm -rf tests/.pytest_cache

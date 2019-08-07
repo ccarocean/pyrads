@@ -15,13 +15,15 @@
 import os
 import sys
 
+from sphinx.ext.autodoc import ClassLevelDocumenter, InstanceAttributeDocumenter
+
 sys.path.insert(0, os.path.abspath(".."))
 from rads import __version__  # isort:skip
 
 # -- Project information -----------------------------------------------------
 
 project = "PyRADS"
-copyright = "2018, Michael R. Shannon"
+copyright = "2018-2019, Michael R. Shannon"
 author = "Michael R. Shannon"
 
 # The short X.Y version
@@ -47,8 +49,6 @@ extensions = [
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
     "sphinx.ext.githubpages",
-    "sphinx.ext.napoleon",
-    "sphinx_paramlinks",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -90,15 +90,25 @@ html_theme = "alabaster"
 # documentation.
 #
 html_theme_options = {
+    "logo": "logo_black.svg",
     "github_user": "ccarocean",
     "github_repo": "pyrads",
     "github_banner": True,
+    "github_button": False,
+    # currently bugged: https://github.com/bitprophet/alabaster/issues/145
+    # "travis_button": True,
+    # "codecov_button": True,
+    "fixed_sidebar": True,
+    "sidebar_collapse": True,
+    "show_relbars": False,
+    "show_powered_by": False,
+    "show_related": True,
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+html_static_path = ["_static", "_static/custom.css"]
 
 # Custom sidebar templates, must be a dictionary that maps document names
 # to template names.
@@ -110,6 +120,11 @@ html_static_path = ["_static"]
 #
 # html_sidebars = {}
 
+html_sidebars = {
+    "index": ["localtoc.html", "searchbox.html"],
+    "**": ["about.html", "localtoc.html", "relations.html", "searchbox.html"],
+}
+
 
 # -- Options for HTMLHelp output ---------------------------------------------
 
@@ -117,6 +132,8 @@ html_static_path = ["_static"]
 htmlhelp_basename = "PyRADSdoc"
 
 # -- Options for LaTeX output ------------------------------------------------
+
+latex_engine = "xelatex"
 
 latex_elements = {
     # The paper size ('letterpaper' or 'a4paper').
@@ -127,17 +144,19 @@ latex_elements = {
     # 'pointsize': '10pt',
     # Additional stuff for the LaTeX preamble.
     #
-    # 'preamble': '',
+    "preamble": "\setcounter{tocdepth}{5} ",
     # Latex figure (float) alignment
     #
     # 'figure_align': 'htbp',
 }
 
+latex_logo = "_static/logo_black.pdf"
+
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "PyRADS.tex", "PyRADS Documentation", "Michael R. Shannon", "manual")
+    (master_doc, "PyRADS.tex", "Documentation", "Michael R. Shannon", "manual")
 ]
 
 # -- Options for manual page output ------------------------------------------
@@ -185,13 +204,31 @@ epub_exclude_files = ["search.html"]
 # -- Options for intersphinx extension ---------------------------------------
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {"https://docs.python.org/": None}
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/", None),
+    "cf_units": ("https://scitools.org.uk/cf-units/docs/latest/", None),
+}
 
 # -- Options for todo extension ----------------------------------------------
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
+autodoc_mock_imports = ["lxml"]
+
 autodoc_default_options = {
     "special-members": "__call__,__add__,__iadd__,__or__,__invert__,__xor__,__lshift__"
 }
+
+autodoc_member_order = "bysource"
+autodoc_inherit_docstrings = True
+autoclass_content = "both"
+
+
+# remove = None from attributes
+# https://github.com/sphinx-doc/sphinx/issues/2044
+def iad_add_directive_header(self, sig):
+    ClassLevelDocumenter.add_directive_header(self, sig)
+
+
+InstanceAttributeDocumenter.add_directive_header = iad_add_directive_header

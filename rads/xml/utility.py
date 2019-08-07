@@ -56,14 +56,12 @@ def parse(
 ) -> xml.Element:
     """Parse an XML document from a file or file-like object.
 
-    Parameters
-    ----------
-    source
+    :param source:
         File or file-like object containing the XML data.
-    parser
+    :param parser:
         XML parser to use, defaults to the standard XMLParser, which is
         ElementTree compatible regardless of backend.
-    rootless
+    :param rootless:
         Set to True to parse an XML document that does not have a root.
 
         .. note::
@@ -71,12 +69,9 @@ def parse(
             This is done by adding `<rootless>` tags around the document before
             parsing it.
 
-    Returns
-    -------
-    xml.Element
-        The root XML element.  If :paramref:`rootless` is True this will be the
-        added `<rootless>` element
-
+    :return:
+        The root XML element.  If `rootless` is True this will be the added
+        `<rootless>` element
     """
     if rootless:
         with ensure_open(source) as file:
@@ -96,30 +91,24 @@ def fromstring(
 ) -> xml.Element:
     """Parse an XML document or section from a string constant.
 
-    Parameters
-    ----------
-    text
+    :param text:
         XML text to parse.
-    parser
+    :param parser:
         XML parser to use, defaults to the standard XMLParser, which is
         ElementTree compatible regardless of backend.
-    rootless
+    :param rootless:
         Set to True to parse an XML document that does not have a root.
 
         .. note::
 
             This is done by adding `<rootless>` tags around the document before
             parsing it.
-    file
+    :param file:
         Optional filename to associate with the returned :class:`xml.Element`.
 
-    Returns
-    -------
-    xml.Element
-        The root XML element (of the section given in :paramref:`text`).  If
-        :paramref:`rootless` is True this will be the added `<rootless>`
-        element.
-
+    :return:
+        The root XML element (of the section given in `text`).  If `rootless`
+        is True this will be the added `<rootless>` element.
     """
     if rootless:
         return fromstringlist(text.splitlines(), parser, rootless=True, file=file)
@@ -134,30 +123,24 @@ def fromstringlist(
 ) -> xml.Element:
     """Parse an XML document or section from a sequence of string fragments.
 
-    Parameters
-    ----------
-    sequence
+    :param sequence:
         String fragments containing the XML text to parse.
-    parser
+    :param parser:
         XML parser to use, defaults to the standard XMLParser, which is
         ElementTree compatible regardless of backend.
-    rootless
+    :param rootless:
         Set to True to parse an XML document that does not have a root.
 
         .. note::
 
             This is done by adding `<rootless>` tags around the document before
             parsing it.
-    file
+    :param file:
         Optional filename to associate with the returned :class:`xml.Element`.
 
-    Returns
-    -------
-    xml.Element
-        The root XML element (of the section given in :paramref:`text`).  If
-        :paramref:`rootless` is True this will be the added `<rootless>`
-        element.
-
+    :return:
+        The root XML element (of the section given in `text`).  If `rootless`
+        is True this will be the added `<rootless>` element.
     """
     sequence_ = _wrap_with_root(sequence) if rootless else sequence
     try:

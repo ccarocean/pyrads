@@ -16,7 +16,7 @@ def read(filename):
     return text
 
 
-docs_require = ["sphinx>=1.7", "sphinx_paramlinks"]
+docs_require = ["docutils-stubs", "sphinx>=1.7"]
 tests_require = [
     "flake8>=3.7.7",
     "mypy",

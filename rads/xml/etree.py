@@ -28,26 +28,12 @@ class Element(base.Element):
 
     Does not support line number examination.
 
-
     .. note::
 
         It is recommended to use :class:`rads.xml.lxml.Element` if libxml is
-        available on your system as this version does not support line numbers
-        which can make debugging XML files for syntax errors more difficult.
-
-    Parameters
-    ----------
-    element
-        XML element from the standard :mod:`xml.etree.ElementTree`
-        package.
-    index
-        Index of element at current level, among it's siblings. Not
-        required if this element does not have any siblings.
-    parent
-        The parent of this element.
-    file
-        Filename of the XML document.
-
+        available on your system as the etree version does not support line
+        numbers which can make debugging XML files for syntax errors more
+        difficult.
     """
 
     def __init__(
@@ -57,6 +43,18 @@ class Element(base.Element):
         parent: Optional["Element"] = None,
         file: Optional[str] = None,
     ) -> None:
+        """
+        :param element:
+            XML element from the standard :mod:`xml.etree.ElementTree`
+            package.
+        :param index:
+            Index of element at current level, among it's siblings. Not
+            required if this element does not have any siblings.
+        :param parent:
+            The parent of this element.
+        :param file:
+            Filename of the XML document.
+        """
         assert parent is None or isinstance(parent, Element)
         self._element = element
         self._index = index
@@ -119,24 +117,19 @@ class Element(base.Element):
 def error_with_file(error: ParseError, file: str) -> ParseError:
     """Add filename to an XML parse error.
 
-    Parameters
-    ----------
-    error
+    :param error:
         Original XML parse error.
-    file
+    :param file:
         Filename to add.
 
-    Returns
-    -------
-    ParseError
-        A new parse error (of the same type as :paramref:`error`) with the
-        :paramref:`filename` added.
-
+    :return:
+        A new parse error (of the same type as `error`) with the `filename`
+        added.
     """
+    error.filename = file
     # TODO: Remove the type ignore's below when
     #  https://github.com/python/typeshed/pull/3158 makes it into Mypy, also
     #  update Mypy version as well.
-    error.filename = file
     new_error = type(error)(
         error.msg,
         (file, error.position[0], error.position[1], error.text),  # type: ignore

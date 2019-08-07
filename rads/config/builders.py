@@ -1,3 +1,5 @@
+"""Builders for configuration dataclasses in :mod:`rads.config.tree`."""
+
 from dataclass_builder import dataclass_builder
 
 from .tree import Phase, PreConfig, Satellite, Variable

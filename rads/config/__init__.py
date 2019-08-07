@@ -1,1 +1,1 @@
-"""Configuration file reading."""
+"""PyRADS configuration file API."""

@@ -71,13 +71,21 @@ _T = TypeVar("_T")
 
 
 class TerminalTextParseError(Exception):
-    pass
+    """Raised to terminate text parsing with an error.
+
+    This error is not allowed to be handled by a text parser.  It indicates
+    that no recovery is possible.
+    """
 
 
 # inherits from TerminalTextParseError because any except clause that catches
 # terminal errors should also catch non-terminal errors.
 class TextParseError(TerminalTextParseError):
-    pass
+    """Raised to indicate that a text parsing error has occured.
+
+    Unlike :class:`TerminalTextParseError` this one is allowed to be handled
+    by a text parser.
+    """
 
 
 # COMBINATORS
@@ -98,36 +106,28 @@ def lift(
     *,
     terminal: bool = False,
 ) -> Callable[[str, Mapping[str, str]], _T]:
-    """Lift a simple string parser to a text parser that accepts attributes.
+    r"""Lift a simple string parser to a text parser that accepts attributes.
 
     This is very similar to lifting a plain function into a monad.
 
-    Parameters
-    ----------
-    string_parser
-        A simple parser that takes a string and returns a value.  This can also
-        by a type that can be constructed from a string.
-    terminal
-        Set to True to use :class:`TerminalTextParseError` s instead of
-        :class:`TextParseError` s.
+    :param string_parser:
+        A simple parser that takes a string and returns a value.  This can
+        also by a type that can be constructed from a string.
+    :param terminal:
+        Set to True to use :class:`TerminalTextParseError`\ s instead of
+        :class:`TextParseError`\ s.
 
-    Returns
-    -------
-    function
-        The given :paramref:`string_parser` with an added argument to accept
-        and ignore the attributes for the text tag.
+    :return:
+        The given `string_parser` with an added argument to accept and ignore
+        the attributes for the text tag.
 
-    Raises
-    ------
-    TextParseError
-        The resulting parser throws this if the given :paramref:`string_parser`
-        throws a TypeError, ValueError, or KeyError and :paramref:`terminal`
-        was False (the default).
-    TerminalTextParseError
-        The resulting parser throws this if the given :paramref:`string_parser`
-        throws a TypeError, ValueError, or KeyError and :paramref:`terminal`
-        was True.
-
+    :raises TextParseError:
+        The resulting parser throws this if the given `string_parser` throws a
+        TypeError, ValueError, or KeyError and `terminal` was False (the
+        default).
+    :raises TerminalTextParseError:
+        The resulting parser throws this if the given `string_parser` throws a
+        TypeError, ValueError, or KeyError and `terminal` was True.
     """
 
     def _parser(string: str, _: Mapping[str, str]) -> _T:
@@ -150,21 +150,16 @@ def list_of(
 ) -> Callable[[str, Mapping[str, str]], List[_T]]:
     """Convert parser into a parser of lists.
 
-    Parameters
-    ----------
-    parser
+    :param parser:
         Original parser.
-    sep
+    :param sep:
         Item delimiter.  Default is to separate by one or more spaces.
-    terminal
+    :param terminal:
         If set to True it promotes any :class:`TextParseError` s raised by the
-        given :paramref:`parser` to a :class:`TerminalTextParseError`.
+        given `parser` to a :class:`TerminalTextParseError`.
 
-    Returns
-    -------
-    function
+    :return:
         The new parser of delimited lists.
-
     """
 
     def _parser(string: str, attr: Mapping[str, str]) -> List[_T]:
@@ -185,33 +180,24 @@ def range_of(
     """Create a range parser from a given parser for each range element.
 
     The resulting parser will parse space separated lists of length 2 and use
-    the given :paramref:`parser` for both elements.
+    the given `parser` for both elements.
 
-    Parameters
-    ----------
-    parser
+    :param parser:
         Parser to use for the min and max values.
-    terminal
+    :param terminal:
         Set to True to use :class:`TerminalTextParseError` s instead of
         :class:`TextParseError` s.  Also promotes any :class:`TextParseError` s
-        raised by the given :paramref:`parser` to a
-        :class:`TerminalTextParseError`.
+        raised by the given `parser` to a :class:`TerminalTextParseError`.
 
-    Returns
-    -------
-    function
+    :return:
         New range parser.
 
-    Raises
-    ------
-    TextParseError
+    :raises TextParseError:
         Resulting parser raises this if given a string that does not contain
-        two space separated elements and :paramref:`terminal` was False
-        (the default).
-    TerminalTextParseError
+        two space separated elements and `terminal` was False (the default).
+    :raises TerminalTextParseError:
         Resulting parser raises this if given a string that does not contain
-        two space separated elements and :paramref:`terminal` was True.
-
+        two space separated elements and `terminal` was True.
     """
 
     def _parser(string: str, attr: Mapping[str, str]) -> Range[N]:
@@ -249,30 +235,22 @@ def one_of(
         Each parser will be tried in sequence.  The next parser will be tried
         if :class:`TextParseError` is raised.
 
-    Parameters
-    ----------
-    parsers
+    :param parsers:
         A sequence of parsers the new parser should try in order.
-    terminal
+    :param terminal:
         Set to True to use :class:`TerminalTextParseError` s instead of
         :class:`TextParseError` s.
 
-    Returns
-    -------
-    function
-        The new parser which tries each of the given :paramref:`parsers` in
-        order until once succeeds.
+    :return:
+        The new parser which tries each of the given `parsers` in order until
+        one succeeds.
 
-    Raises
-    ------
-    TextParseError
+    :raises TextParseError:
         Resulting parser raises this if given a string that cannot be parsed by
-        any of the given :paramref:`parsers` and :paramref:`terminal` was False
-        (the defualt).
-    TerminalTextParseError
+        any of the given `parsers` and `terminal` was False (the default).
+    :raises TerminalTextParseError:
         Resulting parser raises this if given a string that cannot be parsed by
-        any of the given :paramref:`parsers` and :paramref:`terminal` was True.
-
+        any of the given `parsers` and `terminal` was True.
     """
 
     def _parser(string: str, attr: Mapping[str, str]) -> Any:
@@ -308,13 +286,11 @@ def one_of(
 
 
 def compress(string: str, _: Mapping[str, str]) -> Compress:
-    """Parse a string into a :class:`Compress` object.
+    """Parse a string into a :class:`rads.config.tree.Compress` object.
 
-    Parameters
-    ----------
-    string
-        String to parse into a :class:`Compress` object.  It should be in the
-        following form:
+    :param string:
+        String to parse into a :class:`rads.config.tree.Compress` object.  It
+        should be in the following form:
 
             <type:type> [scale_factor:float] [add_offset:float]
 
@@ -329,21 +305,16 @@ def compress(string: str, _: Mapping[str, str]) -> Compress:
 
         The attribute mapping of the tag the string came from.  Not currently
         used by this function.
-    _
+    :param _:
         Mapping of tag attributes.  Not used by this function.
 
-    Returns
-    -------
-    Compress
-        A new :class:`Compress` object created from the parsed string.
+    :return:
+        A new :class:`rads.config.tree.Compress` object created from the parsed
+        string.
 
-    Raises
-    ------
-    TextParseError
-        If the <type> is not in the given :paramref:`string` or if too many
-        values are in the :paramref:`string`.  Also, if one of the values
-        cannot be converted.
-
+    :raises TextParseError:
+        If the <type> is not in the given `string` or if too many values are in
+        the `string`.  Also, if one of the values cannot be converted.
     """
     parts = string.split()
     try:
@@ -366,31 +337,25 @@ def compress(string: str, _: Mapping[str, str]) -> Compress:
 
 
 def cycles(string: str, _: Mapping[str, str]) -> Cycles:
-    """Parse a string into a :class:`Cycles` object.
+    """Parse a string into a :class:`rads.config.tree.Cycles` object.
 
-    Parameters
-    ----------
-    string
-        String to parse into a :class:`Cycles` object.  It should be in the
-        following form:
+    :param string:
+        String to parse into a :class:`rads.config.tree.Cycles` object.  It
+        should be in the following form:
 
         .. code-block:: text
 
             <first cycle in phase> <last cycle in phase>
-    _
+    :param _:
         Mapping of tag attributes.  Not used by this function.
 
-    Returns
-    -------
-    Cycles
-        A new :class:`Cycles` object created from the parsed string.
+    :return:
+        A new :class:`rads.config.tree.Cycles` object created from the parsed
+        string.
 
-    Raises
-    ------
-    TextParseError
-        If the wrong number of values are given in the :paramref:`string` or
-        one of the values is not parsable to an integer.
-
+    :raises TextParseError:
+        If the wrong number of values are given in the `string` or one of the
+        values is not parsable to an integer.
     """
     try:
         return Cycles(*(int(s) for s in string.split()))
@@ -408,57 +373,52 @@ def cycles(string: str, _: Mapping[str, str]) -> Cycles:
 def data(string: str, attr: Mapping[str, str]) -> Any:
     """Parse a string into one of the data objects list below.
 
-        * :class:`Constant`
-        * :class:`Expression`
-        * :class:`Flags`
-        * :class:`Grid`
-        * :class:`NetCDFAttribute`
-        * :class:`NetCDFVariable`
+        * :class:`rads.config.tree.Constant`
+        * :class:`rads.rpn.Expression`
+        * :class:`rads.config.tree.Flags`
+        * :class:`rads.config.tree.Grid`
+        * :class:`rads.config.tree.NetCDFAttribute`
+        * :class:`rads.config.tree.NetCDFVariable`
 
-    The parsing is done based on both the given :paramref:`string` and the
-    'source' value in :paramref:`attr` if it exists.
+    The parsing is done based on both the given `string` and the 'source' value
+    in `attr` if it exists.
 
     .. note::
 
         This is a terminal parser, it will either succeed or raise
         :class:`TerminalTextParseError`.
 
-    Parameters
-    ----------
-    string
+    :param string:
         String to parse into a data object.
-    attr
+    :param attr:
         Mapping of tag attributes.  This parser can make use of the following
         key/value pairs if they exist:
 
-            * 'source' - explicitly specify the data source, this can be any
-               of the following
-                * 'flags'
-                * 'constant'
-                * 'grid'
-                * 'grid_l'
-                * 'grid_s'
-                * 'grid_c'
-                * 'grid_q'
-                * 'grid_n'
-                * 'nc'
-                * 'netcdf'
-                * 'math'
-            * 'branch' - used by some sources to specify an alternate directory
-            * 'x' - used by the grid sources to set the x dimension
-            * 'y' - used by the grid sources to set the y dimension
+            * "source" - explicitly specify the data source, this can be any
+              of the following:
 
-    Returns
-    -------
-    Constant, Expression, Flags, Grid, NetCDFAttribute or NetCDFVariable
-        A new data object representing the given :paramref:`string`.
+              * "flags"
+              * "constant"
+              * "grid"
+              * "grid_l"
+              * "grid_s"
+              * "grid_c"
+              * "grid_q"
+              * "grid_n"
+              * "nc"
+              * "netcdf"
+              * "math"
+              * "branch" - used by some sources to specify an alternate directory
 
-    Raises
-    ------
-    TerminalTextParseError
-        If for any reason the given :paramref:`string` and :paramref:`attr`
-        cannot be parsed into one of the data objects listed above.
+            * "x" - used by the grid sources to set the x dimension
+            * "y" - used by the grid sources to set the y dimension
 
+    :return:
+        A new data object representing the given `string`.
+
+    :raises TerminalTextParseError:
+        If for any reason the given `string` and `attr` cannot be parsed into
+        one of the data objects listed above.
     """
     attr_ = {k: v.strip() for k, v in attr.items()}
     return one_of((_flags, _constant, _grid, _netcdf, _math, _invalid_data))(
@@ -473,30 +433,23 @@ def nop(string: str, _: Mapping[str, str]) -> str:
     of `lift(str)` is recommended when the parsed value is supposed to be a
     string.
 
-    Parameters
-    ----------
-    string
+    :param string:
         String to return.
-    _
+    :param _:
         Mapping of tag attributes.  Not used by this function.
 
-    Returns
-    -------
-    str
-        The given :paramref:`string`.
-
+    :return:
+        The given `string`.
     """
     return string
 
 
 def ref_pass(string: str, _: Mapping[str, str]) -> ReferencePass:
-    """Parse a string into a :class:`ReferencePass` object.
+    """Parse a string into a :class:`rads.config.tree.ReferencePass` object.
 
-    Parameters
-    ----------
-    string
-        String to parse into a:class:`ReferencePass` object.  It should be in
-        the following form:
+    :param string:
+        String to parse into a:class:`rads.config.tree.ReferencePass` object.
+        It should be in the following form:
 
         .. code-block:: text
 
@@ -504,20 +457,16 @@ def ref_pass(string: str, _: Mapping[str, str]) -> ReferencePass:
 
         where the last element is optional and defaults to 1.  The date can
         also be missing seconds, minutes, and hours.
-    _
+    :param _:
         Mapping of tag attributes.  Not used by this function.
 
-    Returns
-    -------
-    ReferencePass
-        A new :class:`ReferencePass` object created from the parsed string.
+    :return:
+        A new :class:`rads.config.tree.ReferencePass` object created from the
+        parsed string.
 
-    Raises
-    ------
-    TextParseError
-        If the wrong number of values are given in the :paramref:`string` or
-        one of the values is not parsable.
-
+    :raises TextParseError:
+        If the wrong number of values are given in the `string` or one of the
+        values is not parsable.
     """
     parts = string.split()
     try:
@@ -552,33 +501,27 @@ def ref_pass(string: str, _: Mapping[str, str]) -> ReferencePass:
 
 
 def repeat(string: str, _: Mapping[str, str]) -> Repeat:
-    """Parse a string into a :class:`Repeat` object.
+    """Parse a string into a :class:`rads.config.tree.Repeat` object.
 
-    Parameters
-    ----------
-    string
-        String to parse into a :class:`Repeat` object. It should be in the
-        following form:
+    :param string:
+        String to parse into a :class:`rads.config.tree.Repeat` object. It
+        should be in the following form:
 
         .. code-block:: text
 
             <days:float> <passes:int> [longitude drift per cycle:float]
 
         where the last value is optional.
-    _
+    :param _:
         Mapping of tag attributes.  Not used by this function.
 
-    Returns
-    -------
-    Repeat
-        A new :class:`Repeat` object created from the parsed string.
+    :return:
+        A new :class:`rads.config.tree.Repeat` object created from the parsed
+        string.
 
-    Raises
-    ------
-    TextParseError
-        If the wrong number of values are given in the :paramref:`string` or
+    :raises TextParseError:
+        If the wrong number of values are given in the `string` or
         one of the values is not parsable.
-
     """
     parts = string.split()
     try:
@@ -598,31 +541,25 @@ def repeat(string: str, _: Mapping[str, str]) -> Repeat:
 
 
 def time(string: str, _: Mapping[str, str]) -> datetime:
-    """Parse a string into a :class:`datetime` object.
+    """Parse a string into a :class:`datetime.datetime` object.
 
-    Parameters
-    ----------
-    string
-        String to parse into a :class:`datetime` object. It should be in one of
-        the following forms:
+    :param string:
+        String to parse into a :class:`datetime.datetime` object. It should be
+        in one of the following forms:
 
             * yyyy-mm-ddTHH:MM:SS
             * yyyy-mm-ddTHH:MM
             * yyyy-mm-ddTHH
             * yyyy-mm-ddT
             * yyyy-mm-dd
-    _
+    :param _:
         Mapping of tag attributes.  Not used by this function.
 
-    Returns
-    -------
-        A new :class:`datetime` object created from the parsed string.
+    :return:
+        A new :class:`datetime.datetime` object created from the parsed string.
 
-    Raises
-    ------
-    TextParseError
-        If the date/time :paramref:`string` cannot be parsed.
-
+    :raises TextParseError:
+        If the date/time `string` cannot be parsed.
     """
     try:
         return _time(string)
@@ -631,34 +568,27 @@ def time(string: str, _: Mapping[str, str]) -> datetime:
 
 
 def unit(string: str, _: Mapping[str, str]) -> Unit:
-    """Parse a string into a :class:`Unit` object.
+    """Parse a string into a :class:`cf_units.Unit` object.
 
     .. _cf_units: https://github.com/SciTools/cf-units
 
     .. _`issue 30`: https://github.com/SciTools/cf-units/issues/30
 
-    Parameters
-    ----------
-    string
-        String to parse into a :class:`Unit` object.  See the cf_units_ package
-        for supported units.  If given 'dB' or 'decibel' a no_unit object will
-        be returned and if given 'yymmddhhmmss' an unknown unit will be
-        returned.
-    _
+    :param string:
+        String to parse into a :class:`cf_units.Unit` object.  See the
+        cf_units_ package for supported units.  If given 'dB' or 'decibel' a
+        no_unit object will be returned and if given 'yymmddhhmmss' an unknown
+        unit will be returned.
+    :param _:
         Mapping of tag attributes.  Not used by this function.
 
-    Returns
-    -------
-    Unit
-        A new :class:`Unit` object created from the parsed string.  In the case
-        of 'dB' and 'decibel' this will be a no_unit and in the case of
-        'yymmddhhmmss' it will be 'unknown'.  See `issue 30`_.
+    :return:
+        A new :class:`cf_units.Unit` object created from the parsed string.
+        In the case of 'dB' and 'decibel' this will be a no_unit and in the
+        case of 'yymmddhhmmss' it will be 'unknown'.  See `issue 30`_.
 
-    Raises
-    ------
-    ValueError
-        If the given :paramref:`string` does not represent a valid unit.
-
+    :raises ValueError:
+        If the given `string` does not represent a valid unit.
     """
     try:
         return Unit(string)

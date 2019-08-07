@@ -1,4 +1,7 @@
-"""XML tools using the :mod:`lxml` library."""
+"""XML tools using the lxml_ library.
+
+.. _lxml: https://lxml.de/
+"""
 
 from typing import (
     IO,
@@ -39,18 +42,20 @@ __all__ = [
 
 
 class Element(base.Element):
-    """XML element that encapsulates an element from :mod:`lxml`.
+    """XML element that encapsulates an element from lxml_.
 
     Supports line number examination.
 
-    Parameters
-    ----------
-    element
-        XML element from the :mod:`lxml` library.
-
+    .. _lxml: https://lxml.de/
     """
 
     def __init__(self, element: etree._Element, file: Optional[str] = None) -> None:
+        """
+        :param:
+            XML element from the lxml_ library.
+        :param file:
+            Optional filename/path the element is from.
+        """
         self._element = element
         self._file = file
 
@@ -117,6 +122,9 @@ _ParserInputType = Union[bytes, Text]
 _FileOrFilename = Union[str, bytes, int, IO[Any]]
 
 
+# The following functions are here to make lxml more compatible with etree.
+
+
 def parse(
     source: _FileOrFilename, parser: Optional[XMLParser] = None
 ) -> etree._ElementTree:
@@ -125,19 +133,14 @@ def parse(
     This is wrapper around :func:`lxml.etree.parse` to make it behave like
     :func:`xml.etree.ElementTree.parse`.
 
-    Parameters
-    ----------
-    source
+    :param source:
         Filename or file object containing XML data.
-    parser
+    :param parser:
         Optional parser instance, defaulting to
         :class:`lxml.etree.ETCompatXMLParser`.
 
-    Returns
-    -------
-    _ElementTree
+    :return:
         An ElementTree instance.
-
     """
     if parser is None:
         parser = ETCompatXMLParser()
@@ -154,19 +157,14 @@ def fromstring(
     This is wrapper around :func:`lxml.etree.fromstring` to make it behave like
     :func:`xml.etree.ElementTree.fromtstring`.
 
-    Parameters
-    ----------
-    text
+    :param text:
         A string containing XML data.
-    parser
+    :param parser:
         Optional parser instance, defaulting to
         :class:`lxml.etree.ETCompatXMLParser`.
 
-    Returns
-    -------
-    _Element
+    :return:
         An Element instance.
-
     """
     if parser is None:
         parser = ETCompatXMLParser()
@@ -178,19 +176,14 @@ def fromstringlist(
 ) -> etree._Element:
     """Parse XML document from sequence of string fragments.
 
-    Parameters
-    ----------
-    sequence
+    :param sequence:
         A list or other sequence of strings containing XML data.
-    parser
+    :param parser:
         Optional parser instance, defaulting to
         :class:`lxml.etree.ETCompatXMLParser`.
 
-    Returns
-    -------
-    _Element
+    :return:
         An Element instance.
-
     """
     if parser is None:
         parser = ETCompatXMLParser()
@@ -200,19 +193,14 @@ def fromstringlist(
 def error_with_file(error: ParseError, file: str) -> ParseError:
     """Add filename to an XML parse error.
 
-    Parameters
-    ----------
-    error
+    :param error:
         Original XML parse error.
-    file
+    :param file:
         Filename to add.
 
-    Returns
-    -------
-    ParseError
-        A new parse error (of the same type as :paramref:`error`) with the
-        :paramref:`filename` added.
-
+    :return:
+        A new parse error (of the same type as `error`) with the `filename`
+        added.
     """
     error.filename = file
     return type(error)(

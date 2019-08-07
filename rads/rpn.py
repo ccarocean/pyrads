@@ -43,7 +43,7 @@ Keyword          Description
 :data:`ADD`      a = x + y
 :data:`MUL`      a = x*y
 :data:`POP`      remove top of stack
-:data:`NEG`      a = −x
+:data:`NEG`      a = -x
 :data:`ABS`      a = \|x\|
 :data:`INV`      a = 1/x
 :data:`SQRT`     a = sqrt(x)
@@ -252,15 +252,14 @@ class StackUnderflowError(Exception):
 class Token(ABC):
     """Base class of all RPN tokens.
 
-    See Also
-    --------
-    :class:`Literal`
-        A literal numeric/array value.
-    :class:`Variable`
-        A variable to be looked up from the environment.
-    :class:`Operator`
-        Base class of operators that modify the stack.
+    .. seealso::
 
+        :class:`Literal`
+            A literal numeric/array value.
+        :class:`Variable`
+            A variable to be looked up from the environment.
+        :class:`Operator`
+            Base class of operators that modify the stack.
     """
 
     @property
@@ -279,12 +278,12 @@ class Token(ABC):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Perform token's action on the given :paramref:`stack`.
+        """Perform token's action on the given `stack`.
 
         The actions currently supported are:
 
             * Place literal value on the stack.
-            * Place variable on the stack from the :paramref:`environment`.
+            * Place variable on the stack from the `environment`.
             * Perform operation on the stack.
             * Any combination of the above.
 
@@ -292,30 +291,15 @@ class Token(ABC):
 
             This must be overridden for all tokens.
 
-        Parameters
-        ----------
-        stack
+        :param stack:
             The stack of numbers/arrays to operate on.
-        environment
+        :param environment:
             The dictionary like object providing the immutable environment.
-
         """
 
 
 class Literal(Token):
-    """Literal value token.
-
-    Parameters
-    ----------
-    value
-        Value of the literal.
-
-    Raises
-    ------
-    ValueError
-        If :paramref:`value` is not a number.
-
-    """
+    """Literal value token."""
 
     @property
     def pops(self) -> int:
@@ -333,6 +317,13 @@ class Literal(Token):
         return self._value
 
     def __init__(self, value: Union[int, float, bool]) -> None:
+        """
+        :param value:
+            Value of the literal.
+
+        :raises ValueError:
+            If `value` is not a number.
+        """
         if not isinstance(value, (int, float, bool)):
             raise TypeError("'value' must be an int, float, or bool")
         self._value: Union[int, float, bool] = value
@@ -342,16 +333,13 @@ class Literal(Token):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Place literal value on top of the given :paramref:`stack`.
+        """Place literal value on top of the given `stack`.
 
-        Parameters
-        ----------
-        stack
+        :param stack:
             The stack of numbers/arrays to place the value on.
-        environment
+        :param environment:
             The dictionary like object providing the immutable environment.
             Not used by this method.
-
         """
         stack.append(self.value)
 
@@ -393,13 +381,6 @@ class Variable(Token):
 
     This is a place holder to lookup and place a number/array from an
     environment mapping onto the stack.
-
-    Parameters
-    ----------
-    name
-        Name of the variable, this is what will be used to lookup the
-        variables value in the environment mapping.
-
     """
 
     @property
@@ -418,6 +399,11 @@ class Variable(Token):
         return self._name
 
     def __init__(self, name: str) -> None:
+        """
+        :param name:
+            Name of the variable, this is what will be used to lookup the
+            variables value in the environment mapping.
+        """
         if not isinstance(name, str):
             raise TypeError(f"'name' must be a string, got '{type(name)}'")
         if not name.isidentifier():
@@ -429,21 +415,15 @@ class Variable(Token):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Get variable value from :paramref:`environment` and place on stack.
+        """Get variable value from `environment` and place on stack.
 
-        Parameters
-        ----------
-        stack
+        :param stack:
             The stack of numbers/arrays to place value on.
-        environment
+        :param environment:
             The dictionary like object to lookup the variable's value from.
 
-        Raises
-        ------
-        KeyError
-            If the variable cannot be found in the given
-            paramref:`environment`.
-
+        :raises KeyError:
+            If the variable cannot be found in the given `environment`.
         """
         stack.append(environment[self.name])
 
@@ -461,16 +441,13 @@ class Variable(Token):
 
 
 class Operator(Token, ABC):
-    """Base class of all RPN operators.
-
-    Parameters
-    ----------
-    name
-         Name of the operator.
-
-    """
+    """Base class of all RPN operators."""
 
     def __init__(self, name: str):
+        """
+        :param name:
+            Name of the operator.
+        """
         self._name = name
 
     def __copy__(self) -> Any:
@@ -507,26 +484,10 @@ class Expression(Sequence[Token], Token):
           with :attr:`pops` = 0 and :attr:`puts` = 1.
         * Can be used as a :class:`Token` in another expression.
 
+    .. seealso::
 
-    Parameters
-    ----------
-    tokens
-        A Reverse Polish Notation expression given as a sequence of tokens or
-        a string of tokens.
-
-        .. note::
-
-            This parameter is very forgiving.  If given a sequence of tokens
-            and some of the elements are not :class:`Token`\ s then an attempt
-            will be made to convert them to :class:`Token`\ s.  Because of this
-            both numbers and strings can be given in the sequence of
-            :paramref:`tokens`.
-
-    See Also
-    --------
-    :class:`CompleteExpression`
-        For a expression that can be evaluated on it's own.
-
+        :class:`CompleteExpression`
+            For a expression that can be evaluated on it's own.
     """
 
     _tokens: List[Token]
@@ -551,16 +512,31 @@ class Expression(Sequence[Token], Token):
     #       Also update requirements to match.
 
     @overload  # noqa: F811
-    def __init__(self, tokens: str) -> None:
+    def __init__(self, tokens: str) -> None:  # noqa: D107
         ...
 
-    @overload  # noqa: F811
-    def __init__(self, tokens: Iterable[Union[Number, str, Token]]) -> None:
+    @overload  # noqa: F811, D107
+    def __init__(
+        self, tokens: Iterable[Union[Number, str, Token]]
+    ) -> None:  # noqa: D107
         ...
 
     def __init__(  # noqa: F811
         self, tokens: Union[str, Iterable[Union[Number, str, Token]]]
     ) -> None:
+        r"""
+        :param tokens:
+            A Reverse Polish Notation expression given as a sequence of tokens
+            or a string of tokens.
+
+            .. note::
+
+                This parameter is very forgiving.  If given a sequence of tokens
+                and some of the elements are not :class:`Token`\ s then an
+                attempt will be made to convert them to :class:`Token`\ s.
+                Because of this both numbers and strings can be given in the
+                sequence of `tokens`.
+        """
         if isinstance(tokens, str):
             self._tokens = [token(t) for t in tokens.split()]
         else:
@@ -576,30 +552,22 @@ class Expression(Sequence[Token], Token):
     def complete(self) -> "CompleteExpression":
         """Upgrade to a :class:`CompleteExpression` if possible.
 
-        Returns
-        -------
-        CompleteExpression
+        :return:
             A complete expression, assuming this partial expression takes zero
             inputs and provides one output.
 
-        Raises
-        ------
-        ValueError
+        :raises ValueError:
             If the partial expression is not a valid expression.
-
         """
         return CompleteExpression(self._tokens)
 
     def is_complete(self) -> bool:
         """Determine if can be upgraded to :class:`CompleteExpression`.
 
-        Returns
-        -------
-        bool
+        :return:
             True if this expression can be upgraded to a
             :class:`CompleteExpression` without error with the :func:`complete`
             method.
-
         """
         return self.pops == 0 and self.puts == 1
 
@@ -608,20 +576,15 @@ class Expression(Sequence[Token], Token):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Evaluate the expression as a token on the given :paramref:`stack`.
+        """Evaluate the expression as a token on the given `stack`.
 
-        Parameters
-        ----------
-        stack
+        :param stack:
             The stack of numbers/arrays to operate on.
-        environment
+        :param environment:
             The dictionary like object providing the immutable environment.
 
-        Raises
-        ------
-        StackUnderflowError
+        :raises StackUnderflowError:
             If the expression underflows the stack.
-
         """
         for token_ in self._tokens:
             token_(stack, environment)
@@ -685,12 +648,9 @@ class Expression(Sequence[Token], Token):
     def _simulate(self) -> Tuple[int, int]:
         """Simulate the expression to determine inputs and outputs.
 
-        Returns
-        -------
-        (int, int)
+        :return:
             A tuple of the number of inputs the expression takes and the number
             of outputs from the expression.
-
         """
         inputs = 0
         outputs = 0
@@ -702,30 +662,7 @@ class Expression(Sequence[Token], Token):
 
 
 class CompleteExpression(Expression):
-    r"""Reverse Polish Notation expression that can be evaluated.
-
-    Parameters
-    ----------
-    tokens
-        A Reverse Polish Notation expression given as a sequence of tokens or
-        a string of tokens.
-
-        .. note::
-
-            This parameter is very forgiving.  If given a sequence of tokens
-            and some of the elements are not :class:`Token`\ s then then an
-            attempt will be made to convert them to :class:`Token`\ s.
-            Because of this both numbers and strings can be given in the
-            sequence of :paramref:`tokens`.
-
-    Raises
-    ------
-    ValueError
-        If the sequence or string of :paramref:`tokens` represents an invalid
-        expression.  This exception also indicates which token makes the
-        expression invalid.
-
-    """
+    """Reverse Polish Notation expression that can be evaluated."""
 
     # TODO: Remove the F811 statements bellow once
     #       https://github.com/PyCQA/pyflakes/pull/435 makes it into a release.
@@ -736,18 +673,36 @@ class CompleteExpression(Expression):
     #       Also, update pylint require
 
     @overload  # noqa: F811
-    def __init__(self, tokens: str) -> None:  # pylint: disable=super-init-not-called
+    def __init__(self, tokens: str) -> None:  # noqa: D107
         ...
 
     @overload  # noqa: F811
     def __init__(
         self, tokens: Iterable[Union[Number, str, Token]]
-    ) -> None:  # pylint: disable=super-init-not-called
+    ) -> None:  # noqa: D107
         ...
 
     def __init__(  # noqa: F811
         self, tokens: Union[str, Iterable[Union[Number, str, Token]]]
     ) -> None:
+        r"""
+        :param tokens:
+            A Reverse Polish Notation expression given as a sequence of tokens
+            or a string of tokens.
+
+            .. note::
+
+                This parameter is very forgiving.  If given a sequence of tokens
+                and some of the elements are not :class:`Token`\ s then then an
+                attempt will be made to convert them to :class:`Token`\ s.
+                Because of this both numbers and strings can be given in the
+                sequence of `tokens`.
+
+        :raises ValueError:
+            If the sequence or string of `tokens` represents an invalid
+            expression.  This exception also indicates which token makes the
+            expression invalid.
+        """
         super().__init__(tokens)
         # check the syntax, raise ValueError if invalid
         self._check()
@@ -755,11 +710,8 @@ class CompleteExpression(Expression):
     def complete(self) -> "CompleteExpression":
         """Return this expression as it is already complete.
 
-        Returns
-        -------
-        CompleteExpression
+        :return:
             This complete expression.
-
         """
         return self
 
@@ -768,9 +720,7 @@ class CompleteExpression(Expression):
     ) -> NumberOrArray:
         """Evaluate the expression and return a numerical or logical result.
 
-        Parameters
-        ----------
-        environment
+        :param environment:
             A mapping to lookup variables in when evaluating the expression.
             If not provided an empty mapping will be used, this is fine as
             long as the expression does not contain any variables.  This can
@@ -783,38 +733,31 @@ class CompleteExpression(Expression):
                     expression.eval()
 
             If the evaluation is lengthy or there are side effects to key
-            lookup in the :paramref:`environment` it may be beneficial to
-            check for any missing variables first:
+            lookup in the `environment` it may be beneficial to check for any
+            missing variables first:
 
             .. code-block:: python
 
                 missing_vars = expression.variables.difference(environment)
 
-        Returns
-        -------
+        :return:
             The numeric or logical result of the expression.
 
-
-        Raises
-        ------
-        TypeError
+        :raises TypeError:
             If there is a type mismatch with one of the operators and a value.
 
             .. note::
 
                 While this class includes a static syntax checker that runs
                 upon initialization it does not know the type of variables in
-                the given :paramref:`environment` ahead of time.
-
-        KeyError
+                the given `environment` ahead of time.
+        :raises KeyError:
             If the expression contains a variable that is not within the given
-            :paramref:`environment`.
-
-        IndexError, ValueError, RuntimeError, ZeroDivisionError
+            `environment`.
+        :raises IndexError, ValueError, RuntimeError, ZeroDivisionError:
             If arguments to operators in the expression do not have the proper
             dimensions or values for the operators to produce a result.  See
             the documentation of each operator for specifics.
-
         """
         if not environment:
             environment = {}
@@ -837,12 +780,9 @@ class CompleteExpression(Expression):
     def _check(self) -> None:
         """Check the syntax of the expression.
 
-        Raises
-        ------
-        ValueError
+        :raises ValueError:
             If the expression is incomplete.  This error is aimed at debugging
             the expression so it is very verbose.
-
         """
         stack_size = 0
         for i, token_ in enumerate(self._tokens):
@@ -878,22 +818,16 @@ def token(string: str) -> Token:
         * :class:`Variable` - a variable to looked up in the environment
         * :class:`Operator` - an operator to modify the stack
 
-    Parameters
-    ----------
-    string
+    :param string:
+        String to parse into a :class:`Token`.
 
-    Returns
-    -------
-    Token
+    :return:
         Parsed token.
 
-    Raises
-    ------
-    TypeError
+    :raises TypeError:
         If not given a string.
-    ValueError
-        If :paramref:`string` is not a valid token.
-
+    :raises ValueError:
+        If `string` is not a valid token.
     """
     if not isinstance(string, str):
         raise TypeError(f"expected 'str' got {type(string)}")
@@ -929,25 +863,6 @@ class _SUBType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Subtract one number/array from another.
-
-        x y SUB a
-            a = x - y
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(x - y)
 
@@ -967,25 +882,6 @@ class _ADDType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Add two numbers/arrays.
-
-        x y ADD a
-            a = x + y
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(x + y)
 
@@ -1004,25 +900,6 @@ class _MULType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Multiply two numbers/arrays.
-
-        x y MUL a
-            a = x*y
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(x * y)
 
@@ -1041,25 +918,6 @@ class _POPType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Remove top of stack.
-
-        x POP
-            remove last item from stack
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         _get_x(stack)
 
 
@@ -1077,25 +935,6 @@ class _NEGType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Negate number/array.
-
-        x NEG a
-            a = −x
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(-x)
 
@@ -1114,25 +953,6 @@ class _ABSType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        r"""Absolute value of number/array.
-
-        x ABS a
-            a = \|x\|
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.absolute(x))
 
@@ -1151,25 +971,6 @@ class _INVType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Invert number/array.
-
-        x INV a
-            a = 1/x
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(1 / x)
 
@@ -1188,25 +989,6 @@ class _SQRTType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Compute square root of number/array.
-
-        x SQRT a
-            a = sqrt(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.sqrt(x))
 
@@ -1225,25 +1007,6 @@ class _SQRType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Square number/array.
-
-        x SQR a
-            a = x*x
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.square(x))
 
@@ -1262,25 +1025,6 @@ class _EXPType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Exponential of number/array.
-
-        x EXP a
-            a = exp(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.exp(x))
 
@@ -1299,25 +1043,6 @@ class _LOGType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Natural logarithm of number/array.
-
-        x LOG a
-            a = ln(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.log(x))
 
@@ -1336,25 +1061,6 @@ class _LOG10Type(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Compute base 10 logarithm of number/array.
-
-        x LOG10 a
-            a = log10(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.log10(x))
 
@@ -1373,25 +1079,6 @@ class _SINType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Sine of number/array [in radians].
-
-        x SIN a
-            a = sin(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.sin(x))
 
@@ -1410,25 +1097,6 @@ class _COSType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Cosine of number/array [in radians].
-
-        x COS a
-            a = cos(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.cos(x))
 
@@ -1447,25 +1115,6 @@ class _TANType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Tangent of number/array [in radians].
-
-        x TAN a
-            a = tan(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.tan(x))
 
@@ -1484,25 +1133,6 @@ class _SINDType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Sine of number/array [in degrees].
-
-        x SIND a
-            a = sin(x) [x in degrees]
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.sin(np.deg2rad(x)))
 
@@ -1521,25 +1151,6 @@ class _COSDType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Cosine of number/array [in degrees].
-
-        x COSD a
-            a = cos(x) [x in degrees]
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.cos(np.deg2rad(x)))
 
@@ -1558,25 +1169,6 @@ class _TANDType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Tangend of number/array [in degrees].
-
-        x TAND a
-            a = tan(x) [x in degrees]
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.tan(np.deg2rad(x)))
 
@@ -1595,25 +1187,6 @@ class _SINHType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Hyperbolic sine of number/array.
-
-        x SINH a
-            a = sinh(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.sinh(x))
 
@@ -1632,25 +1205,6 @@ class _COSHType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Hyperbolic cosine of number/array.
-
-        x COSH a
-            a = cosh(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.cosh(x))
 
@@ -1669,25 +1223,6 @@ class _TANHType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Hyperbolic tangent of number/array.
-
-        x TANH a
-            a = tanh(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.tanh(x))
 
@@ -1706,25 +1241,6 @@ class _ASINType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Inverse sine of number/array [in radians].
-
-        x ASIN a
-            a = arcsin(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.arcsin(x))
 
@@ -1743,25 +1259,6 @@ class _ACOSType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Inverse cosine of number/array [in radians].
-
-        x ACOS a
-            a = arccos(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.arccos(x))
 
@@ -1780,25 +1277,6 @@ class _ATANType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Inverse tangent of number/array [in radians].
-
-        x ATAN a
-            a = arctan(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.arctan(x))
 
@@ -1817,25 +1295,6 @@ class _ASINDType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Inverse sine of number/array [in degrees].
-
-        x ASIND a
-            a = arcsin(x) [a in degrees]
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.rad2deg(np.arcsin(x)))
 
@@ -1854,25 +1313,6 @@ class _ACOSDType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Inverse cosine of number/array [in degrees].
-
-        x ACOSD a
-            a = arccos(x) [a in degrees]
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.rad2deg(np.arccos(x)))
 
@@ -1891,25 +1331,6 @@ class _ATANDType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Inverse tangent of number/array [in degrees].
-
-        x ATAND a
-            a = arctan(x) [a in degrees]
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.rad2deg(np.arctan(x)))
 
@@ -1928,25 +1349,6 @@ class _ASINHType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Inverse hyperbolic sine of number/array.
-
-        x ASINH a
-            a = arcsinh(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.arcsinh(x))
 
@@ -1965,25 +1367,6 @@ class _ACOSHType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Inverse hyperbolic cosine of number/array.
-
-        x ACOSH a
-            a = arccosh(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.arccosh(x))
 
@@ -2002,25 +1385,6 @@ class _ATANHType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Inverse hyperbolic tangent of number/array.
-
-        x ATANH a
-            a = arctanh(x)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.arctanh(x))
 
@@ -2039,30 +1403,6 @@ class _ISNANType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Determine if number/array is NaN.
-
-        x ISNAN a
-            a = 1 if x is NaN; a = 0 otherwise
-
-        .. note::
-
-            Instead of using 1 and 0 pyrads uses True and False which behave
-            as 1 and 0 when treated as numbers.
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.isnan(x))
 
@@ -2081,30 +1421,6 @@ class _ISANType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Determine if number/array is not NaN.
-
-        x ISAN a
-            a = 0 if x is NaN; a = 1 otherwise
-
-        .. note::
-
-            Instead of using 1 and 0 pyrads uses True and False which behave
-            as 1 and 0 when treated as numbers.
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.logical_not(np.isnan(x)))
 
@@ -2123,25 +1439,6 @@ class _RINTType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Round number/array to nearest integer.
-
-        x RINT a
-            a is nearest integer to x
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.round(x))
 
@@ -2160,25 +1457,6 @@ class _CEILType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Round number/array up to nearest integer.
-
-        x CEIL a
-            a is nearest integer greater or equal to x
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.ceil(x))
 
@@ -2197,25 +1475,6 @@ class _FLOORType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Round number/array down to nearest integer.
-
-        x FLOOR a
-            a is nearest integer less or equal to x
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.floor(x))
 
@@ -2234,25 +1493,6 @@ class _D2RType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Convert number/array from degrees to radians.
-
-        x D2R a
-            convert x from degrees to radians
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.deg2rad(x))
 
@@ -2271,25 +1511,6 @@ class _R2DType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Convert number/array from radians to degrees.
-
-        x R2D a
-            convert x from radian to degrees
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.rad2deg(x))
 
@@ -2308,35 +1529,6 @@ class _YMDHMSType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Convert number/array from seconds since RADS epoch to YYMMDDHHMMSS.
-
-        x YMDHMS a
-            convert seconds of 1985 to format YYMMDDHHMMSS
-
-        .. note::
-
-            The top of the stack should be in seconds since the RADS epoch
-            which is currently 1985-01-01 00:00:00 UTC
-
-        .. note::
-
-            The RADS documentation says this format uses a 4 digit year, but
-            RADS uses a 2 digit year so that is what is used here.
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         if isinstance(x, np.ndarray):
             time = np.datetime64(EPOCH) + (x * 1e6).astype("timedelta64[us]")
@@ -2378,25 +1570,6 @@ class _SUMType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Compute sum over number/array [ignoring NaNs].
-
-        x SUM a
-            a[i] = x[1] + ... + x[i] while skipping all NaN
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.nansum(x))
 
@@ -2415,25 +1588,6 @@ class _DIFType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Compute difference over number/array.
-
-        x DIF a
-            a[i] = x[i]-x[i-1]; a[1] = NaN
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(np.diff(np.ravel(x), prepend=np.nan))
 
@@ -2452,29 +1606,6 @@ class _DUPType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Duplicate top of stack.
-
-        x DUP a b
-            duplicate the last item on the stack
-
-        .. note::
-
-            This is duplication by reference, no copy is made.
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 1 element.
-
-        """
         x = _get_x(stack)
         stack.append(x)
         stack.append(x)
@@ -2494,25 +1625,6 @@ class _DIVType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Divide one number/array from another.
-
-        x y DIV a
-            a = x/y
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(x / y)
 
@@ -2531,25 +1643,6 @@ class _POWType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Raise a number/array to the power of another number/array.
-
-        x y POW a
-            a = x**y
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(np.power(x, y))
 
@@ -2568,25 +1661,6 @@ class _FMODType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Remainder of dividing one number/array by another.
-
-        x y FMOD a
-            a = x modulo y
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(np.fmod(x, y))
 
@@ -2605,25 +1679,6 @@ class _MINType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Minimum of two numbers/arrays [element wise].
-
-        x y MIN a
-            a = the lesser of x and y
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(np.minimum(x, y))
 
@@ -2642,25 +1697,6 @@ class _MAXType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Maximum of two numbers/arrays [element wise].
-
-        x y MAX a
-            a = the greater of x and y
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(np.maximum(x, y))
 
@@ -2679,25 +1715,6 @@ class _ATAN2Type(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Inverse tangent of two numbers/arrays giving x and y.
-
-        x y ATAN2 a
-            a = arctan2(x, y)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(np.arctan2(x, y))
 
@@ -2716,25 +1733,6 @@ class _HYPOTType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Hypotenuse from numbers/arrays giving legs.
-
-        x y HYPOT a
-            a = sqrt(x*x+y*y)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(np.hypot(x, y))
 
@@ -2753,25 +1751,6 @@ class _R2Type(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Sum of squares of two numbers/arrays.
-
-        x y R2 a
-            a = x*x + y*y
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(x ** 2 + y ** 2)
 
@@ -2790,30 +1769,6 @@ class _EQType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Compare two numbers/arrays for equality [element wise].
-
-        x y EQ a
-            a = 1 if x == y; a = 0 otherwise
-
-        .. note::
-
-            Instead of using 1 and 0 pyrads uses True and False which behave
-            as 1 and 0 when treated as numbers.
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(x == y)
 
@@ -2832,30 +1787,6 @@ class _NEType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Compare two numbers/arrays for inequality [element wise].
-
-        x y NE a
-            a = 0 if x == y; a = 1 otherwise
-
-        .. note::
-
-            Instead of using 1 and 0 pyrads uses True and False which behave
-            as 1 and 0 when treated as numbers.
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(x != y)
 
@@ -2874,30 +1805,6 @@ class _LTType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Compare two numbers/arrays with < [element wise].
-
-        x y LT a
-            a = 1 if x < y; a = 0 otherwise
-
-        .. note::
-
-            Instead of using 1 and 0 pyrads uses True and False which behave
-            as 1 and 0 when treated as numbers.
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(x < y)
 
@@ -2916,30 +1823,6 @@ class _LEType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Compare two numbers/arrays with <= [element wise].
-
-        x y LE a
-            a = 1 if x ≤ y; a = 0 otherwise
-
-        .. note::
-
-            Instead of using 1 and 0 pyrads uses True and False which behave
-            as 1 and 0 when treated as numbers.
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(x <= y)
 
@@ -2958,30 +1841,6 @@ class _GTType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Compare two numbers/arrays with > [element wise].
-
-        x y GT a
-            a = 1 if x > y; a = 0 otherwise
-
-        .. note::
-
-            Instead of using 1 and 0 pyrads uses True and False which behave
-            as 1 and 0 when treated as numbers.
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(x > y)
 
@@ -3000,30 +1859,6 @@ class _GEType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Compare two numbers/arrays with >= [element wise].
-
-        x y GE a
-            a = 1 if x ≥ y; a = 0 otherwise
-
-        .. note::
-
-            Instead of using 1 and 0 pyrads uses True and False which behave
-            as 1 and 0 when treated as numbers.
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(x >= y)
 
@@ -3042,25 +1877,6 @@ class _NANType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Replace number/array with NaN where it is equal to another.
-
-        x y NAN a
-            a = NaN if x == y; a = x otherwise
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
@@ -3089,25 +1905,6 @@ class _ANDType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Fallback to second number/array when first is NaN [element wise].
-
-        x y AND a
-            a = y if x is NaN; a = x otherwise
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
@@ -3133,25 +1930,6 @@ class _ORType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Replace number/array with NaN where second is NaN.
-
-        x y OR a
-            a = NaN if y is NaN; a = x otherwise
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
@@ -3182,25 +1960,6 @@ class _IANDType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Bitwise AND of two numbers/arrays [element wise].
-
-        x y IAND a
-            a = bitwise AND of x and y
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(np.bitwise_and(x, y))
 
@@ -3219,25 +1978,6 @@ class _IORType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Bitwise OR of two numbers/arrays [element wise].
-
-        x y IOR a
-            a = bitwise OR of x and y
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(np.bitwise_or(x, y))
 
@@ -3256,25 +1996,6 @@ class _BTESTType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Test bit, given by second number/array, in first [element wise].
-
-        x y BTEST a
-            a = 1 if bit y of x is set; a = 0 otherwise
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         if not _is_integer(x):
             raise TypeError("'x' must be an integer type")
@@ -3297,25 +2018,6 @@ class _AVGType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Average of two numbers/arrays ignoring NaNs [element wise].
-
-        x y AVG a
-            a = 0.5*(x+y) [when x or y is NaN a returns the other value]
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
@@ -3345,25 +2047,6 @@ class _DXDYType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Compute dx/dy from two numbers/arrays.
-
-        x y DXDY a
-            a[i] = (x[i+1]-x[i-1])/(y[i+1]-y[i-1]); a[1] = a[n] = NaN
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
             x, y = np.broadcast_arrays(x, y)
@@ -3394,25 +2077,6 @@ class _EXCHType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Exchange top two elements of stack.
-
-        x y EXCH a b
-            exchange the last two items on the stack (NaNs have no influence)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 2 elements.
-
-        """
         x, y = _get_xy(stack)
         stack.append(y)
         stack.append(x)
@@ -3432,26 +2096,6 @@ class _INRANGEType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Determine if number/array is between two numbers [element wise].
-
-        x y z INRANGE a
-            a = 1 if x is between y and z (inclusive)
-            a = 0 otherwise (also in case of any NaN)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 3 elements.
-
-        """
         x, y, z = _get_xyz(stack)
         if any(isinstance(v, np.ndarray) for v in [x, y, z]):
             x, y, z = np.broadcast_arrays(x, y, z)
@@ -3475,35 +2119,6 @@ class _BOXCARType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Filter number/array with a boxcar filter along a given dimension.
-
-        x y z BOXCAR a
-            a = filter x along monotonic dimension y with boxcar of length z
-            (NaNs are skipped)
-
-        .. note::
-
-            This may behave slightly differently than the official RADS
-            software at boundaries and at NaN values.
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 3 elements.
-        IndexError
-            If x does not have dimension y.
-        ValueError
-            If y or z is not a scalar.
-
-        """
         x, y, z = _get_xyz(stack)
         if np.size(x) == 1:
             a = x
@@ -3545,30 +2160,6 @@ class _GAUSSType(Operator):
         stack: MutableSequence[NumberOrArray],
         environment: Mapping[str, NumberOrArray],
     ) -> None:
-        """Filter number/array with a gaussian filter along a given dimension.
-
-        x y z GAUSS a
-            a = filter x along monotonic dimension y with Gauss function with
-            sigma z (NaNs are skipped)
-
-        Parameters
-        ----------
-        stack
-            The stack of numbers/arrays to operate on.
-        environment
-            The dictionary like object providing the immutable environment.
-            Not used by this method.
-
-        Raises
-        ------
-        IndexError
-            If :paramref:`stack` does not have at least 3 elements.
-        IndexError
-            If x does not have dimension y.
-        ValueError
-            If y or z is not a scalar.
-
-        """
         x, y, z = _get_xyz(stack)
         if np.size(x) == 1:
             a = x
@@ -3608,7 +2199,6 @@ SUB = _SUBType("SUB")
 
 x y SUB a
     a = x - y
-
 """
 
 ADD = _ADDType("ADD")
@@ -3616,7 +2206,6 @@ ADD = _ADDType("ADD")
 
 x y ADD a
     a = x + y
-
 """
 
 MUL = _MULType("MUL")
@@ -3624,7 +2213,6 @@ MUL = _MULType("MUL")
 
 x y MUL a
     a = x*y
-
 """
 
 POP = _POPType("POP")
@@ -3632,15 +2220,13 @@ POP = _POPType("POP")
 
 x POP
     remove last item from stack
-
 """
 
 NEG = _NEGType("NEG")
 """Negate number/array.
 
 x NEG a
-    a = −x
-
+    a = -x
 """
 
 ABS = _ABSType("ABS")
@@ -3648,7 +2234,6 @@ r"""Absolute value of number/array.
 
 x ABS a
     a = \|x\|
-
 """
 
 INV = _INVType("INV")
@@ -3656,7 +2241,6 @@ INV = _INVType("INV")
 
 x INV a
     a = 1/x
-
 """
 
 SQRT = _SQRTType("SQRT")
@@ -3664,7 +2248,6 @@ SQRT = _SQRTType("SQRT")
 
 x SQRT a
     a = sqrt(x)
-
 """
 
 SQR = _SQRType("SQR")
@@ -3672,7 +2255,6 @@ SQR = _SQRType("SQR")
 
 x SQR a
     a = x*x
-
 """
 
 EXP = _EXPType("EXP")
@@ -3680,7 +2262,6 @@ EXP = _EXPType("EXP")
 
 x EXP a
     a = exp(x)
-
 """
 
 LOG = _LOGType("LOG")
@@ -3688,7 +2269,6 @@ LOG = _LOGType("LOG")
 
 x LOG a
     a = ln(x)
-
 """
 
 LOG10 = _LOG10Type("LOG10")
@@ -3696,7 +2276,6 @@ LOG10 = _LOG10Type("LOG10")
 
 x LOG10 a
     a = log10(x)
-
 """
 
 SIN = _SINType("SIN")
@@ -3704,7 +2283,6 @@ SIN = _SINType("SIN")
 
 x SIN a
     a = sin(x)
-
 """
 
 COS = _COSType("COS")
@@ -3712,7 +2290,6 @@ COS = _COSType("COS")
 
 x COS a
     a = cos(x)
-
 """
 
 TAN = _TANType("TAN")
@@ -3720,7 +2297,6 @@ TAN = _TANType("TAN")
 
 x TAN a
     a = tan(x)
-
 """
 
 SIND = _SINDType("SIND")
@@ -3728,7 +2304,6 @@ SIND = _SINDType("SIND")
 
 x SIND a
     a = sin(x) [x in degrees]
-
 """
 
 COSD = _COSDType("COSD")
@@ -3736,15 +2311,13 @@ COSD = _COSDType("COSD")
 
 x COSD a
     a = cos(x) [x in degrees]
-
 """
 
 TAND = _TANDType("TAND")
-"""Tangend of number/array [in degrees].
+"""Tangent of number/array [in degrees].
 
 x TAND a
     a = tan(x) [x in degrees]
-
 """
 
 SINH = _SINHType("SINH")
@@ -3752,7 +2325,6 @@ SINH = _SINHType("SINH")
 
 x SINH a
     a = sinh(x)
-
 """
 
 COSH = _COSHType("COSH")
@@ -3760,7 +2332,6 @@ COSH = _COSHType("COSH")
 
 x COSH a
     a = cosh(x)
-
 """
 
 TANH = _TANHType("TANH")
@@ -3768,7 +2339,6 @@ TANH = _TANHType("TANH")
 
 x TANH a
     a = tanh(x)
-
 """
 
 ASIN = _ASINType("ASIN")
@@ -3776,7 +2346,6 @@ ASIN = _ASINType("ASIN")
 
 x ASIN a
     a = arcsin(x)
-
 """
 
 ACOS = _ACOSType("ACOS")
@@ -3784,7 +2353,6 @@ ACOS = _ACOSType("ACOS")
 
 x ACOS a
     a = arccos(x)
-
 """
 
 ATAN = _ATANType("ATAN")
@@ -3792,7 +2360,6 @@ ATAN = _ATANType("ATAN")
 
 x ATAN a
     a = arctan(x)
-
 """
 
 ASIND = _ASINDType("ASIND")
@@ -3800,7 +2367,6 @@ ASIND = _ASINDType("ASIND")
 
 x ASIND a
     a = arcsin(x) [a in degrees]
-
 """
 
 ACOSD = _ACOSDType("ACOSD")
@@ -3808,7 +2374,6 @@ ACOSD = _ACOSDType("ACOSD")
 
 x ACOSD a
     a = arccos(x) [a in degrees]
-
 """
 
 ATAND = _ATANDType("ATAND")
@@ -3816,7 +2381,6 @@ ATAND = _ATANDType("ATAND")
 
 x ATAND a
     a = arctan(x) [a in degrees]
-
 """
 
 ASINH = _ASINHType("ASINH")
@@ -3824,7 +2388,6 @@ ASINH = _ASINHType("ASINH")
 
 x ASINH a
     a = arcsinh(x)
-
 """
 
 ACOSH = _ACOSHType("ACOSH")
@@ -3832,7 +2395,6 @@ ACOSH = _ACOSHType("ACOSH")
 
 x ACOSH a
     a = arccosh(x)
-
 """
 
 ATANH = _ATANHType("ATANH")
@@ -3840,7 +2402,6 @@ ATANH = _ATANHType("ATANH")
 
 x ATANH a
     a = arctanh(x)
-
 """
 
 ISNAN = _ISNANType("ISNAN")
@@ -3849,6 +2410,10 @@ ISNAN = _ISNANType("ISNAN")
 x ISNAN a
     a = 1 if x is NaN; a = 0 otherwise
 
+.. note::
+
+    Instead of using 1 and 0 pyrads uses True and False which behave
+    as 1 and 0 when treated as numbers.
 """
 
 ISAN = _ISANType("ISAN")
@@ -3857,6 +2422,10 @@ ISAN = _ISANType("ISAN")
 x ISAN a
     a = 0 if x is NaN; a = 1 otherwise
 
+.. note::
+
+    Instead of using 1 and 0 pyrads uses True and False which behave
+    as 1 and 0 when treated as numbers.
 """
 
 RINT = _RINTType("RINT")
@@ -3864,7 +2433,6 @@ RINT = _RINTType("RINT")
 
 x RINT a
     a is nearest integer to x
-
 """
 
 NINT = _RINTType("NINT")
@@ -3872,7 +2440,6 @@ NINT = _RINTType("NINT")
 
 x NINT a
     a is nearest integer to x
-
 """
 
 CEIL = _CEILType("CEIL")
@@ -3880,7 +2447,6 @@ CEIL = _CEILType("CEIL")
 
 x CEIL a
     a is nearest integer greater or equal to x
-
 """
 
 CEILING = _CEILType("CEILING")
@@ -3888,7 +2454,6 @@ CEILING = _CEILType("CEILING")
 
 x CEILING a
     a is nearest integer greater or equal to x
-
 """
 
 FLOOR = _FLOORType("FLOOR")
@@ -3896,7 +2461,6 @@ FLOOR = _FLOORType("FLOOR")
 
 x FLOOR a
     a is nearest integer less or equal to x
-
 """
 
 D2R = _D2RType("D2R")
@@ -3904,7 +2468,6 @@ D2R = _D2RType("D2R")
 
 x D2R a
     convert x from degrees to radians
-
 """
 
 R2D = _R2DType("R2D")
@@ -3912,7 +2475,6 @@ R2D = _R2DType("R2D")
 
 x R2D a
     convert x from radian to degrees
-
 """
 
 YMDHMS = _YMDHMSType("YMDHMS")
@@ -3921,6 +2483,15 @@ YMDHMS = _YMDHMSType("YMDHMS")
 x YMDHMS a
     convert seconds of 1985 to format YYMMDDHHMMSS
 
+.. note::
+
+    The top of the stack should be in seconds since the RADS epoch
+    which is currently 1985-01-01 00:00:00 UTC
+
+.. note::
+
+    The RADS documentation says this format uses a 4 digit year, but
+    RADS uses a 2 digit year so that is what is used here.
 """
 
 SUM = _SUMType("SUM")
@@ -3928,7 +2499,6 @@ SUM = _SUMType("SUM")
 
 x SUM a
     a[i] = x[1] + ... + x[i] while skipping all NaN
-
 """
 
 DIF = _DIFType("DIF")
@@ -3936,7 +2506,6 @@ DIF = _DIFType("DIF")
 
 x DIF a
     a[i] = x[i]-x[i-1]; a[1] = NaN
-
 """
 
 DUP = _DUPType("DUP")
@@ -3945,6 +2514,9 @@ DUP = _DUPType("DUP")
 x DUP a b
     duplicate the last item on the stack
 
+.. note::
+
+    This is duplication by reference, no copy is made.
 """
 
 DIV = _DIVType("DIV")
@@ -3952,7 +2524,6 @@ DIV = _DIVType("DIV")
 
 x y DIV a
     a = x/y
-
 """
 
 POW = _POWType("POW")
@@ -3960,7 +2531,6 @@ POW = _POWType("POW")
 
 x y POW a
     a = x**y
-
 """
 
 FMOD = _FMODType("FMOD")
@@ -3968,7 +2538,6 @@ FMOD = _FMODType("FMOD")
 
 x y FMOD a
     a = x modulo y
-
 """
 
 MIN = _MINType("MIN")
@@ -3976,7 +2545,6 @@ MIN = _MINType("MIN")
 
 x y MIN a
     a = the lesser of x and y
-
 """
 
 MAX = _MAXType("MAX")
@@ -3984,7 +2552,6 @@ MAX = _MAXType("MAX")
 
 x y MAX a
     a = the greater of x and y
-
 """
 
 ATAN2 = _ATAN2Type("ATAN2")
@@ -3992,7 +2559,6 @@ ATAN2 = _ATAN2Type("ATAN2")
 
 x y ATAN2 a
     a = arctan2(x, y)
-
 """
 
 HYPOT = _HYPOTType("HYPOT")
@@ -4000,7 +2566,6 @@ HYPOT = _HYPOTType("HYPOT")
 
 x y HYPOT a
     a = sqrt(x*x+y*y)
-
 """
 
 R2 = _R2Type("R2")
@@ -4008,7 +2573,6 @@ R2 = _R2Type("R2")
 
 x y R2 a
     a = x*x + y*y
-
 """
 
 EQ = _EQType("EQ")
@@ -4017,6 +2581,10 @@ EQ = _EQType("EQ")
 x y EQ a
     a = 1 if x == y; a = 0 otherwise
 
+.. note::
+
+    Instead of using 1 and 0 pyrads uses True and False which behave
+    as 1 and 0 when treated as numbers.
 """
 
 NE = _NEType("NE")
@@ -4025,6 +2593,10 @@ NE = _NEType("NE")
 x y NE a
     a = 0 if x == y; a = 1 otherwise
 
+.. note::
+
+    Instead of using 1 and 0 pyrads uses True and False which behave
+    as 1 and 0 when treated as numbers.
 """
 
 LT = _LTType("LT")
@@ -4033,6 +2605,10 @@ LT = _LTType("LT")
 x y LT a
     a = 1 if x < y; a = 0 otherwise
 
+.. note::
+
+    Instead of using 1 and 0 pyrads uses True and False which behave
+    as 1 and 0 when treated as numbers.
 """
 
 LE = _LEType("LE")
@@ -4041,6 +2617,10 @@ LE = _LEType("LE")
 x y LE a
     a = 1 if x ≤ y; a = 0 otherwise
 
+.. note::
+
+    Instead of using 1 and 0 pyrads uses True and False which behave
+    as 1 and 0 when treated as numbers.
 """
 
 GT = _GTType("GT")
@@ -4049,6 +2629,10 @@ GT = _GTType("GT")
 x y GT a
     a = 1 if x > y; a = 0 otherwise
 
+.. note::
+
+    Instead of using 1 and 0 pyrads uses True and False which behave
+    as 1 and 0 when treated as numbers.
 """
 
 GE = _GEType("GE")
@@ -4057,6 +2641,10 @@ GE = _GEType("GE")
 x y GE a
     a = 1 if x ≥ y; a = 0 otherwise
 
+.. note::
+
+    Instead of using 1 and 0 pyrads uses True and False which behave
+    as 1 and 0 when treated as numbers.
 """
 
 NAN = _NANType("NAN")
@@ -4064,7 +2652,6 @@ NAN = _NANType("NAN")
 
 x y NAN a
     a = NaN if x == y; a = x otherwise
-
 """
 
 AND = _ANDType("AND")
@@ -4072,7 +2659,6 @@ AND = _ANDType("AND")
 
 x y AND a
     a = y if x is NaN; a = x otherwise
-
 """
 
 OR = _ORType("OR")
@@ -4080,7 +2666,6 @@ OR = _ORType("OR")
 
 x y OR a
     a = NaN if y is NaN; a = x otherwise
-
 """
 
 IAND = _IANDType("IAND")
@@ -4088,7 +2673,6 @@ IAND = _IANDType("IAND")
 
 x y IAND a
     a = bitwise AND of x and y
-
 """
 
 IOR = _IORType("IOR")
@@ -4096,7 +2680,6 @@ IOR = _IORType("IOR")
 
 x y IOR a
     a = bitwise OR of x and y
-
 """
 
 BTEST = _BTESTType("BTEST")
@@ -4104,7 +2687,6 @@ BTEST = _BTESTType("BTEST")
 
 x y BTEST a
     a = 1 if bit y of x is set; a = 0 otherwise
-
 """
 
 AVG = _AVGType("AVG")
@@ -4112,7 +2694,6 @@ AVG = _AVGType("AVG")
 
 x y AVG a
     a = 0.5*(x+y) [when x or y is NaN a returns the other value]
-
 """
 
 DXDY = _DXDYType("DXDY")
@@ -4120,7 +2701,6 @@ DXDY = _DXDYType("DXDY")
 
 x y DXDY a
     a[i] = (x[i+1]-x[i-1])/(y[i+1]-y[i-1]); a[1] = a[n] = NaN
-
 """
 
 EXCH = _EXCHType("EXCH")
@@ -4128,7 +2708,6 @@ EXCH = _EXCHType("EXCH")
 
 x y EXCH a b
     exchange the last two items on the stack (NaNs have no influence)
-
 """
 
 INRANGE = _INRANGEType("INRANGE")
@@ -4137,7 +2716,6 @@ INRANGE = _INRANGEType("INRANGE")
 x y z INRANGE a
     a = 1 if x is between y and z (inclusive)
     a = 0 otherwise (also in case of any NaN)
-
 """
 
 BOXCAR = _BOXCARType("BOXCAR")
@@ -4147,6 +2725,15 @@ x y z BOXCAR a
     a = filter x along monotonic dimension y with boxcar of length z
     (NaNs are skipped)
 
+.. note::
+
+    This may behave slightly differently than the official RADS
+    software at boundaries and at NaN values.
+
+:raises IndexError:
+    If x does not have dimension y.
+:raises ValueError:
+    If y or z is not a scalar.
 """
 
 GAUSS = _GAUSSType("GAUSS")
@@ -4156,6 +2743,10 @@ x y z GAUSS a
     a = filter x along monotonic dimension y with Gauss function with
     sigma z (NaNs are skipped)
 
+:raises IndexError:
+    If x does not have dimension y.
+:raises ValueError:
+    If y or z is not a scalar.
 """
 
 _KEYWORDS = {
@@ -4236,16 +2827,11 @@ _KEYWORDS = {
 def _is_integer(x: NumberOrArray) -> bool:
     """Determine if number is an integer or array of integers.
 
-    Parameters
-    ----------
-    x
+    :param x:
         A number or array of numbers to check.
 
-    Returns
-    -------
-    bool
+    :return:
         True if x is an integer or array of integers, otherwise False.
-
     """
     if isinstance(x, (np.ndarray, np.generic)):
         return issubclass(x.dtype.type, Integral)

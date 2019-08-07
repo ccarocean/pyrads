@@ -17,11 +17,8 @@ class Element(Iterable["Element"], Sized, ABC):
     def __repr__(self) -> str:
         """Get text representation of the element.
 
-        Returns
-        -------
-        str
+        :return:
             Opening tag of the element.
-
         """
         attributes = " ".join(
             '{:s}="{}"'.format(k, v) for k, v in self.attributes.items()
@@ -34,23 +31,17 @@ class Element(Iterable["Element"], Sized, ABC):
     def __iter__(self) -> Iterator["Element"]:
         """Get the children of this element.
 
-        Returns
-        -------
-        Iterable[Element]
+        :return:
             An iterable to the children of this element in the same order as
             they are in the XML file.
-
         """
 
     @abstractmethod
     def __len__(self) -> int:
         """Get number of children.
 
-        Returns
-        -------
-        int
+        :return:
             Number of children.
-
         """
 
     def dumps(
@@ -58,17 +49,12 @@ class Element(Iterable["Element"], Sized, ABC):
     ) -> str:
         """Get string representation of this element and all child elements.
 
-        Parameters
-        ----------
-        indent
+        :param indent:
             Amount to indent each level.  Can be given as an int or a string.
             Defaults to 4 spaces.
 
-        Returns
-        -------
-        str
+        :return:
             String representation of this and all child elements.
-
         """
         attributes = ""
         text = ""
@@ -121,75 +107,53 @@ class Element(Iterable["Element"], Sized, ABC):
     def next(self) -> "Element":
         """Get the next sibling element.
 
-        Returns
-        -------
-        Element
+        :return:
             Next XML sibling element.
 
-        Raises
-        ------
-        StopIteration
-            If there is no next sibling element.
+        :raises StopIteration:
 
+            If there is no next sibling element.
         """
 
     @abstractmethod
     def prev(self) -> "Element":
         """Get the previous sibling element.
 
-        Returns
-        -------
-        Element
+        :return:
             Previous XML sibling element.
 
-        Raises
-        ------
-        StopIteration
+        :raises StopIteration:
             If there is no previous sibling element.
-
         """
 
     @abstractmethod
     def up(self) -> "Element":
         """Get the parent of this element.
 
-        Returns
-        -------
-        Element
+        :return:
             Parent XML element.
 
-        Raises
-        ------
-        StopIteration
+        :raises:
             If there is no parent element.
-
         """
 
     @abstractmethod
     def down(self) -> "Element":
         """Get the first child of this element.
 
-        Returns
-        -------
-        Element
+        :return:
             First child XML element.
 
-        Raises
-        ------
-        StopIteration
+        :raises StopIteration:
             If this element does not have any children.
-
         """
 
     @property
     def file(self) -> Optional[str]:
         """Get the name of the XML file containing this element.
 
-        Returns
-        -------
-        str or None
+        :return:
             Name of the file containing this element, or None.
-
         """
         return None
 
@@ -197,11 +161,8 @@ class Element(Iterable["Element"], Sized, ABC):
     def opening_line(self) -> Optional[int]:
         """Get the opening line of the XML element.
 
-        Returns
-        -------
-        int or None
+        :return:
             Opening line number, or None.
-
         """
         return None
 
@@ -209,11 +170,8 @@ class Element(Iterable["Element"], Sized, ABC):
     def num_lines(self) -> Optional[int]:
         """Get the number of lines making up the XML element.
 
-        Returns
-        -------
-        int or None
+        :return:
             Number of lines in XML element, or None.
-
         """
         return None
 
@@ -221,11 +179,8 @@ class Element(Iterable["Element"], Sized, ABC):
     def closing_line(self) -> Optional[int]:
         """Get the closing line of the XML element.
 
-        Returns
-        -------
-        int or None
+        :return:
             Closing line number, or None.
-
         """
         return None
 

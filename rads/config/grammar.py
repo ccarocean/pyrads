@@ -1,3 +1,4 @@
+"""RADS XML file parser expression grammar."""
 from typing import Any, Callable, Iterable, Mapping, Optional, Sequence, Tuple
 
 import fortran_format_converter as ffc
@@ -40,7 +41,6 @@ from .utility import (
     source_from_element,
 )
 from .xml_parsers import (
-    Apply,
     GlobalParseFailure,
     Parser,
     any,
@@ -54,6 +54,17 @@ from .xml_parsers import (
 
 
 def alias() -> Parser:
+    """Return a parser to parse the <alias> tag.
+
+    :return:
+        A parser that consumes the <alias> XML tag and produces a
+        :class:`rads.config.ast.Alias` AST node.
+
+    :raises rads.config.xml_parsers.GlobalParseFailure:
+        Raised by the returned parser if an <alias> tag is empty or does not
+        contain a "name" attribute.
+    """
+
     def process(element: Element) -> Alias:
         try:
             alias = element.attributes["name"]
@@ -71,6 +82,18 @@ def alias() -> Parser:
 
 
 def ignore(tag_: Optional[str] = None) -> Parser:
+    """Return a parser to ignore a given XML tag.
+
+    :param tag_:
+        The name of the tag to consume and ignore.  The default is to ignore
+        any tag.
+
+    :return:
+        A parser that consumes the given XML `tag_` and produces a
+        :class:`rads.config.ast.NullStatement` AST node which essentially
+        throws away the tag.
+    """
+
     def process(element: Element) -> NullStatement:
         return NullStatement(source=source_from_element(element))
 
@@ -84,6 +107,32 @@ def value(
     tag_: Optional[str] = None,
     var: Optional[str] = None,
 ) -> Parser:
+    """Return a parser to parse a simple value assignment XML tag.
+
+    :param parser:
+        The text parser to use for the contents of the given `tag_`.  It will
+        also be given the attributes mapping.
+    :param tag_:
+        The name of the tag to parse.  The default is to consume any tag.
+    :param var:
+        Override the name the value is to be assigned to.  The default is the
+        tag name.
+
+        .. note::
+
+            Use of this will break the AST's ability to make suggestions when
+            attempting to assign to an invalid variable as that feature
+            requires the tag and variable to have the same name.
+
+    :return:
+        A parser that consumes the given XML `tag_` and produces a
+        :class:`rads.config.ast.Assignment` AST node.
+
+    :raises rads.config.xml_parsers.GlobalParseFailure:
+        Raised by the returned parser if the consumed tag is empty or the given
+        text `parser` produces a :class:`rads.config.text_parsers.TextParseError`.
+    """
+
     def process(element: Element) -> Assignment:
         var_ = var if var else element.tag
         condition = parse_condition(element.attributes)
@@ -104,7 +153,50 @@ def value(
 
 
 def if_statement(internal: Parser) -> Parser:
-    def process(statements: Tuple[Element, Statement]) -> Statement:
+    """Return a parser to parse the <if> tag, opt. followed by <elseif> and <else>.
+
+    In the case of <elseif> tags they will be converted to nested if/else.  Using
+    Python conditionals as an example, the following:
+
+    .. code-block:: python
+
+        if a == 1:
+            ...
+        elif a == 2
+            ...
+        elif a == 3:
+            ...
+        else
+            ...
+
+    would be converted internally to:
+
+    .. code-block:: python
+
+        if a == 1:
+            ...
+        else:
+            if a == 2:
+                ...
+            else:
+                if a == 3:
+                    ...
+                else:
+                    ...
+
+    This is because the AST does not have an ElseIf node.
+
+    :param internal:
+        XML parser to handle the inside of the <if>, <elseif>, and <else> tags.
+        None of its errors are caught by the <if> parser.
+
+    :return:
+        A parser that consumes the <if> XML tag, optionally followed by one or
+        more <elseif> tags and/or a <else> tag, and produces an
+        :class:`rads.config.ast.If` AST node.
+    """
+
+    def process(statements: Tuple[Element, Statement]) -> If:
         if_element, false_statement = statements
         condition = parse_condition(if_element.attributes)
         true_statement = internal(if_element.down())[0]
@@ -122,21 +214,47 @@ def if_statement(internal: Parser) -> Parser:
 
 
 def elseif_statement(internal: Parser) -> Parser:
-    def process(statements: Iterable[Any]) -> Statement:
+    """Return a parser to parse the <elseif> tag, opt. followed by <elseif> and <else>.
+
+    See :func:`if_statement` for explanation of how this parser converts
+    if/elseif/else to if/else.
+
+    :param internal:
+        XML parser to handle the inside of the <elseif> and <else> tags. None
+        of its errors are caught by the <if> parser.
+
+    :return:
+        A parser that consumes the <elseif> XML tag, optionally followed by one
+        or more <elseif> tags and/or a <else> tag, and produces an
+        :class:`rads.config.ast.If` AST node.
+    """
+
+    def process(statements: Iterable[Any]) -> If:
         elseif_element, false_statement = statements
         condition = parse_condition(elseif_element.attributes)
         true_statement = internal(elseif_element.down())[0]
         source = source_from_element(elseif_element)
         return If(condition, true_statement, false_statement, source=source)
 
-    return Apply(
+    return (
         tag("elseif")
-        + opt(lazy(lambda: elseif_statement(internal)) | else_statement(internal)),
-        process,
+        + opt(lazy(lambda: elseif_statement(internal)) | else_statement(internal))
+        ^ process
     )
 
 
 def else_statement(internal: Parser) -> Parser:
+    """Return a parser to parse the <else> tag.
+
+    :param internal:
+        XML parser to handle the inside of the <else> tag.  None of its errors
+        are caught by the <if> parser.
+
+    :return:
+        A parser that consumes the <else> XML tag and produces an an AST node
+        from the `internal` parser.
+    """
+
     def process(element: Element) -> Any:
         return internal(element.down())[0]
 
@@ -144,6 +262,19 @@ def else_statement(internal: Parser) -> Parser:
 
 
 def satellites() -> Parser:
+    """Return a parser to parse the <satellites> tag.
+
+    :return:
+        A parser that consumes the <satellites> tag and produces a
+        :class:`rads.config.ast.Satellites` AST node which when evaluated will
+        set the 2 and 3 character IDs as well as the alternate names of a
+        satellite.
+
+    :raises rads.config.xml_parsers.GlobalParseFailure:
+        Raised by the returned parser if the text of the <satellites> tag
+        cannot be parsed.
+    """
+
     def process(element: Element) -> Satellites:
         source = source_from_element(element)
         if not element.text:
@@ -169,6 +300,19 @@ def satellites() -> Parser:
 
 
 def satellite_ids() -> Parser:
+    """Return a parser to parse the <satellites> tag (2 character ID's only).
+
+    :return:
+        A parser that consumes the <satellites> tag and produces an
+        :class:`rads.config.ast.Assignment` AST node which assigns to
+        "satellites" a list of the 2 character satellite ID's.
+
+    :raises rads.config.xml_parsers.GlobalParseFailure:
+        Raised by the returned parser if any of the satellite ID's is not
+        exactly 2 characters long or the text of the <satellites> cannot
+        otherwise be parsed.
+    """
+
     def process(element: Element) -> Assignment:
         source = source_from_element(element)
         if not element.text:
@@ -193,7 +337,19 @@ def satellite_ids() -> Parser:
 
 
 def subcycles() -> Parser:
-    def process(element: Element) -> Statement:
+    """Return a parser to parse the <subcycles> tag.
+
+    :return:
+        A parser that consumes the <subcycles> tag and produces an
+        :class:`rads.config.ast.Assignment` AST node which assigns to
+        "subcycles" a :class:`rads.config.tree.SubCycles` dataclass.
+
+    :raises rads.config.xml_parsers.GlobalParseFailure:
+        Raised by the returned parser if the value of the "start" attribute or
+        any of the sub-cycle lengths are not integers.
+    """
+
+    def process(element: Element) -> Assignment:
         start: Optional[int]
         condition = parse_condition(element.attributes)
         action = parse_action(element)
@@ -204,7 +360,10 @@ def subcycles() -> Parser:
         except ValueError as err:
             raise error_at(element)(str(err))
         text = element.text if element.text else ""
-        lengths = [int(s) for s in text.split()]
+        try:
+            lengths = [int(s) for s in text.split()]
+        except ValueError as err:
+            raise error_at(element)(str(err))
         source = source_from_element(element)
         value = SubCycles(lengths, start=start)
         return Assignment(
@@ -221,6 +380,27 @@ def subcycles() -> Parser:
 def block(
     parser: Parser, error_msg: str = "Invalid configuration block or value."
 ) -> Parser:
+    """Return a parser to parse a block of XML tags.
+
+    :param parser:
+        The XML parser to use for the internals of the block.
+    :param error_msg:
+        Override the error message used when the block raises a
+        :class:`rads.config.xml_parsers.LocalParseFailure`.
+
+    :return:
+        A parser that consumes the contents of an XML block between a set of
+        tags and produces a :class:`rads.config.ast.Statement` usually a
+        :class:`rads.config.ast.CompoundStatement.`.
+
+    :raises rads.config.xml_parsers.GlobalParseFailure:
+        Raised by the returned parser if the internal `parser` produces a
+        :class:`rads.config.xml_parsers.LocalParseFailure`.
+    :raises rads.config.xml_parsers.GlobalParseFailure:
+        Raise by the returned parser if not all of the tags within the block
+        are consumed.
+    """
+
     def process(statements: Sequence[Statement]) -> Statement:
         # flatten if only a single statement
         if len(statements) == 1:
@@ -235,6 +415,12 @@ def block(
 
 
 def phase() -> Parser:
+    """Return a parser to parse the <phase> XML tag and block.
+
+    :return:
+        A parser that consumes the <phase> XML block and it's contents and
+        produces a :class:`rads.config.ast.Phase` AST node.
+    """
     phase_block = block(
         value(lift(str), "mission")
         | value(cycles, "cycles")
@@ -244,11 +430,17 @@ def phase() -> Parser:
         | value(time, "end_time")
         | subcycles()
     )
-    process = named_block_processor("phase", phase_block, Phase)
+    process = named_block_processor(phase_block, Phase)
     return tag("phase") ^ process
 
 
 def variable() -> Parser:
+    """Return a parser to parse the <var> XML tag and block.
+
+    :return:
+        A parser that consumes the <var> XML block and it's contents and
+        produces a :class:`rads.config.ast.Variable` AST Node.
+    """
     # NOTE: These must be duplicated in the variable_overrides below.
     variable_block = block(
         value(lift(str), "long_name", var="name")
@@ -270,21 +462,46 @@ def variable() -> Parser:
         | value(compress, "compress")
         | value(one_of((lift(int), lift(float))), "default")
     )
-    process = named_block_processor("var", variable_block, Variable)
+    process = named_block_processor(variable_block, Variable)
     return tag("var") ^ process
 
 
 def variable_override(
     parser: Callable[[str, Mapping[str, str]], Any],
     tag_: str,
-    var: Optional[str] = None,
+    field: Optional[str] = None,
 ) -> Parser:
+    """Return a parser to the parse the named variable override XML tag.
+
+    The RADS variable (which contains this field) is determined by the "var"
+    attribute.
+
+    :param parser:
+        The text parser to use for the contents of the given `tag_`.  It will
+        also be given the attributes mapping.
+    :param tag_:
+        The name of the XML tag (which is also the overriden value in the
+        variable).
+    :param field:
+        The value to override in the variable.  If not given the value of
+        `tag_` will be used.
+
+    :return:
+        A parser that consumes the given XML `tag_` and produces a
+        :class:`rads.config.ast.Variable` AST node which overrides the given
+        `field`.
+
+    :raises rads.config.xml_parsers.GlobalParseFailure:
+        Raised by the returned parser if the consumed tag is empty or the given
+        text `parser` produces a :class:`rads.config.text_parsers.TextParseError`.
+    """
+
     def process(element: Element) -> Variable:
         try:
             name = element.attributes["var"]
         except KeyError:
             raise error_at(element)(f"<{tag_}> is missing 'var' attribute.")
-        var_ = var if var else element.tag
+        var_ = field if field else element.tag
         condition = parse_condition(element.attributes)
         action = parse_action(element)
         text = element.text if element.text else ""
@@ -300,8 +517,19 @@ def variable_override(
 
 
 def variable_overrides() -> Parser:
+    """Return a parser to parse all variable override tags.
+
+    The returned parser is just a collection the parsers returned from
+    :func:`variable_override` combined with
+    :class:`rads.config.xml_parsers.Alternate` and is not a global constant
+    only for consistency.
+
+    :return:
+        A parser that consumes a single variable override tag and produces
+        :class:`rads.config.ast.Variable` AST node which overrides a field.
+    """
     overrides = (
-        variable_override(lift(str), "long_name", var="name")
+        variable_override(lift(str), "long_name", field="name")
         | variable_override(lift(str), "standard_name")
         | variable_override(lift(str), "source")
         | variable_override(lift(str), "comment")
@@ -324,6 +552,16 @@ def variable_overrides() -> Parser:
 
 
 def satellite_grammar() -> Parser:
+    """Return the grammar which is used to parse the XML file for a single satellite.
+
+    The complete AST for evaluation of satellite specific information.
+
+    :return:
+        A parser that consumes the entire XML document and returns a
+        :class:`rads.config.ast.CompoundStatement` that can be evaluated with
+        the "id" selector to retrieve all information for the satellite with
+        the given 2 character ID.
+    """
     root_block = block(
         # ignore the global attributes
         ignore("global_attributes")
@@ -343,7 +581,7 @@ def satellite_grammar() -> Parser:
         # variables
         | variable()
         | variable_overrides()
-        # pyrads specific tags
+        # PyRADS specific tags
         | ignore("dataroot")
         | ignore("blacklist")
     )
@@ -351,6 +589,17 @@ def satellite_grammar() -> Parser:
 
 
 def pre_config_grammar() -> Parser:
+    """Return the grammar which is used to parse the XML file for pre configuration.
+
+    :return:
+        A parser that consumes the entire XML document and returns a
+        :class:`rads.config.ast.CompoundStatement` that can be evaluated without
+        selectors to retrieve pre configuration information such as the
+        following:
+
+        * 2 character ID's of available satellites.
+        * 2 character ID's of satellites to blacklist.
+    """
     root_block = block(
         satellite_ids()
         | value(list_of(lift(str)), "blacklist")
@@ -360,6 +609,14 @@ def pre_config_grammar() -> Parser:
 
 
 def dataroot_grammar() -> Parser:
+    """Return the grammar which is used to parse the XML file for the RADS data root.
+
+    :return:
+        A parser that consumes the entire XML document and returns a
+        :class:`rads.config.ast.CompoundStatement` that can be evaluated
+        without selectors to retrieve the RADS data root configured in the
+        XML file.
+    """
     root_block = block(
         value(lift(str), "dataroot") | ignore()  # ignore everything else
     )
