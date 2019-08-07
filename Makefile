@@ -1,4 +1,4 @@
-.PHONY: all init check test coverage html pdf clean clean-all apidoc
+.PHONY: all init todo format check test coverage apidoc html pdf package clean clean-all
 
 module=rads
 
@@ -25,18 +25,17 @@ format:
 	@isort -rc .
 	@black .
 
-test: check
-	@python -m pytest -v --cov=$(module) --cov-branch
-
-coverage: check
-	@python -m pytest -v --cov=$(module) --cov-branch \
-		--cov-report html
-
 check:
 	@mypy $(module)
 	@mypy --config-file tests/mypy.ini tests
 	@flake8 $(module) tests
-	@python -m pydocstyle $(module)
+	@pydocstyle $(module)
+
+test: check
+	@python -m pytest --cov=$(module) --cov-branch
+
+coverage: check
+	@python -m pytest --cov=$(module) --cov-branch --cov-report html
 
 apidoc: export SPHINX_APIDOC_OPTIONS=members,undoc-members,show-inheritance,special-members
 apidoc:
