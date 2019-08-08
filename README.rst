@@ -145,7 +145,7 @@ To build the HTML documentation:
 
     python setup.py doc
 
-or the PDF documentation (requires XeTeX_ and xindy_):
+or the PDF documentation (requires XeTeX_, xindy_, and latexmk_):
 
 .. code-block::
 
@@ -173,7 +173,7 @@ Or if you have a recent version of :code:`tox` you can speed up the process with
 
     tox --parallel auto
 
-The :code:`doc-pdf` will fail if XeTeX_ and xindy_ are not both installed.  This is usually fine.
+The :code:`doc-pdf` environment will fail if XeTeX_, xindy_, and latexmk_.  This is usually fine.
 
 If all tests run by tox succeed the TravisCI build should succeed as well.
 
@@ -185,6 +185,7 @@ If all tests run by tox succeed the TravisCI build should succeed as well.
 .. _black: https://black.readthedocs.io/en/stable/
 .. _XeTeX: http://xetex.sourceforge.net/
 .. _xindy: http://xindy.sourceforge.net/
+.. _latexmk: https://mg.readthedocs.io/latexmk.html
 .. |build-status| image:: https://travis-ci.com/ccarocean/pyrads.svg?branch=master&style=flat
    :target: https://travis-ci.com/ccarocean/pyrads
    :alt: Build status
