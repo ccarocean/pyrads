@@ -52,6 +52,24 @@ from .xml_parsers import (
     tag,
 )
 
+__all__ = [
+    "satellite_grammar",
+    "pre_config_grammar",
+    "dataroot_grammar",
+    "ignore",
+    "value",
+    "if_statement",
+    "block",
+    "alias",
+    "phase",
+    "satellite_ids",
+    "satellites",
+    "subcycles",
+    "variable",
+    "variable_override",
+    "variable_overrides",
+]
+
 
 def alias() -> Parser:
     """Return a parser to parse the <alias> tag.
@@ -209,11 +227,12 @@ def if_statement(internal: Parser) -> Parser:
         )
 
     return (
-        tag("if") + opt(elseif_statement(internal) | else_statement(internal)) ^ process
+        tag("if") + opt(_elseif_statement(internal) | _else_statement(internal))
+        ^ process
     )
 
 
-def elseif_statement(internal: Parser) -> Parser:
+def _elseif_statement(internal: Parser) -> Parser:
     """Return a parser to parse the <elseif> tag, opt. followed by <elseif> and <else>.
 
     See :func:`if_statement` for explanation of how this parser converts
@@ -238,12 +257,12 @@ def elseif_statement(internal: Parser) -> Parser:
 
     return (
         tag("elseif")
-        + opt(lazy(lambda: elseif_statement(internal)) | else_statement(internal))
+        + opt(lazy(lambda: _elseif_statement(internal)) | _else_statement(internal))
         ^ process
     )
 
 
-def else_statement(internal: Parser) -> Parser:
+def _else_statement(internal: Parser) -> Parser:
     """Return a parser to parse the <else> tag.
 
     :param internal:

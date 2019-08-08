@@ -85,6 +85,46 @@ import yzal
 
 from rads.xml.base import Element
 
+__all__ = [
+    "ParseFailure",
+    "GlobalParseFailure",
+    "LocalParseFailure",
+    "next_element",
+    "first_child",
+    "Parser",
+    "Apply",
+    "Lazy",
+    "Must",
+    "At",
+    "Not",
+    "Repeat",
+    "Sequence",
+    "Alternate",
+    "Success",
+    "Failure",
+    "Start",
+    "End",
+    "AnyElement",
+    "Tag",
+    "lazy",
+    "at",
+    "not_at",
+    "opt",
+    "plus",
+    "seq",
+    "sor",
+    "star",
+    "must",
+    "rep",
+    "until",
+    "failure",
+    "success",
+    "start",
+    "end",
+    "any",
+    "tag",
+]
+
 
 class ParseFailure(Exception):
     """Base class of parse errors."""
@@ -447,7 +487,7 @@ class Repeat(Parser):
         return values, position
 
 
-class MultiParser(Parser, ABC):
+class _MultiParser(Parser, ABC):
     """Base class of multiple parser combinators."""
 
     def __init__(self, subtype: type, *parsers: Parser) -> None:
@@ -458,7 +498,7 @@ class MultiParser(Parser, ABC):
         :param \*parsers:
             Parsers to store in the multi parser.
         """
-        assert issubclass(subtype, MultiParser)
+        assert issubclass(subtype, _MultiParser)
         self._subtype = subtype
         self._parsers: List[Parser] = []
         for parser in parsers:
@@ -474,7 +514,7 @@ class MultiParser(Parser, ABC):
             self._parsers.append(other)
 
 
-class Sequence(MultiParser):
+class Sequence(_MultiParser):
     """Chain parsers together, succeeding only if all succeed in order.
 
     .. note::
@@ -533,7 +573,7 @@ class Sequence(MultiParser):
         return self
 
 
-class Alternate(MultiParser):
+class Alternate(_MultiParser):
     """Match any one of the parsers, stops on first match.
 
     .. note::

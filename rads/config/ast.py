@@ -26,6 +26,33 @@ from ..rpn import CompleteExpression, Expression
 from ..utility import delete_sublist, merge_sublist, xor
 from .builders import PhaseBuilder, VariableBuilder
 
+__all__ = [
+    "ActionType",
+    "append",
+    "delete",
+    "edit_append",
+    "merge",
+    "replace",
+    "Condition",
+    "TrueCondition",
+    "FalseCondition",
+    "SatelliteCondition",
+    "Source",
+    "ASTEvaluationError",
+    "Statement",
+    "NullStatement",
+    "CompoundStatement",
+    "If",
+    "NamedBlock",
+    "UniqueNamedBlock",
+    "Alias",
+    "Assignment",
+    "Phase",
+    "SatelliteID",
+    "Satellites",
+    "Variable",
+]
+
 ActionType = Callable[[Any, str, Any], None]
 
 
@@ -957,7 +984,7 @@ class NamedBlock(Statement, ABC):
 class UniqueNamedBlock(NamedBlock, ABC):
     """Abstract named block statement, unique version.
 
-    This named block is unique.  Therefore, a duplicately named block will
+    This named block is unique.  Therefore, a delicately named block will
     update the original data in the environment.
     """
 
