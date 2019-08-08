@@ -1,14 +1,26 @@
 """XML tools using :mod:`xml.etree.ElementTree`."""
 
 import xml.etree.ElementTree as etree
-from typing import Optional, Mapping, Iterator
-from xml.etree.ElementTree import (ParseError, XMLParser, parse, fromstring,
-                                   fromstringlist)
+from typing import Iterator, Mapping, Optional
+from xml.etree.ElementTree import (
+    ParseError,
+    XMLParser,
+    fromstring,
+    fromstringlist,
+    parse,
+)
 
 from ..xml import base
 
-__all__ = ['ParseError', 'Element', 'XMLParser', 'parse', 'fromstring',
-           'fromstringlist', 'error_with_file']
+__all__ = [
+    "ParseError",
+    "Element",
+    "XMLParser",
+    "parse",
+    "fromstring",
+    "fromstringlist",
+    "error_with_file",
+]
 
 
 class Element(base.Element):
@@ -16,31 +28,33 @@ class Element(base.Element):
 
     Does not support line number examination.
 
-
     .. note::
 
         It is recommended to use :class:`rads.xml.lxml.Element` if libxml is
-        available on your system as this version does not support line numbers
-        which can make debugging XML files for syntax errors more difficult.
-
-    Parameters
-    ----------
-    element
-        XML element from the standard :mod:`xml.etree.ElementTree`
-        package.
-    index
-        Index of element at current level, among it's siblings. Not
-        required if this element does not have any siblings.
-    parent
-        The parent of this element.
-    file
-        Filename of the XML document.
-
+        available on your system as the etree version does not support line
+        numbers which can make debugging XML files for syntax errors more
+        difficult.
     """
 
-    def __init__(self, element: etree.Element, index: Optional[int] = None,
-                 parent: Optional['Element'] = None,
-                 file: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        element: etree.Element,
+        index: Optional[int] = None,
+        parent: Optional["Element"] = None,
+        file: Optional[str] = None,
+    ) -> None:
+        """
+        :param element:
+            XML element from the standard :mod:`xml.etree.ElementTree`
+            package.
+        :param index:
+            Index of element at current level, among it's siblings. Not
+            required if this element does not have any siblings.
+        :param parent:
+            The parent of this element.
+        :param file:
+            Filename of the XML document.
+        """
         assert parent is None or isinstance(parent, Element)
         self._element = element
         self._index = index
@@ -50,36 +64,33 @@ class Element(base.Element):
     def __len__(self) -> int:
         return len(self._element)
 
-    def __iter__(self) -> Iterator['Element']:
-        return (Element(e, i, self, self._file)
-                for i, e in enumerate(self._element))
+    def __iter__(self) -> Iterator["Element"]:
+        return (Element(e, i, self, self._file) for i, e in enumerate(self._element))
 
-    def next(self) -> 'Element':  # noqa: D102
+    def next(self) -> "Element":  # noqa: D102
         if self._parent is None or self._index is None:
             raise StopIteration()
         siblings = list(self._parent._element)
         new_index = self._index + 1
         if new_index >= len(siblings):
             raise StopIteration()
-        return Element(siblings[new_index], new_index,
-                       self._parent, self._file)
+        return Element(siblings[new_index], new_index, self._parent, self._file)
 
-    def prev(self) -> 'Element':  # noqa: D102
+    def prev(self) -> "Element":  # noqa: D102
         if self._parent is None or self._index is None:
             raise StopIteration()
         siblings = list(self._parent._element)
         new_index = self._index - 1
         if new_index < 0:
             raise StopIteration()
-        return Element(siblings[new_index], new_index,
-                       self._parent, self._file)
+        return Element(siblings[new_index], new_index, self._parent, self._file)
 
-    def up(self) -> 'Element':  # noqa: D102
+    def up(self) -> "Element":  # noqa: D102
         if self._parent is None:
             raise StopIteration()
         return self._parent
 
-    def down(self) -> 'Element':  # noqa: D102
+    def down(self) -> "Element":  # noqa: D102
         try:
             element = list(self._element)[0]
             return Element(element, 0, self, self.file)
@@ -106,23 +117,23 @@ class Element(base.Element):
 def error_with_file(error: ParseError, file: str) -> ParseError:
     """Add filename to an XML parse error.
 
-    Parameters
-    ----------
-    error
+    :param error:
         Original XML parse error.
-    file
+    :param file:
         Filename to add.
 
-    Returns
-    -------
-    ParseError
-        A new parse error (of the same type as :paramref:`error`) with the
-        :paramref:`filename` added.
-
+    :return:
+        A new parse error (of the same type as `error`) with the `filename`
+        added.
     """
     error.filename = file
+    # TODO: Remove the type ignore's below when
+    #  https://github.com/python/typeshed/pull/3158 makes it into Mypy, also
+    #  update Mypy version as well.
     new_error = type(error)(
-        error.msg, (file, error.position[0], error.position[1], error.text))
-    new_error.code = error.code
-    new_error.position = error.position
+        error.msg,
+        (file, error.position[0], error.position[1], error.text),  # type: ignore
+    )
+    new_error.code = error.code  # type: ignore
+    new_error.position = error.position  # type: ignore
     return new_error

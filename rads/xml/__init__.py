@@ -3,8 +3,8 @@
 This includes :class:`Element` which allows easy traversal of the XML tree new
 versions of the :func:`parse`, :func:`fromstring` and :func:`fromstringlist`
 functions for parsing and XML document that return :class:`Element`.  These
-functions also and support XML documents without a root element, such as the
-RADS v4 configuration file.
+functions also support XML documents without a root element, such as the RADS
+v4 configuration file.
 """
 
 try:
@@ -14,6 +14,6 @@ except ImportError:
     #  fixed.
     from .etree import Element, ParseError  # type: ignore
 
-from .utility import parse, fromstring, fromstringlist
+from .utility import fromstring, fromstringlist, parse
 
-__all__ = ['ParseError', 'Element', 'parse', 'fromstring', 'fromstringlist']
+__all__ = ["ParseError", "Element", "parse", "fromstring", "fromstringlist"]

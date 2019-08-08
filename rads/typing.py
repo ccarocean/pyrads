@@ -1,18 +1,16 @@
 """Type aliases."""
 
 import os
-from pathlib import Path
-from typing import Union, IO, Any, TYPE_CHECKING
+from typing import IO, TYPE_CHECKING, Any, Union
 
 import numpy as np  # type: ignore
 
-__all__ = ['PathLike', 'PathOrFile', 'Number', 'IntOrArray', 'NumberOrArray']
+__all__ = ["PathLike", "PathOrFile", "Number", "IntOrArray", "NumberOrArray"]
 
 if TYPE_CHECKING:
-    # pylint: disable=unsubscriptable-object
-    PathLike = Union[str, bytes, Path, os.PathLike[Any]]
+    PathLike = Union[str, os.PathLike[str]]
 else:
-    PathLike = Union[str, bytes, Path, os.PathLike]
+    PathLike = Union[str, os.PathLike]
 
 PathOrFile = Union[PathLike, IO[Any], int]
 

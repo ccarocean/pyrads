@@ -5,31 +5,69 @@ from abc import ABC, abstractmethod
 from copy import deepcopy
 from dataclasses import dataclass, fields
 from difflib import get_close_matches
-from typing import (Any, Callable, Collection, Container, Iterator, List,
-                    Mapping, MutableMapping, Optional, Sequence, Union, cast)
+from typing import (
+    Any,
+    Callable,
+    Collection,
+    Container,
+    Iterator,
+    List,
+    Mapping,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Union,
+    cast,
+)
 
-from dataclass_builder import UndefinedFieldError, MissingFieldError, MISSING
+from dataclass_builder import MISSING, MissingFieldError, UndefinedFieldError
 
-from ._builders import PhaseBuilder, VariableBuilder
-from .._utility import xor, delete_sublist, merge_sublist
 from ..rpn import CompleteExpression, Expression
+from ..utility import delete_sublist, merge_sublist, xor
+from .builders import PhaseBuilder, VariableBuilder
+
+__all__ = [
+    "ActionType",
+    "append",
+    "delete",
+    "edit_append",
+    "merge",
+    "replace",
+    "Condition",
+    "TrueCondition",
+    "FalseCondition",
+    "SatelliteCondition",
+    "Source",
+    "ASTEvaluationError",
+    "Statement",
+    "NullStatement",
+    "CompoundStatement",
+    "If",
+    "NamedBlock",
+    "UniqueNamedBlock",
+    "Alias",
+    "Assignment",
+    "Phase",
+    "SatelliteID",
+    "Satellites",
+    "Variable",
+]
 
 ActionType = Callable[[Any, str, Any], None]
 
 
-def _get_mapping(environment: Any, attr: str,
-                 mapping: Callable[[], Mapping] = dict):
-    if (not hasattr(environment, attr) or
-            getattr(environment, attr) == MISSING):
+def _get_mapping(
+    environment: Any, attr: str, mapping: Callable[[], Mapping[str, Any]] = dict
+) -> Any:
+    if not hasattr(environment, attr) or getattr(environment, attr) == MISSING:
         setattr(environment, attr, mapping())
     return getattr(environment, attr)
 
 
 def _suggest_field(dataclass: Any, attempt: str) -> Optional[str]:
-    matches = get_close_matches(
-        attempt, [f.name for f in fields(dataclass)], 1, 0.1)
+    matches = get_close_matches(attempt, [f.name for f in fields(dataclass)], 1, 0.1)
     if matches:
-        return matches[0]
+        return cast(str, matches[0])
     return None
 
 
@@ -61,29 +99,24 @@ def _del(o: Any, attr: str) -> None:
 def replace(environment: Any, attr: str, value: Any) -> None:
     """Set value in the given environment.
 
-    Sets :paramref:`attr` to the given :paramref:`value` in the given
-    :paramref:`environment`.  If the :paramref:`attr` has already been set
-    it will be overwritten.
+    Sets `attr` to the given `value` in the given `environment`.  If the `attr`
+    has already been set it will be overwritten.
 
-    Parameters
-    ----------
-    environment
-        Environment to apply the action to the value of :paramref:`attr` in.
-        If this environment is a :class:`MutableMapping` then key/values will
-        be used.  Otherwise, object attributes will be used.
-    attr
-        Name of the value to change in the :paramref:`environment`.
-    value
-        New value to use for the action.  If this is an :class:`Expression` it
-        will be converted to a :class:`CompleteExpression` via the
-        :func:`Expression.complete` method.
+    :param environment:
+        Environment to apply the action to the value of `attr` in. If this
+        environment is a :class:`collections.abc.MutableMapping` then
+        key/values will be used. Otherwise, object attributes will be used.
+    :param attr:
+        Name of the value to change in the `environment`.
+    :param value:
+        New value to use for the action.  If this is an
+        :class:`rads.rpn.Expression` it will be converted to a
+        :class:`rads.rpn.CompleteExpression` via the
+        :func:`rads.rpn.Expression.complete` method.
 
-    Raises
-    ------
-    ValueError
+    :raises ValueError:
         If a delayed value (currently only :class:`Expression`) fails it's
         parsing.
-
     """
     if isinstance(value, Expression):
         # force CompleteExpression's
@@ -92,46 +125,42 @@ def replace(environment: Any, attr: str, value: Any) -> None:
         _set(environment, attr, value)
 
 
-def append(environment: MutableMapping[str, Any], attr: str,
-           value: Union[str, List[Any], Expression]) -> None:
-    """Set/append key/value pair in the given environment.
+def append(
+    environment: MutableMapping[str, Any],
+    attr: str,
+    value: Union[str, List[Any], Expression],
+) -> None:
+    """Append to value in the given environment.
 
-    Sets :paramref:`attr` to the given :paramref:`value` in the given
-    :paramref:`environment`.  If the :paramref:`attr` has already ben set the
-    new value will be appended.  This behaves differently depending on the type
-    of the current value.
+    Sets `attr` to the given `value` in the given `environment`.  If the `attr`
+    has already ben set the new value will be appended.  This behaves
+    differently depending on the type of the current value.
 
     :class:`str`
-        Appends the new string :paramref:`value` to the current string with a
-        single space between them.
+        Appends the new string `value` to the current string with a single
+        space between them.
     :class:`list`
-        Extends the current list with the elements form the new list
-        :paramref:`value`.
-    :class:`CompleteExpression`
-        Appends the tokens from the new :class:`Expression` to the end of the
-        existing :class:`CompleteExpression`.
+        Extends the current list with the elements form the new list `value`.
+    :class:`rads.rpn.CompleteExpression`
+        Appends the tokens from the new :class:`rads.rpn.Expression` to the end
+        of the existing :class:`rads.rpn.CompleteExpression`.
 
-    Parameters
-    ----------
-    environment
-        Environment to apply the action to the value of :paramref:`attr` in.
-        If this environment is a :class:`MutableMapping` then key/values will
-        be used.  Otherwise, object attributes will be used.
-    attr
-        Name of the value to change in the :paramref:`environment`.
-    value
+    :param environment:
+        Environment to apply the action to the value of `attr` in. If this
+        environment is a :class:`collections.abc.MutableMapping` then
+        key/values will be used. Otherwise, object attributes will be used.
+    :param attr:
+        Name of the value to change in the `environment`.
+    :param value:
         New value to use for the action.
 
-    Raises
-    ------
-    TypeError
+    :raises TypeError:
         If the current value is not a :class:`str`, :class:`list`, or
-        :class:`Expression` or if the new :paramref:`value` does not match
+        :class:`rads.rpn.Expression` or if the new `value` does not match
         the type of the current value.
-    ValueError
-        If a delayed value (currently only :class:`Expression`) fails it's
-        parsing.
-
+    :raises ValueError:
+        If a delayed value (currently only :class:`rads.rpn.Expression`) fails
+        it's parsing.
     """
     # no current value
     if not _has(environment, attr) or _get(environment, attr) == MISSING:
@@ -139,123 +168,122 @@ def append(environment: MutableMapping[str, Any], attr: str,
         return
     # has current value
     current_value = _get(environment, attr)
-    if isinstance(current_value, str):
-        new_value = current_value + ' ' + value
-    elif isinstance(current_value, Expression):
+    if isinstance(current_value, str) and isinstance(value, str):
+        _set(environment, attr, current_value + " " + value)
+    elif isinstance(current_value, Expression) and isinstance(value, Expression):
         # force CompleteExpression's
-        new_value = (current_value + value).complete()
-    elif isinstance(current_value, List):
-        new_value = current_value + value
+        _set(environment, attr, (current_value + value).complete())
+    elif isinstance(current_value, List) and isinstance(value, List):
+        _set(environment, attr, current_value + value)
     else:
-        raise TypeError("current value is of unsupported type"
-                        f"'{type(current_value)}' for the 'append' action")
-    _set(environment, attr, new_value)
+        raise TypeError(
+            "current value and new value are of unsupported types"
+            f"'{type(current_value)}' and '{type(value)}' for the 'append' action"
+        )
 
 
-def delete(environment: MutableMapping[str, Any], attr: str,
-           value: Union[str, List[Any], Expression]) -> None:
-    """Remove/edit key/value pair in the given environment.
+def delete(
+    environment: MutableMapping[str, Any],
+    attr: str,
+    value: Union[str, List[Any], Expression],
+) -> None:
+    """Delete part of value in the given environment.
 
-    Removes matching :paramref:`value` from the part of the existing
-    :paramref:`attr` in the given :paramref:`environement`.  This behaves
-    differently depending on the type of the current value.
+    Removes matching `value` from the part of the existing `attr` in the given
+    `environment`.  This behaves differently depending on the type of the
+    current value.
 
     :class:`str`
-        Removes the substring :paramref:`value` from the current string.  No
-        change if the current string does not contain the substring
-        :paramref:`value`.
+        Removes the substring `value` from the current string.  No change if
+        the current string does not contain the substring `value`.
     :class:`list`
-        Removes the sublist :paramref:`value` from the current list.  No change
-        if the current list does not contain the sublist :paramref:`value`.
-    :class:`CompleteExpression`
-        Removes from the current expression the section that matches
-        :paramref:`value`.  No change if the current expression does not
-        contain the expression :paramref:`value`.
+        Removes the sublist `value` from the current list.  No change if the
+        current list does not contain the sublist `value`.
+    :class:`rads.rpn.CompleteExpression`
+        Removes from the current expression the section that matches `value`.
+        No change if the current expression does not contain the expression
+        `value`.
 
-    Parameters
-    ----------
-    environment
-        Environment to apply the action to the value of :paramref:`attr` in.
-        If this environment is a :class:`MutableMapping` then key/values will
-        be used.  Otherwise, object attributes will be used.
-    attr
-        Name of the value to change in the :paramref:`environment`.
-    value
+    :param environment:
+        Environment to apply the action to the value of `attr` in.  If this
+        environment is a :class:`collections.abc.MutableMapping` then
+        key/values will be used.  Otherwise, object attributes will be used.
+    :param attr:
+        Name of the value to change in the `environment`.
+    :param value:
         New value to use for the action.
 
-    Raises
-    ------
-    TypeError
+    :raises TypeError:
         If the current value is not a :class:`str`, :class:`list`, or
-        :class:`Expression` or if the new :paramref:`value` does not match
+        :class:`rads.rpn.Expression` or if the new `value` does not match
         the type of the current value.
-    ValueError
-        If a delayed value (currently only :class:`Expression`) fails it's
-        parsing.
-
+    :raises ValueError:
+        If a delayed value (currently only :class:`rads.rpn.Expression`) fails
+        it's parsing.
     """
     # no current value, do nothing
     if not _has(environment, attr) or _get(environment, attr) == MISSING:
         return
     # has current value
     current_value = _get(environment, attr)
-    if isinstance(current_value, str):
-        new_value = current_value.replace(value, '')
-    elif isinstance(current_value, Expression):
+    if isinstance(current_value, str) and isinstance(value, str):
+        _set(environment, attr, current_value.replace(value, ""))
+    elif isinstance(current_value, Expression) and isinstance(value, Expression):
         # force CompleteExpression's
-        new_value = CompleteExpression(
-            delete_sublist(list(current_value), list(value)))
-    elif isinstance(current_value, List):
-        new_value = delete_sublist(current_value, value)
+        _set(
+            environment,
+            attr,
+            CompleteExpression(delete_sublist(list(current_value), list(value))),
+        )
+    elif isinstance(current_value, List) and isinstance(value, List):
+        _set(environment, attr, delete_sublist(current_value, value))
     else:
-        raise TypeError("current value is of unsupported type"
-                        f"'{type(current_value)}' for the 'append' action")
-    _set(environment, attr, new_value)
+        raise TypeError(
+            "current value is of unsupported type"
+            f"'{type(current_value)}' for the 'append' action"
+        )
 
 
-def merge(environment: MutableMapping[str, Any], attr: str,
-          value: Union[str, List[Any], Expression]) -> None:
-    """Set/merge key/value pair in the given environment.
+def merge(
+    environment: MutableMapping[str, Any],
+    attr: str,
+    value: Union[str, List[Any], Expression],
+) -> None:
+    """Merge with current value in the given environment.
 
-    Sets :paramref:`attr` to the given :paramref:`value` in the given
-    :paramref:`environment`.  If the :paramref:`attr` has already ben set the
-    new value will be appended if the existing value does not already contain
-    the new value.  This behaves differently depending on the type of the
-    current value.
+    Sets `attr` to the given `value` in the given `environment`.  If the `attr`
+    has already ben set the new value will be appended if the existing value
+    does not already contain the new value.  This behaves differently depending
+    on the type of the current value.
 
     :class:`str`
-        Appends the new string :paramref:`value` to the current string with a
-        single space between them if the new string is not a substring of the
-        original.
+        Appends the new string `value` to the current string with a single
+        space between them if the new string is not a substring of the original.
     :class:`list`
-        Extends the current list with the elements form the new list
-        :paramref:`value` if the new list is not a sublist of the original.
-    :class:`CompleteExpression`
-        Appends the tokens from the new :class:`Expression` to the end of the
-        existing :class:`CompleteExpression` if the new :class:`Expression` is\
-        not contained within the original expression.
+        Extends the current list with the elements form the new list `value`
+        if the new list is not a sublist of the original.
+    :class:`rads.rpn.CompleteExpression`
+        Appends the tokens from the new :class:`rads.rpn.Expression` to the
+        end of the existing :class:`rads.rpn.CompleteExpression` if the new
+        :class:`rads.rpn.Expression` is not contained within the original
+        expression.
 
-    Parameters
-    ----------
-    environment
-        Environment to apply the action to the value of :paramref:`attr` in.
-        If this environment is a :class:`MutableMapping` then key/values will
-        be used.  Otherwise, object attributes will be used.
-    attr
-        Name of the value to change in the :paramref:`environment`.
-    value
+    :param environment:
+        Environment to apply the action to the value of `attr` in. If
+        this environment is a :class:`collections.abc.MutableMapping` then
+        key/values will be used.  Otherwise, object attributes will be used.
+    :param attr:
+        Name of the value to change in the `environment`.
+    :param value:
         New value to use for the action.
 
-    Raises
-    ------
-    TypeError
+    :raises TypeError:
         If the current value is not a :class:`str`, :class:`list`, or
-        :class:`Expression` or if the new :paramref:`value` does not match
+        :class:`rads.rpn. Expression` or if the new `value` does not match
         the type of the current value.
-    ValueError
-        If a delayed value (currently only :class:`Expression`) fails it's
-        parsing.
-
+    :raises ValueError:
+        If a delayed value (currently only :class:`rads.rpn.Expression`) fails
+        it's parsing.
     """
     # no current value, set value
     if not _has(environment, attr) or _get(environment, attr) == MISSING:
@@ -263,63 +291,59 @@ def merge(environment: MutableMapping[str, Any], attr: str,
         return
     # has current value
     current_value = _get(environment, attr)
-    if isinstance(current_value, str):
-        if value in current_value:
-            new_value = current_value
-        else:
-            new_value = current_value + ' ' + value
-    elif isinstance(current_value, Expression):
+    if isinstance(current_value, str) and isinstance(value, str):
+        if value not in current_value:
+            _set(environment, attr, current_value + " " + value)
+        # do nothing if value in current value
+    elif isinstance(current_value, Expression) and isinstance(value, Expression):
         # force CompleteExpression's
-        new_value = CompleteExpression(
-            merge_sublist(list(current_value), list(value)))
-    elif isinstance(current_value, List):
-        new_value = merge_sublist(current_value, value)
+        _set(
+            environment,
+            attr,
+            CompleteExpression(merge_sublist(list(current_value), list(value))),
+        )
+    elif isinstance(current_value, List) and isinstance(value, List):
+        _set(environment, attr, merge_sublist(current_value, value))
     else:
-        raise TypeError("current value is of unsupported type"
-                        f"'{type(current_value)}' for the 'append' action")
-    _set(environment, attr, new_value)
+        raise TypeError(
+            "current value is of unsupported type"
+            f"'{type(current_value)}' for the 'append' action"
+        )
 
 
-def edit_append(
-        environment: MutableMapping[str, Any], attr: str, string: str) -> None:
-    """Set key/value pair in the given environment.
+def edit_append(environment: MutableMapping[str, Any], attr: str, string: str) -> None:
+    """Append sentence to string in the given environment.
 
-    Sets :paramref:`attr` to the given :paramref:`string` in the given
-    :paramref:`environment`.  If the :paramref:`attr` has already ben set the
-    new string will be append after '. '.
+    Sets `attr` to the given `string` in the given `environment`.  If the
+    `attr` has already ben set the new string will be append after ". ".
 
     .. note::
 
         This action only works for strings.
 
-    Parameters
-    ----------
-    environment
-        Environment to apply the action to the value of :paramref:`attr` in.
-        If this environment is a :class:`MutableMapping` then key/values will
-        be used.  Otherwise, object attributes will be used.
-    attr
-        Name of the value to change in the :paramref:`environment`.
-    string
+    :param environment:
+        Environment to apply the action to the value of `attr` in. If
+        this environment is a :class:`collections.abc.MutableMapping` then
+        key/values will be used.  Otherwise, object attributes will be used.
+    :param attr:
+        Name of the value to change in the `environment`.
+    :param string:
         New string to use for the action.
 
-    Raises
-    ------
-    TypeError
+    :raises TypeError:
         If not both the current and new values are strings.
-
     """
     if not _has(environment, attr) or _get(environment, attr) == MISSING:
         _set(environment, attr, string)
     else:
-        _set(environment, attr, _get(environment, attr) + '. ' + string)
+        _set(environment, attr, _get(environment, attr) + ". " + string)
 
 
 class Condition(ABC):
     """Base class of AST node conditionals."""
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__qualname__}()'
+        return f"{self.__class__.__qualname__}()"
 
     @abstractmethod
     def test(self, selectors: Mapping[str, Any]) -> bool:
@@ -327,17 +351,12 @@ class Condition(ABC):
 
         This is used to determine whether or not a block should be executed.
 
-        Parameters
-        ----------
-        selectors
+        :param selectors:
             Key/value pairs of things that can be used for conditional parsing
             of the configuration file.
 
-        Returns
-        -------
-        bool
+        :return bool:
             True if the condition is a match, otherwise False.
-
         """
 
 
@@ -358,104 +377,133 @@ class FalseCondition(Condition):
 class SatelliteCondition(Condition):
     """Condition that matches based on the satellite `id`.
 
-    This makes use of the `id` key/value in the :paramref:`selectors` mapping
-    if it exists.
-
-    Parameters
-    ----------
-    satellites : Container[str]
-        Set of satellite ID's to match.
-    invert : bool
-        Set to True to invert the match.
+    This makes use of the `id` key/value in the `selectors` mapping if it
+    exists.
     """
 
     satellites: Container[str]
     invert: bool
 
     def __init__(self, satellites: Container[str], invert: bool = False):
+        """
+        :param satellites:
+            Set of satellite ID's to match.
+        :param invert:
+            Set to True to invert the match.
+        """
         self.satellites = satellites
         self.invert = invert
 
-    def __repr__(self):
-        prefix = f'{self.__class__.__qualname__}({repr(self.satellites)}'
+    def __repr__(self) -> str:
+        prefix = f"{self.__class__.__qualname__}({repr(self.satellites)}"
         if self.invert:
-            return prefix + f', invert={repr(self.invert)})'
-        return prefix + ')'
+            return prefix + f", invert={repr(self.invert)})"
+        return prefix + ")"
 
     def test(self, selectors: Mapping[str, Any]) -> bool:  # noqa: D102
         try:
-            return xor(selectors['id'] in self.satellites, self.invert)
+            return xor(selectors["id"] in self.satellites, self.invert)
         except KeyError:
             return False
 
 
 @dataclass(frozen=True)
 class Source:
-    line: int
+    """**dataclass**: Source file location."""
+
+    line: Optional[int] = None
+    """Line number."""
     file: Optional[str] = None
+    """File name."""
 
 
 class ASTEvaluationError(Exception):
-    message: str
-    line: Optional[int] = None
-    file: Optional[str] = None
+    """Abstract syntax tree evaluation error.
 
-    def __init__(self, message: str = 'evaluation failed',
-                 source: Optional[Source] = None):
+    This is raised when evaluation of the AST leads to an unrecoverable error
+    in an attempt to give the user some information on what happened and what
+    part of the RADS XML file caused the problem.
+    """
+
+    message: str
+    """Error message"""
+    line: Optional[int] = None
+    """Number of the line that caused the error."""
+    file: Optional[str] = None
+    """Path of the file that caused the error."""
+
+    def __init__(
+        self, message: str = "evaluation failed", source: Optional[Source] = None
+    ):
+        """
+        :param message:
+            The error message.
+        :param source:
+            The source file location of the error, if known.
+        """
         self.message = message
         if source:
             self.line = source.line
             self.file = source.file
-        file = self.file if self.file else ''
-        line = self.line if self.line else ''
-        super().__init__(f'{file}:{line}: {message}')
+        file = self.file if self.file else ""
+        line = self.line if self.line else ""
+        super().__init__(f"{file}:{line}: {message}")
 
 
 class Statement(ABC):
     """Base class of Abstract Syntax Tree nodes."""
 
     source: Optional[Source]
+    """Location in the source configuration this statement came from."""
 
     def __init__(self, *, source: Optional[Source] = None) -> None:
+        """
+        :param source:
+            Location in the source configuration this statement came from.
+        """
         self.source = source
 
     def __repr__(self) -> str:
-        return f'{self.__class__.__qualname__}()'
+        return f"{self.__class__.__qualname__}()"
 
     @abstractmethod
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        """Evaluate statement, adding to the environment dictionary.
+        """Evaluate statement, modifying the environment object.
 
-        Parameters
-        ----------
-        environment
-            Environment dictionary.  Additions from this statement will be
-            added to this mapping.
-        selectors
+        :param environment:
+            Environment object to modify.  If this is a mapping it will be used
+            as such, otherwise attribute assignment will be used instead.
+        :param selectors:
             Key/value pairs of things that can be used for conditional parsing
             of the configuration file.
-
         """
 
 
 class NullStatement(Statement):
+    """A null statement that does nothing when evaluated."""
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        pass
+        """Do nothing.
+
+        :param environment:
+            Environment object to modify.  If this is a mapping it will be used
+            as such, otherwise attribute assignment will be used instead.
+        :param selectors:
+            Key/value pairs of things that can be used for conditional parsing
+            of the configuration file.
+        """
 
 
 class CompoundStatement(Sequence[Statement], Statement):
-    """Ordered collection of statements.
+    """A sequence of statements."""
 
-    Parameters
-    ----------
-    *statements
-        Statements to be stored in the :class:`CompoundStatement`.
-
-    """
-
-    def __init__(self, *statements: Statement,
-                 source: Optional[Source] = None) -> None:
+    def __init__(self, *statements: Statement, source: Optional[Source] = None) -> None:
+        r"""
+        :param \*statements:
+            Statements to be stored in the :class:`CompoundStatement`.
+        :param source:
+            Location in the source configuration this statement came from.
+        """
         super().__init__(source=source)
         self._statements = statements
 
@@ -464,11 +512,12 @@ class CompoundStatement(Sequence[Statement], Statement):
         pass
 
     @typing.overload
-    def __getitem__(self, key: slice) -> 'CompoundStatement':
+    def __getitem__(self, key: slice) -> "CompoundStatement":
         pass
 
-    def __getitem__(self, key: Union[int, slice]) -> \
-            Union[Statement, 'CompoundStatement']:
+    def __getitem__(
+        self, key: Union[int, slice]
+    ) -> Union[Statement, "CompoundStatement"]:
         if isinstance(key, slice):
             return CompoundStatement(*self._statements[key])
         return self._statements[key]
@@ -477,80 +526,86 @@ class CompoundStatement(Sequence[Statement], Statement):
         return len(self._statements)
 
     def __repr__(self) -> str:
-        return (f'{self.__class__.__qualname__}'
-                f'({", ".join(repr(s) for s in self._statements)})')
+        return (
+            f"{self.__class__.__qualname__}"
+            f"({', '.join(repr(s) for s in self._statements)})"
+        )
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        """Evaluate compound statement, adding to the environment dictionary.
+        """Evaluate compound statement, modifying the environment object.
 
         This will evaluate each statement in this compound statement in order.
 
-        Parameters
-        ----------
-        environment
-            Environment dictionary.  Additions from this statement will be
-            added to this mapping.
-        selectors
+        :param environment:
+            Environment object to modify.  If this is a mapping it will be used
+            as such, otherwise attribute assignment will be used instead.
+        :param selectors:
             Key/value pairs of things that can be used for conditional parsing
             of the configuration file.
-
         """
         for statement in self:
             statement.eval(environment, selectors)
 
 
 class If(Statement):
-    """If/else statement AST node.
-
-    Attributes
-    ----------
-    condition
-        Condition that must be True for the :attr:`true_statement` branch
-        to be executed.  Otherwise, the :attr:`false_statement` is
-        executed.
-    true_statement:
-        Statement to be executed if :attr:`condition` evaluates to True.
-    false_statement:
-        Optional statement to be executed if :attr:`condition` evaluates
-        to False.
-
-    """
+    """If/else statement AST node."""
 
     condition: Condition
+    """
+    Condition that must be True for the :attr:`true_statement` branch
+    to be executed.  Otherwise, the :attr:`false_statement` is
+    executed.
+    """
     true_statement: Statement
-    false_statement: Optional[Statement]
+    """Statement to be executed if :attr:`condition` evaluates to True."""
+    false_statement: Optional[Statement] = None
+    """Optional statement to be executed if :attr:`condition` evaluates to False."""
 
-    def __init__(self, condition: Condition, true_statement: Statement,
-                 false_statement: Optional[Statement] = None,
-                 *, source: Optional[Source] = None) -> None:
+    def __init__(
+        self,
+        condition: Condition,
+        true_statement: Statement,
+        false_statement: Optional[Statement] = None,
+        *,
+        source: Optional[Source] = None,
+    ) -> None:
+        """
+        :param condition:
+            Condition for the If statement.
+        :param true_statement:
+            Statement to be executed if the condition is true.
+        :param false_statement:
+            Optional statement to be executed if the condition is false.
+        :param source:
+            Location in the source configuration this statement came from.
+        """
         super().__init__(source=source)
         self.condition = condition
         self.true_statement = true_statement
         self.false_statement = false_statement
 
     def __repr__(self) -> str:
-        prefix = (f'{self.__class__.__qualname__}'
-                  f'({repr(self.condition)}, {repr(self.true_statement)}')
+        prefix = (
+            f"{self.__class__.__qualname__}"
+            f"({repr(self.condition)}, {repr(self.true_statement)}"
+        )
         if self.false_statement is None:
-            return prefix + ')'
-        return prefix + f', {repr(self.false_statement)})'
+            return prefix + ")"
+        return prefix + f", {repr(self.false_statement)})"
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        """Evaluate if/else statement, adding to the environment dictionary.
+        """Evaluate if/else statement, modifying the environment object.
 
         If the satellite matches the condition then the :attr:`true_statement`
         will be evaluated.  Otherwise the :attr:`false_statement` will be
         evaluated (if it exists).
 
-        Parameters
-        ----------
-        environment
-            Environment dictionary.  Additions from this statement will be
-            added to this mapping.
-        selectors
+        :param environment:
+            Environment object to modify.  If this is a mapping it will be used
+            as such, otherwise attribute assignment will be used instead.
+        :param selectors:
             Key/value pairs of things that can be used for conditional parsing
             of the configuration file.
-
         """
         if self.condition.test(selectors):
             self.true_statement.eval(environment, selectors)
@@ -559,33 +614,57 @@ class If(Statement):
 
 
 class Assignment(Statement):
-    """Assignment statement (value to variable) AST node.
-
-    Attributes
-    ----------
-    name
-        Name of variable.
-    value
-        Value to assign to variable.
-    condition
-        Condition that must be true for this assignment to be executed.  This
-        defaults to the :class:`TrueCondition`.
-    action
-        Action to take if this variable has already been set.
-
-    """
+    """Assignment statement (value to variable) AST node."""
 
     name: str
+    """Name to assign a value to."""
     value: Any
+    """Value to assign."""
     condition: Condition = TrueCondition()
+    """Condition that must be true for this assignment to be executed."""
     # TODO: Remove Optional when https://github.com/python/mypy/issues/708 is
     #  fixed.
-    action: Optional[ActionType] = staticmethod(replace)
+    action: Optional[ActionType] = cast(ActionType, staticmethod(replace))
+    """Action to take with this assigment.
 
-    def __init__(self, name: Any, value: Any,
-                 condition: Optional[Condition] = None,
-                 action: Optional[ActionType] = None,
-                 *, source: Optional[Source] = None) -> None:
+    *This is an attribute which contains a callable, not a static method.  The
+    automatic documentation tools just don't understand this*
+
+    .. seealso::
+
+        :func:`replace`
+            Set or replace current value.
+        :func:`append`
+            Append to value in the given environment.
+        :func:`delete`
+            Delete part of value in the given environment.
+        :func:`merge`
+            Merge with current value in the given environment.
+        :func:`edit_append`
+            Append sentence to string in the given environment.
+    """
+
+    def __init__(
+        self,
+        name: Any,
+        value: Any,
+        condition: Optional[Condition] = None,
+        action: Optional[ActionType] = None,
+        *,
+        source: Optional[Source] = None,
+    ) -> None:
+        """
+        :param name:
+            Name to assign a value to.
+        :param value:
+            Value to assign.
+        :param condition:
+            Condition that must be true for this assignment to be executed.
+        :param action:
+            Action to take with this assignment.  See :attr:`action`.
+        :param source:
+            Location in the source configuration this statement came from.
+        """
         super().__init__(source=source)
         self.name = name
         self.value = value
@@ -594,27 +673,27 @@ class Assignment(Statement):
         if action is not None:
             self.action = action
 
-    def __repr__(self):
-        prefix = (f'{self.__class__.__qualname__}'
-                  f'({repr(self.name)}, {repr(self.value)}')
+    def __repr__(self) -> str:
+        prefix = (
+            f"{self.__class__.__qualname__}" f"({repr(self.name)}, {repr(self.value)}"
+        )
         if not isinstance(self.condition, TrueCondition):
-            prefix += f', {repr(self.condition)}'
+            prefix += f", {repr(self.condition)}"
         if self.action == replace:
-            return prefix + ')'
-        return prefix + f', {self.action.__qualname__})'
+            return prefix + ")"
+        return prefix + f", {cast(ActionType, self.action).__qualname__})"
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        """Evaluate assignment, adding to the environment dictionary.
+        """Evaluate value assignment.
 
-        Parameters
-        ----------
-        environment
-            Environment dictionary.  The addition from this statement will be
-            added to this mapping.
-        selectors
+        Modifies the environment object if the :attr:`condition` is true.
+
+        :param environment:
+            Environment object to modify.  If this is a mapping it will be used
+            as such, otherwise attribute assignment will be used instead.
+        :param selectors:
             Key/value pairs of things that can be used for conditional parsing
             of the configuration file.
-
         """
         if self.condition.test(selectors):
             action = cast(ActionType, self.action)
@@ -631,17 +710,57 @@ class Assignment(Statement):
 
 
 class Alias(Statement):
+    """Variable alias statement."""
+
     alias: str
+    """The name of the alias (pseudo variable)."""
     variables: Sequence[str]
+    """RADS variables that the alias maps to."""
     condition: Condition = TrueCondition()
+    """Condition that must be true for this alias to be added."""
     # TODO: Remove Optional when https://github.com/python/mypy/issues/708 is
     #  fixed.
-    action: Optional[ActionType] = staticmethod(replace)
+    action: Optional[ActionType] = cast(ActionType, staticmethod(replace))
+    """Action to take with this alias.
 
-    def __init__(self, alias: Any, variables: Sequence[str],
-                 condition: Optional[Condition] = None,
-                 action: Optional[ActionType] = None,
-                 *, source: Optional[Source] = None) -> None:
+    *This is an attribute which contains a callable, not a static method.  The
+    automatic documentation tools just don't understand this*
+
+    .. seealso::
+
+        :func:`replace`
+            Set or replace current value.
+        :func:`append`
+            Append to value in the given environment.
+        :func:`delete`
+            Delete part of value in the given environment.
+        :func:`merge`
+            Merge with current value in the given environment.
+        :func:`edit_append`
+            Append sentence to string in the given environment.
+    """
+
+    def __init__(
+        self,
+        alias: Any,
+        variables: Sequence[str],
+        condition: Optional[Condition] = None,
+        action: Optional[ActionType] = None,
+        *,
+        source: Optional[Source] = None,
+    ) -> None:
+        """
+        :param alias:
+            Alias name (pseudo variable).
+        :param variables:
+            RADS variables that the alias maps to.
+        :param condition:
+            Condition that must be true for this alias to be executed.
+        :param action:
+            Action to take with this alias.  See :attr:`action`.
+        :param source:
+            Location in the source configuration this statement came from.
+        """
         super().__init__(source=source)
         self.alias = alias
         self.variables = variables
@@ -650,19 +769,32 @@ class Alias(Statement):
         if action is not None:
             self.action = action
 
-    def __repr__(self):
-        prefix = (f'{self.__class__.__qualname__}'
-                  f'({repr(self.alias)}, {repr(self.variables)}')
+    def __repr__(self) -> str:
+        prefix = (
+            f"{self.__class__.__qualname__}"
+            f"({repr(self.alias)}, {repr(self.variables)}"
+        )
         if not isinstance(self.condition, TrueCondition):
-            prefix += f', {repr(self.condition)}'
+            prefix += f", {repr(self.condition)}"
         if self.action == replace:
-            return prefix + ')'
-        return prefix + f', {self.action.__qualname__})'
+            return prefix + ")"
+        return prefix + f", {cast(ActionType, self.action).__qualname__})"
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
+        """Evaluate alias assignment.
+
+        Modifies the environment object if the :attr:`condition` is true.
+
+        :param environment:
+            Environment object to modify.  If this is a mapping it will be used
+            as such, otherwise attribute assignment will be used instead.
+        :param selectors:
+            Key/value pairs of things that can be used for conditional parsing
+            of the configuration file.
+        """
         if self.condition.test(selectors):
             action = cast(ActionType, self.action)
-            aliases = _get_mapping(environment, 'aliases')
+            aliases = _get_mapping(environment, "aliases")
             try:
                 action(aliases, self.alias, deepcopy(self.variables))
             except (TypeError, ValueError, KeyError) as err:
@@ -670,13 +802,33 @@ class Alias(Statement):
 
 
 class SatelliteID(Statement):
-    id: str
-    id3: str
-    names: Collection[str]
+    """Satellite ID statement."""
 
-    def __init__(self, id: str, id3: str,
-                 names: Optional[Collection[str]] = None,
-                 *, source: Optional[Source] = None) -> None:
+    id: str
+    """2 character ID of the satellite represented in the statement."""
+    id3: str
+    """3 character ID of the satellite represented in the statement."""
+    names: Collection[str]
+    """Other names for the satellite."""
+
+    def __init__(
+        self,
+        id: str,
+        id3: str,
+        names: Optional[Collection[str]] = None,
+        *,
+        source: Optional[Source] = None,
+    ) -> None:
+        """
+        :param id:
+            2 character ID of the satellite.
+        :param id3:
+            3 character ID of the satellite.
+        :param names:
+            Other names for the satellite.
+        :param source:
+            Location in the source configuration this statement came from.
+        """
         super().__init__(source=source)
         self.id = id
         self.id3 = id3
@@ -686,23 +838,43 @@ class SatelliteID(Statement):
             self.names = names
 
     def __repr__(self) -> str:
-        prefix = (f'{self.__class__.__qualname__}'
-                  f'({repr(self.id)}, {repr(self.id3)}')
+        prefix = f"{self.__class__.__qualname__}" f"({repr(self.id)}, {repr(self.id3)}"
         if self.names:
-            return prefix + f', {self.names})'
-        return prefix + ')'
+            return prefix + f", {self.names})"
+        return prefix + ")"
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        if 'id' in selectors and selectors['id'] == self.id:
-            setattr(environment, 'id', self.id)
-            setattr(environment, 'id3', self.id3)
-            setattr(environment, 'names', self.names)
+        """Evaluate satellite ID statement, setting ID's and names.
+
+        :param environment:
+            Environment object to modify.  If this is a mapping it will be used
+            as such, otherwise attribute assignment will be used instead.
+        :param selectors:
+            Key/value pairs of things that can be used for conditional parsing
+            of the configuration file.
+        """
+        if "id" in selectors and selectors["id"] == self.id:
+            environment.id = self.id
+            environment.id3 = self.id3
+            environment.names = self.names
 
 
 class Satellites(Mapping[str, Statement], Statement):
+    """A collection of :class:`SatelliteID` statements.
 
-    def __init__(self, *satellites: SatelliteID,
-                 source: Optional[Source] = None) -> None:
+    In particular this is a mapping from 2 character satellite ID's to
+    :class:`SatelliteID` statements.
+    """
+
+    def __init__(
+        self, *satellites: SatelliteID, source: Optional[Source] = None
+    ) -> None:
+        r"""
+        :param \*satellites:
+            :class:`SatelliteID` statements.
+        :param source:
+            Location in the source configuration this statement came from.
+        """
         super().__init__(source=source)
         self._satellites: MutableMapping[str, SatelliteID] = {}
         for satellite in satellites:
@@ -718,41 +890,79 @@ class Satellites(Mapping[str, Statement], Statement):
         return self._satellites.__len__()
 
     def __repr__(self) -> str:
-        return (f'{self.__class__.__qualname__}('
-                f'{", ".join(repr(v) for v in self._satellites.values())})')
+        return (
+            f"{self.__class__.__qualname__}("
+            f"{', '.join(repr(v) for v in self._satellites.values())})"
+        )
 
-    def eval(self, environment: Any,
-             selectors: Mapping[str, Any]) -> None:
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
+        """Evaluate contained satellite ID statements, setting ID's and names.
+
+        :param environment:
+            Environment object to modify.  If this is a mapping it will be used
+            as such, otherwise attribute assignment will be used instead.
+        :param selectors:
+            Key/value pairs of things that can be used for conditional parsing
+            of the configuration file.
+        """
         try:
-            if selectors['id'] in self:
-                self[selectors['id']].eval(environment, selectors)
+            if selectors["id"] in self:
+                self[selectors["id"]].eval(environment, selectors)
         except KeyError:
             pass
 
 
 class NamedBlock(Statement, ABC):
-    name: str
-    inner_statement: Statement
-    condition: Condition = TrueCondition()
+    """Abstract named block statement, non unique version.
 
-    def __init__(self, name: str, inner_statement,
-                 condition: Optional[Condition] = None,
-                 *, source: Optional[Source] = None):
+    This named block need not be unique because each name maintains a list of
+    blocks that match it in the environment.
+    """
+
+    name: str
+    """Name of the block."""
+    inner_statement: Statement
+    """Inner statement stored in the block."""
+    condition: Condition = TrueCondition()
+    """Condition that must be true for the `inner_statement` to be executed."""
+
+    def __init__(
+        self,
+        name: str,
+        inner_statement: Statement,
+        condition: Optional[Condition] = None,
+        *,
+        source: Optional[Source] = None,
+    ) -> None:
+        """
+        :param name:
+            Name of the block.  Usually the XML tag name.
+        :param inner_statement:
+            The inner statement stored in the block.  This is usually a
+            :class:`CompoundStatement`.
+        :param condition:
+            Condition that must be true for the `inner_statement` to be executed.
+        :param source:
+            Location in the source configuration this statement came from.
+        """
         super().__init__(source=source)
         self.name = name
         self.inner_statement = inner_statement
         if condition is not None:
             self.condition = condition
 
-    def __repr__(self):
-        prefix = (f'{self.__class__.__qualname__}'
-                  f'({repr(self.name)}, {repr(self.inner_statement)}')
+    def __repr__(self) -> str:
+        prefix = (
+            f"{self.__class__.__qualname__}"
+            f"({repr(self.name)}, {repr(self.inner_statement)}"
+        )
         if isinstance(self.condition, TrueCondition):
-            return prefix + ')'
-        return prefix + f', {self.condition})'
+            return prefix + ")"
+        return prefix + f", {self.condition})"
 
-    def _eval_runner(self, mapping: str, builder: Any,
-                     environment: Any, selectors: Mapping[str, Any]):
+    def _eval_runner(
+        self, mapping: str, builder: Any, environment: Any, selectors: Mapping[str, Any]
+    ) -> None:
         if self.condition and not self.condition.test(selectors):
             return
 
@@ -767,14 +977,20 @@ class NamedBlock(Statement, ABC):
             mapping_[self.name].append(builder_.build())
         except MissingFieldError as err:
             raise ASTEvaluationError(
-                f"missing required attribute '{err.field.name}'",
-                source=self.source)
+                f"missing required attribute '{err.field.name}'", source=self.source
+            )
 
 
 class UniqueNamedBlock(NamedBlock, ABC):
+    """Abstract named block statement, unique version.
 
-    def _eval_runner(self, mapping: str, builder: Any,
-                     environment: Any, selectors: Mapping[str, Any]):
+    This named block is unique.  Therefore, a delicately named block will
+    update the original data in the environment.
+    """
+
+    def _eval_runner(
+        self, mapping: str, builder: Any, environment: Any, selectors: Mapping[str, Any]
+    ) -> None:
         if self.condition and not self.condition.test(selectors):
             return
 
@@ -792,18 +1008,23 @@ class UniqueNamedBlock(NamedBlock, ABC):
                 mapping_[self.name] = builder_.build()
             except MissingFieldError as err:
                 raise ASTEvaluationError(
-                    f"missing required attribute '{err.field.name}'",
-                    source=self.source)
+                    f"missing required attribute '{err.field.name}'", source=self.source
+                )
 
 
 class Phase(NamedBlock):
+    """Phase statement, for all phase related information."""
 
-    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        self._eval_runner('phases', PhaseBuilder, environment, selectors)
+    def eval(
+        self, environment: Any, selectors: Mapping[str, Any]
+    ) -> None:  # noqa: D102
+        self._eval_runner("phases", PhaseBuilder, environment, selectors)
 
 
 class Variable(UniqueNamedBlock):
+    """Variable statement, for all phase related information."""
 
-    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
-        self._eval_runner(
-            'variables', VariableBuilder, environment, selectors)
+    def eval(
+        self, environment: Any, selectors: Mapping[str, Any]
+    ) -> None:  # noqa: D102
+        self._eval_runner("variables", VariableBuilder, environment, selectors)

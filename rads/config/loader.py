@@ -1,21 +1,22 @@
+"""PyRADS XML file loader functions."""
 import os
 from pathlib import Path
-from typing import Optional, Iterable
+from typing import Dict, Iterable, Optional
 
-from appdirs import AppDirs, system
+from appdirs import AppDirs, system  # type: ignore
 from dataclass_builder import MissingFieldError
 
-from ._builders import PreConfigBuilder, SatelliteBuilder
+from ..typing import PathLike
+from ..xml import ParseError, parse
 from .ast import ASTEvaluationError
-from .grammar import satellite_grammar, pre_config_grammar, dataroot_grammar
+from .builders import PreConfigBuilder, SatelliteBuilder
+from .grammar import dataroot_grammar, pre_config_grammar, satellite_grammar
 from .tree import Config, PreConfig
 from .xml_parsers import GlobalParseFailure
-from .._typing import PathLike
-from ..xml import ParseError, parse
 
-__all__ = ['ConfigError', 'config_files', 'get_dataroot', 'load_config']
+__all__ = ["ConfigError", "config_files", "get_dataroot", "load_config"]
 
-_APPNAME = 'pyrads'
+_APPNAME = "pyrads"
 _APPDIRS = AppDirs(_APPNAME, appauthor=False, roaming=False)
 
 # TODO: Remove satellites from blacklist.
@@ -26,77 +27,67 @@ _APPDIRS = AppDirs(_APPNAME, appauthor=False, roaming=False)
 # This is required because unlike the official RADS, PyRADS attempts to
 # load all satellites instead of just one and therefore it will break
 # for incomplete configurations.
-_BLACKLISTED_SATELLITES = ['g3', 'ss']
+_BLACKLISTED_SATELLITES = ["g3", "ss"]
 
 
 class ConfigError(Exception):
     """Exception raised when there is a problem loading the configuration file.
 
     It is usually raised after another more specific exception has been caught.
-
-    Parameters
-    ----------
-    message
-        Error message.
-    line
-        Line that cause the exception, if known.
-    file
-        File that caused the exception, if known.
-    original
-        Optionally the original exception.
-
-    Attributes
-    ----------
-    message
-        Error message.
-    line
-        Line that cause the exception, if known (None otherwise).
-    file
-        File that caused the exception, if known (None otherwise).
-    original_exception
-        Optionally the original exception (None otherwise).
-
     """
-    message: str
-    line: Optional[int] = None
-    file: Optional[str] = None
-    original_exception = Optional[Exception]
 
-    def __init__(self,
-                 message: str,
-                 line: Optional[int] = None,
-                 file: Optional[str] = None,
-                 *, original: Optional[Exception] = None) -> None:
+    message: str
+    """Error message."""
+    line: Optional[int] = None
+    """Line that cause the exception, if known (None otherwise)."""
+    file: Optional[str] = None
+    """File that caused the exception, if known (None otherwise)."""
+    original_exception: Optional[Exception] = None
+    """Optionally the original exception (None otherwise)."""
+
+    def __init__(
+        self,
+        message: str,
+        line: Optional[int] = None,
+        file: Optional[str] = None,
+        *,
+        original: Optional[Exception] = None,
+    ) -> None:
+        """
+        :param message:
+            Error message.
+        :param line:
+            Line that cause the exception, if known.
+        :param file:
+            File that caused the exception, if known.
+        :param original:
+            Optionally the original exception.
+        """
         if line is not None:
             self.line = line
         if file:
             self.file = file
-        if original:
+        if original is not None:
             self.original_exception = original
         if file or line:
-            file = self.file if self.file else ''
-            line = self.line if self.line is not None else ''
-            super().__init__(f'{file}:{line}: {message}')
+            file_ = self.file if self.file else ""
+            line_ = self.line if self.line is not None else ""
+            super().__init__(f"{file_}:{line_}: {message}")
         else:
             super().__init__(message)
 
 
 def _to_config_error(exc: Exception) -> ConfigError:
-    """Convert an exception into a :class:`ConfigError`.
+    """Convert an exception into a :class:`rads.config.loader.ConfigError`.
 
     If the exception has file/line information this function will attempt to
     copy it to the new exception.
 
-    Parameters
-    ----------
-    exc
+    :param exc:
         The original exception.
 
-    Returns
-    -------
-    ConfigError
+    :return rads.config.loader.ConfigError:
         The new configuration exception.
-
     """
     if isinstance(exc, ParseError):
         return ConfigError(exc.msg, exc.lineno, exc.filename, original=exc)
@@ -105,9 +96,9 @@ def _to_config_error(exc: Exception) -> ConfigError:
     return ConfigError(str(exc), original=exc)
 
 
-def config_files(dataroot_path: Optional[PathLike] = None,
-                 rads: bool = True,
-                 pyrads: bool = True) -> Iterable[Path]:
+def config_files(
+    dataroot_path: Optional[PathLike] = None, rads: bool = True, pyrads: bool = True
+) -> Iterable[Path]:
     """Get a list of the paths that configuration files will be searched for.
 
     The full list of configuration files for Unix (other operating systems
@@ -121,22 +112,17 @@ def config_files(dataroot_path: Optional[PathLike] = None,
         5. rads.xml
         6. pyrads.xml
 
-    Example
-    -------
     This can be used to add another xml file when loading the configuration.
 
     .. code-block:: python
 
         load_config(config_files=(xml_files() + '/path/to/custom/config.xml'))
 
-    Parameters
-    ----------
-    dataroot_path
+    :param dataroot_path:
         Optionally specify the path to the RADS dataroot.  If not given
         :func:`get_dataroot` will be used with default arguments to retrieve
         the RADS dataroot.
-
-    rads
+    :param rads:
         Set to False to disable all RADS only configuration files.  These are
         the configuration files used by the official RADS implementation and
         are (in order):
@@ -144,8 +130,7 @@ def config_files(dataroot_path: Optional[PathLike] = None,
             1. ``<dataroot>/conf/rads.xml``
             2. ``~/.rads/rads.xml``
             3. ``rads.xml``
-
-    pyrads
+    :param pyrads:
         Set to False to disable all PyRADS configuration files.  These are the
         new configuration files added by PyRADS in which PyRADS exclusive tags
         can be used:
@@ -159,12 +144,9 @@ def config_files(dataroot_path: Optional[PathLike] = None,
             The files listed above are only for Unix, other operating systems
             differ.
 
-    Returns
-    -------
-    list(pathlib.Path)
+    :return:
         The locations that configuration files can be, in the order that they
         are loaded.
-
     """
     files = []
     if rads:
@@ -182,8 +164,11 @@ def config_files(dataroot_path: Optional[PathLike] = None,
     return files
 
 
-def get_dataroot(dataroot: Optional[PathLike] = None,
-                 *, xml_files: Optional[Iterable[PathLike]] = None) -> Path:
+def get_dataroot(
+    dataroot: Optional[PathLike] = None,
+    *,
+    xml_files: Optional[Iterable[PathLike]] = None,
+) -> Path:
     """Get the RADS dataroot.
 
     The *dataroot* or RADSDATAROOT as it is referred to in the official RADS
@@ -193,21 +178,18 @@ def get_dataroot(dataroot: Optional[PathLike] = None,
 
     The priority of retrieving the *dataroot* is as follows:
 
-        1. If the :paramref:`dataroot` is given directly it will be used.
+        1. If the `dataroot` is given directly it will be used.
         2. If the ``RADSDATAROOT`` environment variable is set then it will be
            used as the location of the RADS *dataroot*.
-        3. If given :paramref:`xml_files` they will be searched for the
-           ``<dataroot>`` tag and its value will be used as the location of the
-           *dataroot*.
+        3. If given `xml_files` they will be searched for the ``<dataroot>``
+           tag and its value will be used as the location of the *dataroot*.
         4. The default PyRADS specific configuration files will be searched for
            the ``<dataroot>`` tag.
 
-    Parameters
-    ----------
-    dataroot
+    :param dataroot:
         Optionally specify the *dataroot* directly, this function will only
         verify that the path is a *dataroot* if this is given.
-    xml_files
+    :param xml_files:
         Optionally specify which configuration files to look for the
         ``<dataroot>`` tag in.  This tag specifies the *dataroot* if it exists.
         The files that will be used if this parameter is not given are (for
@@ -223,31 +205,27 @@ def get_dataroot(dataroot: Optional[PathLike] = None,
             official RADS configuration file will result in an error if the
             official RADS implementation is used.
 
-    Returns
-    -------
-    pathlib.Path
+    :return:
         The path to the RADS *dataroot*.
 
-    Raises
-    ------
-    RuntimeError
+    :raises RuntimeError:
         If the *dataroot* cannot be found or the given/configured *dataroot* is
         not a valid RADS *dataroot*.
-
     """
     # find the dataroot
     if dataroot is not None:
         dataroot_ = Path(dataroot)
-    elif os.getenv('RADSDATAROOT'):
-        dataroot_ = Path(os.getenv('RADSDATAROOT')).expanduser()
+    elif os.getenv("RADSDATAROOT"):
+        dataroot_ = Path(os.environ["RADSDATAROOT"]).expanduser()
     else:  # read from XML files
         if xml_files is None:
             config_paths = config_files(dataroot, rads=False, pyrads=True)
         else:
-            config_paths = [Path(os.path.expanduser(os.path.expandvars(f)))
-                            for f in xml_files]
+            config_paths = [
+                Path(os.path.expanduser(os.path.expandvars(f))) for f in xml_files
+            ]
         config_paths = [p for p in config_paths if p.is_file()]
-        env = {}
+        env: Dict[str, str] = {}
         for file in config_paths:
             try:
                 ast = dataroot_grammar()(parse(file, rootless=True).down())[0]
@@ -255,70 +233,65 @@ def get_dataroot(dataroot: Optional[PathLike] = None,
             except (ParseError, GlobalParseFailure, ASTEvaluationError) as err:
                 raise _to_config_error(err) from err
         try:
-            dataroot_ = Path(os.path.expanduser(os.path.expandvars(
-                env['dataroot'])))
+            dataroot_ = Path(os.path.expanduser(os.path.expandvars(env["dataroot"])))
         except KeyError:
-            raise RuntimeError('cannot find RADS data directory')
+            raise RuntimeError("cannot find RADS data directory")
 
     # verify the dataroot directory
-    if dataroot_.is_dir() and (dataroot_ / 'conf' / 'rads.xml').is_file():
+    if dataroot_.is_dir() and (dataroot_ / "conf" / "rads.xml").is_file():
         return dataroot_
-    raise RuntimeError(
-        f"'{str(dataroot_)}' is not a RADS data directory")
+    raise RuntimeError(f"'{str(dataroot_)}' is not a RADS data directory")
 
 
-def load_config(*,
-                dataroot: Optional[PathLike] = None,
-                xml_files: Optional[Iterable[PathLike]] = None,
-                satellites: Optional[Iterable[str]] = None):
+def load_config(
+    *,
+    dataroot: Optional[PathLike] = None,
+    xml_files: Optional[Iterable[PathLike]] = None,
+    satellites: Optional[Iterable[str]] = None,
+) -> Config:
     """Load the PyRADS configuration from one or more XML files.
 
-    Parameters
-    ----------
-    dataroot
+    :param dataroot:
         Optionally set the RADS *dataroot*.  If not given :func:`get_dataroot`
-        will be used.  If :paramref:`xml_files` were given they will be passed
-        to the :func:`get_dataroot` function.
-    xml_files
+        will be used.  If `xml_files` were given they will be passed to the
+        :func:`get_dataroot` function.
+    :param xml_files:
         Optionally supply the list of XML files to load the configuration from.
         If not given the result of :func:`config_files` will be used as the
         default.
-    satellites
+    :param satellites:
         Optionally specify which satellites to load the configuration for by
         their 2 character id strings.  The default is to load the configuration
         for all non-blacklisted satellites.
 
-    Returns
-    -------
-    Config
+    :return:
         The resulting PyRADS configuration object.
 
-    Raises
-    ------
-    RuntimeError
+    :raises RuntimeError:
         If the *dataroot* cannot be found or the given/configured *dataroot* is
         not a valid RADS *dataroot*.
-    ConfigError
+    :raises rads.config.loader.ConfigError:
         If there is any problem loading the configuration files.
 
-    See Also
-    --------
-    rads.config.tree.Config
-        PyRADS configuration object.
+    .. seealso::
 
+        :class:`rads.config.tree.Config`
+            PyRADS configuration object.
     """
     # load pre-config
-    pre_config = _load_preconfig(dataroot=dataroot,
-                                 xml_files=xml_files, satellites=satellites)
+    pre_config = _load_preconfig(
+        dataroot=dataroot, xml_files=xml_files, satellites=satellites
+    )
 
     # initialize configuration object and satellite configuration builders
-    config = Config(pre_config)
-    builders = {sat: SatelliteBuilder()
-                for sat in pre_config.satellites
-                if sat not in pre_config.blacklist}
+    builders = {
+        sat: SatelliteBuilder()
+        for sat in pre_config.satellites
+        if sat not in pre_config.blacklist
+    }
 
     # parse and evaluate each configuration file for each satellite
-    for file in config.config_files:
+    for file in pre_config.config_files:
         # construct ast
         try:
             ast = satellite_grammar()(parse(file, rootless=True).down())[0]
@@ -327,29 +300,32 @@ def load_config(*,
         # evaluate ast for each satellite
         for sat, builder in builders.items():
             try:
-                ast.eval(builder, {'id': sat})
+                ast.eval(builder, {"id": sat})
             except ASTEvaluationError as err:
                 raise _to_config_error(err) from err
 
     # build each satellite configuration object
+    satellites = {}
     for sat, builder in builders.items():
         try:
-            config.satellites[sat] = builder.build()
+            satellites[sat] = builder.build()
         except MissingFieldError as err:
             raise ConfigError(str(err)) from err
 
-    return config
+    return Config(pre_config, satellites)
 
 
-def _load_preconfig(*, dataroot: Optional[PathLike] = None,
-                    xml_files: Optional[Iterable[PathLike]] = None,
-                    satellites: Optional[Iterable[str]] = None) -> PreConfig:
+def _load_preconfig(
+    *,
+    dataroot: Optional[PathLike] = None,
+    xml_files: Optional[Iterable[PathLike]] = None,
+    satellites: Optional[Iterable[str]] = None,
+) -> PreConfig:
     """Load the pre-configuration object.
 
     See :func:`load_config` for argument documentation.
 
     """
-
     # get dataroot and xml paths
     dataroot_ = get_dataroot(dataroot, xml_files=xml_files)
     if xml_files is None:
@@ -367,7 +343,7 @@ def _load_preconfig(*, dataroot: Optional[PathLike] = None,
     builder.dataroot = dataroot_
     builder.config_files = list(xml_paths)
     try:
-        pre_config = builder.build()
+        pre_config: PreConfig = builder.build()
     except MissingFieldError as err:
         raise ConfigError(str(err)) from err
 
@@ -381,7 +357,8 @@ def _load_preconfig(*, dataroot: Optional[PathLike] = None,
 
     # add hardcoded blacklist
     pre_config.blacklist = list(
-        set(pre_config.blacklist).union(set(_BLACKLISTED_SATELLITES)))
+        set(pre_config.blacklist).union(set(_BLACKLISTED_SATELLITES))
+    )
 
     return pre_config
 
@@ -398,22 +375,17 @@ def _rads_xml(dataroot: PathLike) -> Path:
 
         PyRADS specific XML tags are not allowed in this file.
 
-    Parameters
-    ----------
-    dataroot
+    :param dataroot:
         Path to the RADS data root.
 
-    Returns
-    -------
-    Path
+    :return:
         Path to the main RADS configuration file.
-
     """
-    return Path(dataroot) / 'conf' / 'rads.xml'
+    return Path(dataroot) / "conf" / "rads.xml"
 
 
 def _site_config() -> Path:
-    """Path to the PyRADS site/system configuration file.
+    r"""Path to the PyRADS site/system configuration file.
 
     ================  ================================================
     Operating System  Path
@@ -427,16 +399,13 @@ def _site_config() -> Path:
 
         RADS, not only PyRADS overrides are allowed in this file.
 
-    Returns
-    -------
-    Path
+    :return:
         Path to the PyRADS site/system wide configuration file.
-
     """
-    if system in ('win32', 'darwin'):
+    if system in ("win32", "darwin"):
         return Path(_APPDIRS.site_config_dir)
     # appdirs does not handle site config on linux properly
-    return Path('/etc') / _APPNAME / 'settings.xml'
+    return Path("/etc") / _APPNAME / "settings.xml"
 
 
 def _user_xml() -> Path:
@@ -448,13 +417,10 @@ def _user_xml() -> Path:
 
         PyRADS specific XML tags are not allowed in this file.
 
-    Returns
-    -------
-    Path
+    :return:
         Path to the user local RADS configuration file.
-
     """
-    return Path('~/.rads/rads.xml').expanduser()
+    return Path("~/.rads/rads.xml").expanduser()
 
 
 def _user_config() -> Path:
@@ -472,12 +438,10 @@ def _user_config() -> Path:
 
         RADS, not only PyRADS overrides are allowed in this file.
 
-    Returns
-    -------
-    Path
+    :return:
         Path to the PyRADS user local configuration file.
     """
-    return Path(_APPDIRS.user_config_dir) / 'settings.xml'
+    return Path(_APPDIRS.user_config_dir) / "settings.xml"
 
 
 def _local_xml() -> Path:
@@ -489,13 +453,10 @@ def _local_xml() -> Path:
 
         PyRADS specific XML tags are not allowed in this file.
 
-    Returns
-    -------
-    Path
+    :return:
         Path to the local RADS configuration file.
-
     """
-    return Path('rads.xml')
+    return Path("rads.xml")
 
 
 def _local_config() -> Path:
@@ -507,10 +468,7 @@ def _local_config() -> Path:
 
         RADS, not only PyRADS overrides are allowed in this file.
 
-    Returns
-    -------
-    Path
+    :return:
         Path to the local RADS configuration file.
-
     """
-    return Path('pyrads.xml')
+    return Path("pyrads.xml")
