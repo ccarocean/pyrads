@@ -111,7 +111,6 @@ Keyword          Description
 ===============  ==============================================================
 
 """
-# pylint: disable=too-many-lines
 
 from abc import ABC, abstractmethod
 from datetime import timedelta
@@ -147,7 +146,7 @@ from .datetime64util import ymdhmsus
 if TYPE_CHECKING:
     # property behaves properly with Mypy but cached_property does not, even
     # with the same type stub.
-    cached_property = property  # pylint: disable=invalid-name
+    cached_property = property
 else:
     from cached_property import cached_property
 
@@ -667,10 +666,6 @@ class CompleteExpression(Expression):
     # TODO: Remove the F811 statements bellow once
     #       https://github.com/PyCQA/pyflakes/pull/435 makes it into a release.
     #       Also update requirements to match.
-
-    # TODO: Remove the disalbe=super-init-not-called statements when
-    #       https://github.com/PyCQA/pylint/issues/3020 is fixed.
-    #       Also, update pylint require
 
     @overload  # noqa: F811
     def __init__(self, tokens: str) -> None:  # noqa: D107

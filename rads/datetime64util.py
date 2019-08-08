@@ -115,7 +115,6 @@ def ymdhmsus(
         * Second or array of seconds from `datetime64`.
         * Microsecond or array of microseconds from `datetime64`.
     """
-    # pylint: disable=redefined-outer-name
     # based on: https://stackoverflow.com/a/26895491
     year = datetime64.astype("datetime64[Y]").astype(int) + 1970
     month_ = datetime64.astype("datetime64[M]")

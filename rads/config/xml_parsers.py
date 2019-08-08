@@ -872,7 +872,7 @@ def end() -> Parser:
     return End()
 
 
-def any() -> Parser:  # pylint: disable=redefined-builtin
+def any() -> Parser:
     """Match any element.
 
     :return:
