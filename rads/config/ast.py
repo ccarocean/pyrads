@@ -22,8 +22,8 @@ from typing import (
 
 from dataclass_builder import MISSING, MissingFieldError, UndefinedFieldError
 
-from .._utility import delete_sublist, merge_sublist, xor
 from ..rpn import CompleteExpression, Expression
+from ..utility import delete_sublist, merge_sublist, xor
 from .builders import PhaseBuilder, VariableBuilder
 
 ActionType = Callable[[Any, str, Any], None]

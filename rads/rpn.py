@@ -136,10 +136,10 @@ from typing import (
 import numpy as np  # type: ignore
 from astropy.convolution import Box1DKernel, Gaussian1DKernel, convolve  # type: ignore
 
-from ._typing import Number, NumberOrArray
-from ._utility import fortran_float
 from .constants import EPOCH
 from .datetime64util import ymdhmsus
+from .typing import Number, NumberOrArray
+from .utility import fortran_float
 
 # TODO: Change to functools.cached_property when dropping support for
 #       Python 3.7

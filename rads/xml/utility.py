@@ -4,8 +4,8 @@ import os
 from itertools import chain, dropwhile, takewhile, tee
 from typing import Any, AnyStr, Optional, Sequence, cast
 
-from .._typing import PathLike, PathOrFile
-from .._utility import ensure_open, filestring
+from ..typing import PathLike, PathOrFile
+from ..utility import ensure_open, filestring
 
 try:
     from ..xml import lxml as xml

@@ -23,8 +23,8 @@ from typing import (
 import numpy as np  # type: ignore
 from cf_units import Unit  # type: ignore
 
-from .._typing import IntOrArray, Number, NumberOrArray, PathLike
 from ..rpn import CompleteExpression
+from ..typing import IntOrArray, Number, NumberOrArray, PathLike
 
 __all__ = [
     "PreConfig",

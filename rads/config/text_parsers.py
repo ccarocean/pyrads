@@ -31,8 +31,8 @@ import numpy as np  # type: ignore
 import regex  # type: ignore
 from cf_units import Unit  # type: ignore
 
-from .._utility import fortran_float
 from ..rpn import Expression
+from ..utility import fortran_float
 from .tree import (
     Compress,
     Constant,

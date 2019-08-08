@@ -6,7 +6,7 @@ from typing import Dict, Iterable, Optional
 from appdirs import AppDirs, system  # type: ignore
 from dataclass_builder import MissingFieldError
 
-from .._typing import PathLike
+from ..typing import PathLike
 from ..xml import ParseError, parse
 from .ast import ASTEvaluationError
 from .builders import PreConfigBuilder, SatelliteBuilder

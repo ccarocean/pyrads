@@ -5,7 +5,7 @@ from typing import IO, Any, List, Optional, Union, cast
 
 from wrapt import ObjectProxy  # type: ignore
 
-from ._typing import PathLike, PathOrFile
+from .typing import PathLike, PathOrFile
 
 __all__ = [
     "ensure_open",

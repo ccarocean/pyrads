@@ -7,7 +7,6 @@ from typing import Mapping, MutableMapping, MutableSequence, Optional
 import numpy as np  # type: ignore
 import pytest  # type: ignore
 
-from rads._typing import NumberOrArray
 from rads.rpn import (
     ABS,
     ACOS,
@@ -88,6 +87,7 @@ from rads.rpn import (
     Variable,
     token,
 )
+from rads.typing import NumberOrArray
 
 GOLDEN_RATIO = math.log((1 + math.sqrt(5)) / 2)
 

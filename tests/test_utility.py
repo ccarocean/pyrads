@@ -1,6 +1,6 @@
 import pytest  # type: ignore
 
-from rads._utility import (
+from rads.utility import (
     contains_sublist,
     delete_sublist,
     fortran_float,
