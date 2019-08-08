@@ -1,9 +1,14 @@
 """Python library for the Radar Altimeter Database System (RADS)."""
 
-# NOTE: The major version should match the current major version of RADS.
-__version__ = "0.1.0rc0"
-
+from .__version__ import __version__
 from .config.loader import ConfigError, config_files, get_dataroot, load_config
 from .constants import EPOCH
 
-__all__ = ["ConfigError", "config_files", "get_dataroot", "load_config", "EPOCH"]
+__all__ = [
+    "__version__",
+    "ConfigError",
+    "config_files",
+    "get_dataroot",
+    "load_config",
+    "EPOCH",
+]

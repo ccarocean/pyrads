@@ -225,7 +225,7 @@ setup(
         "cleanup": Cleanup,
     },
     name="rads",
-    version=read_version("rads/__init__.py"),
+    version=read_version("rads/__version__.py"),
     author="Michael R. Shannon",
     author_email="mrshannon.aerospace@gmail.com",
     description="Python front end for the Radar Altimeter Database System.",
