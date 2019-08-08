@@ -1,5 +1,9 @@
-PyRADS
-======
+.. image:: https://raw.githubusercontent.com/ccarocean/pyrads/master/docs/_static/logo_black.png
+    :alt: PyRADS
+    :align: center
+
+Python access to RADS
+=====================
 
 |build-status|
 |coverage-status|
