@@ -13,6 +13,11 @@ WORK IN PROGRESS - This will be removed upon first release.
 
 Python library for access to the `Radar Altimeter Database System`_ (RADS).
 
+Documentation
+-------------
+
+Documentation for PyRADS can be found at `https://pyrads.readthedocs.io/en/latest/ <https://pyrads.readthedocs.io/en/latest/>`_ or in `PDF <https://readthedocs.org/projects/pyrads/downloads/pdf/latest/>`_ and `Epub <https://readthedocs.org/projects/pyrads/downloads/epub/latest/>`_ formats.
+
 
 Requirements
 ------------
@@ -147,13 +152,15 @@ To build the HTML documentation:
 
 .. code-block::
 
-    python setup.py doc
+    python setup.py docs
+    # located at docs/_build/html/index.html
 
 or the PDF documentation (requires XeTeX_, xindy_, and latexmk_):
 
 .. code-block::
 
-    python setup.py doc --pdf
+    python setup.py docs --pdf
+    # located at docs/_build/latex/PyRADS.pdf
 
 Finally, to cleanup temporary files:
 

@@ -112,6 +112,7 @@ Keyword          Description
 
 """
 
+import math
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from itertools import chain
@@ -2184,8 +2185,8 @@ class _GAUSSType(Operator):
 
 # constants
 
-PI = Literal(np.pi)
-E = Literal(np.e)
+PI = Literal(math.pi)
+E = Literal(math.e)
 
 # operators
 

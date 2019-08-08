@@ -11,6 +11,12 @@
 Python access to RADS
 =====================
 
+Get this documentation as a download in several formats:
+
+* `PDF <https://readthedocs.org/projects/pyrads/downloads/pdf/latest/>`_
+* `HTMLZip <https://readthedocs.org/projects/pyrads/downloads/htmlzip/latest/>`_
+* `Epub <https://readthedocs.org/projects/pyrads/downloads/epub/latest/>`_
+
 
 User Guide
 ----------

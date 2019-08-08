@@ -111,23 +111,6 @@ class Doc(Command):
 
     def run(self):
         try:
-            env = os.environ.copy()
-            env[
-                "SPHINX_APIDOC_OPTIONS"
-            ] = "members,undoc-members,show-inheritance,special-members"
-            run(
-                [
-                    "sphinx-apidoc",
-                    "--private",
-                    "--no-toc",
-                    "--separate",
-                    "--output-dir",
-                    _DOCS / "api" / "apidoc",
-                    _PACKAGE,
-                ],
-                env=env,
-                check=True,
-            )
             if self.pdf:
                 run(
                     ["sphinx-build", "-M", "latexpdf", _DOCS, _DOCS / "_build"],
@@ -204,7 +187,25 @@ class Cleanup(Command):
         print("\n✨ Cleanup complete ✨")
 
 
-docs_require = ["sphinx>=1.7"]
+if os.environ.get("READTHEDOCS") == "True":
+    install_requires = ["dataclass_builder", "dataclasses;python_version=='3.6'"]
+else:
+    install_requires = [
+        "appdirs",
+        "astropy",
+        "cached_property",
+        "cf_units>=2.1.1",
+        "dataclasses;python_version=='3.6'",
+        "dataclass-builder>=1.1.3",
+        "fortran-format-converter>=0.1.3",
+        "numpy>=1.16.0",
+        "regex",
+        "scipy",
+        "wrapt",
+        "yzal",
+    ]
+
+docs_require = ["sphinx>=1.7", "sphinxcontrib-apidoc"]
 tests_require = [
     "flake8>=3.7.7",
     "mypy",
@@ -235,19 +236,7 @@ setup(
     url="https://github.com/ccarocean/pyrads",
     packages=find_packages(),
     python_requires=">=3.6",
-    install_requires=[
-        "appdirs",
-        "astropy",
-        "cached_property",
-        "cf_units>=2.1.1",
-        "dataclasses;python_version=='3.6'",
-        "dataclass-builder>=1.1.3",
-        "fortran-format-converter>=0.1.3",
-        "numpy>=1.16.0",
-        "scipy",
-        "wrapt",
-        "yzal",
-    ],
+    install_requires=install_requires,
     extras_require={
         "lxml": ["lxml"],  # use libxml2 to read configuration files
         "docs": docs_require,

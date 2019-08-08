@@ -12,13 +12,25 @@
 # add these directories to sys.path here. If the directory is relative to the
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
-import os
-import sys
+import re
+from pathlib import Path
 
 from sphinx.ext.autodoc import ClassLevelDocumenter, InstanceAttributeDocumenter
 
-sys.path.insert(0, os.path.abspath(".."))
-from rads import __version__  # isort:skip
+_CONF = Path(__file__)
+
+
+def read_version(filename):
+    return re.search(
+        r"^__version__\s*=\s*['\"]([^'\"]*)['\"]", read(filename), re.MULTILINE
+    ).group(1)
+
+
+def read(filename):
+    with open(_CONF.parent / filename) as infile:
+        text = infile.read()
+    return text
+
 
 # -- Project information -----------------------------------------------------
 
@@ -27,7 +39,7 @@ copyright = "2018-2019, Michael R. Shannon"
 author = "Michael R. Shannon"
 
 # The short X.Y version
-version = __version__
+version = read_version("../rads/__version__.py")
 # The full version, including alpha/beta/rc tags
 release = version
 
@@ -48,7 +60,7 @@ extensions = [
     "sphinx.ext.coverage",
     "sphinx.ext.mathjax",
     "sphinx.ext.viewcode",
-    "sphinx.ext.githubpages",
+    "sphinxcontrib.apidoc",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -214,7 +226,19 @@ intersphinx_mapping = {
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
 
-autodoc_mock_imports = ["lxml"]
+autodoc_mock_imports = [
+    "appdirs",
+    "astropy",
+    "cached_property",
+    "cf_units",
+    "fortran_format_converter",
+    "numpy",
+    "regex",
+    "scipy",
+    "wrapt",
+    "yzal",
+    "lxml",
+]
 
 autodoc_default_options = {
     "special-members": "__call__,__add__,__iadd__,__or__,__invert__,__xor__,__lshift__"
@@ -223,6 +247,12 @@ autodoc_default_options = {
 autodoc_member_order = "bysource"
 autodoc_inherit_docstrings = True
 autoclass_content = "both"
+
+apidoc_module_dir = "../rads"
+apidoc_output_dir = "api/apidoc"
+apidoc_separate_modules = True
+apidoc_toc_file = False
+apidoc_extra_args = ["--private"]
 
 
 # remove = None from attributes
