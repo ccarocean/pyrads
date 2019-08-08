@@ -145,7 +145,7 @@ To build the HTML documentation:
 
     python setup.py doc
 
-or the PDF documentation:
+or the PDF documentation (requires XeTeX_ and xindy_):
 
 .. code-block::
 
@@ -163,6 +163,8 @@ Finally, to cleanup temporary files:
 .. _libxml2: http://www.xmlsoft.org/
 .. _isort: https://github.com/timothycrosley/isort
 .. _black: https://black.readthedocs.io/en/stable/
+.. _XeTeX: http://xetex.sourceforge.net/
+.. _xindy: http://xindy.sourceforge.net/
 .. |build-status| image:: https://travis-ci.com/ccarocean/pyrads.svg?branch=master&style=flat
    :target: https://travis-ci.com/ccarocean/pyrads
    :alt: Build status
