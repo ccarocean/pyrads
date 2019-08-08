@@ -175,6 +175,7 @@ class Cleanup(Command):
                     self.remove(file)
             self.remove(_DOCS / "_build")
             self.remove(_PROJECT / "dist")
+            self.remove(_PROJECT / "build")
             self.remove_matching(lambda f: f.suffix == ".pyc", files=True)
             self.remove_matching(lambda f: f.name == ".coverage", files=True)
             self.remove_matching(lambda f: f.name == ".pytest_cache", dirs=True)
