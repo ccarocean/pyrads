@@ -249,7 +249,7 @@ setup(
         "yzal",
     ],
     extras_require={
-        "libxml2": ["lxml"],  # use libxml2 to read configuration files
+        "lxml": ["lxml"],  # use libxml2 to read configuration files
         "docs": docs_require,
         "tests": tests_require,
         "dev": docs_require + tests_require + ["black", "isort", "twine"],

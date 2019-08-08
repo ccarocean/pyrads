@@ -100,7 +100,7 @@ If you are working on a system where libxml2_ is installed you may wish to repla
 
 .. code-block:: bash
 
-    pip install -e ".[libxml2,dev]"
+    pip install -e ".[lxml,dev]"
 
 This will provide for faster XML parsing and more importantly better error messages.
 
