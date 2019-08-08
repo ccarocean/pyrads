@@ -241,7 +241,7 @@ setup(
         "cached_property",
         "cf_units>=2.1.1",
         "dataclasses;python_version=='3.6'",
-        "dataclass-builder>=1.1.2",
+        "dataclass-builder>=1.1.3",
         "fortran-format-converter>=0.1.3",
         "numpy>=1.16.0",
         "scipy",
