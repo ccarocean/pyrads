@@ -6,6 +6,7 @@ Python access to the Radar Altimeter Database System
 ====================================================
 
 |build-status|
+|doc-status|
 |coverage-status|
 |code-style|
 
@@ -200,6 +201,9 @@ If all tests run by tox succeed the TravisCI build should succeed as well.
 .. |build-status| image:: https://travis-ci.com/ccarocean/pyrads.svg?branch=master&style=flat
    :target: https://travis-ci.com/ccarocean/pyrads
    :alt: Build status
+.. |doc-status| image:: https://readthedocs.org/projects/pyrads/badge/?version=latest
+   :target: https://pyrads.readthedocs.io/en/latest/
+   :alt: Documentation status
 .. |coverage-status| image:: https://codecov.io/github/ccarocean/pyrads/coverage.svg?branch=master
    :target: https://codecov.io/github/ccarocean/pyrads?branch=master
    :alt: Test coverage
