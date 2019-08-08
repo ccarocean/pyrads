@@ -158,6 +158,26 @@ Finally, to cleanup temporary files:
     python setup.py cleanup
 
 
+tox
+^^^
+
+While the above :code:`setup.py` commands are relatively quick and are good for development they are insufficient to ensure PyRADS is working properly across all options (lxml or not) and all supported Python versions.  For this a tox configuration is provided.  To run the full test suite simply run:
+
+.. code-block::
+
+    tox
+
+Or if you have a recent version of :code:`tox` you can speed up the process with:
+
+.. code-block::
+
+    tox --parallel auto
+
+The :code:`doc-pdf` will fail if XeTeX_ and xindy_ are not both installed.  This is usually fine.
+
+If all tests run by tox succeed the TravisCI build should succeed as well.
+
+
 .. _Radar Altimeter Database System: https://github.com/remkos/rads
 .. _RADS User Manual: https://github.com/remkos/rads/blob/master/doc/manuals/rads4_user_manual.pdf
 .. _libxml2: http://www.xmlsoft.org/
