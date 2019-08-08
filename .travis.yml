@@ -24,7 +24,7 @@ matrix:
       env: TOXENV=install-lxml
     - python: 3.7
       install:
-        - pip install tox coverage
+        - pip install tox codecov
       after_success:
         - codecov
       env: TOXENV=coverage
