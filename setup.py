@@ -204,7 +204,7 @@ class Cleanup(Command):
         print("\n✨ Cleanup complete ✨")
 
 
-docs_require = ["docutils", "docutils-stubs", "sphinx>=1.7"]
+docs_require = ["sphinx>=1.7"]
 tests_require = [
     "flake8>=3.7.7",
     "mypy",
