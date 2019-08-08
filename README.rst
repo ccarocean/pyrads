@@ -2,8 +2,8 @@
     :alt: PyRADS
     :align: center
 
-Python access to RADS
-=====================
+Python access to the Radar Altimeter Database System
+====================================================
 
 |build-status|
 |coverage-status|
