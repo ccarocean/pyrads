@@ -124,7 +124,7 @@ def fromstringlist(
         The root XML element (of the section given in `text`).  If `rootless`
         is True this will be the added `<rootless>` element.
     """
-    if fixer is None:
+    if fixer is not None:
         return fromstring("\n".join(sequence), parser=parser, fixer=fixer, file=file)
     try:
         return xml.Element(xml.fromstringlist(sequence, parser), file=file)
@@ -142,6 +142,12 @@ def rootless_fixer(text: str) -> str:
     :func:`fromstringlist` to load XML files that do not have a root tag.  This
     is done by adding a <__ROOTLESS__> block around the entire document.
 
+    .. note::
+
+        If the file does not contain any XML tags (only processing instructions
+        and comments) the original text will be returned unchanged in an effort
+        to preserve error handling.
+
     :param text:
         XML text to wrap <__ROOTLESS__> tags around.
     :return:
@@ -149,7 +155,7 @@ def rootless_fixer(text: str) -> str:
         processing instructions).
     """
     if not strip_blanklines(strip_comments(strip_processing_instructions(text))):
-        return ""
+        return text
 
     def is_prolog(text: str) -> bool:
         return text.lstrip().startswith("<?")
@@ -163,6 +169,11 @@ def rootless_fixer(text: str) -> str:
 def strip_comments(text: str) -> str:
     """Remove XML comments from a string.
 
+    .. note::
+
+        This will not remove lines that had comments, it only removes the text
+        from "<!--" to "-->".
+
     :param text:
         XML text to strip comments from.
 
@@ -175,6 +186,11 @@ def strip_comments(text: str) -> str:
 
 def strip_processing_instructions(text: str) -> str:
     """Remove XML processing instructions from a string.
+
+    .. note::
+
+        This will not remove lines that had processing instructions, it only
+        removes the text from "<?" to "?>".
 
     :param text:
         XML text to strip processing instructions from.
