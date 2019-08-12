@@ -81,7 +81,7 @@ class TerminalTextParseError(Exception):
 # inherits from TerminalTextParseError because any except clause that catches
 # terminal errors should also catch non-terminal errors.
 class TextParseError(TerminalTextParseError):
-    """Raised to indicate that a text parsing error has occured.
+    """Raised to indicate that a text parsing error has occurred.
 
     Unlike :class:`TerminalTextParseError` this one is allowed to be handled
     by a text parser.
