@@ -66,7 +66,8 @@ class Element(base.Element):
         return len(self._element)
 
     def __iter__(self) -> Iterator["Element"]:
-        return (Element(e, i, self, self._file) for i, e in enumerate(self._element))
+        for i, e in enumerate(self._element):
+            yield Element(e, index=i, parent=self, file=self._file)
 
     def next(self) -> "Element":  # noqa: D102
         if self._parent is None or self._index is None:
@@ -75,7 +76,9 @@ class Element(base.Element):
         new_index = self._index + 1
         if new_index >= len(siblings):
             raise StopIteration()
-        return Element(siblings[new_index], index=new_index, parent=self._parent, file=self._file)
+        return Element(
+            siblings[new_index], index=new_index, parent=self._parent, file=self._file
+        )
 
     def prev(self) -> "Element":  # noqa: D102
         if self._parent is None or self._index is None:
@@ -84,7 +87,9 @@ class Element(base.Element):
         new_index = self._index - 1
         if new_index < 0:
             raise StopIteration()
-        return Element(siblings[new_index], index=new_index, parent=self._parent, file=self._file)
+        return Element(
+            siblings[new_index], index=new_index, parent=self._parent, file=self._file
+        )
 
     def up(self) -> "Element":  # noqa: D102
         if self._parent is None:

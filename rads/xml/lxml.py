@@ -63,7 +63,8 @@ class Element(base.Element):
         return len(self._element)
 
     def __iter__(self) -> Iterator["Element"]:
-        return (Element(e, file=self._file) for e in self._element)
+        for e in self._element:
+            yield Element(e, file=self._file)
 
     def next(self) -> "Element":  # noqa: D102
         element = self._element.getnext()
