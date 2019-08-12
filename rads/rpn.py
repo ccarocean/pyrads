@@ -316,7 +316,7 @@ class Literal(Token):
         """Value of the literal."""
         return self._value
 
-    def __init__(self, value: Union[int, float, bool]) -> None:
+    def __init__(self, value: Union[int, float, bool]):
         """
         :param value:
             Value of the literal.
@@ -398,7 +398,7 @@ class Variable(Token):
         """Name of the variable, used to lookup value in the environment."""
         return self._name
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str):
         """
         :param name:
             Name of the variable, this is what will be used to lookup the
@@ -507,23 +507,7 @@ class Expression(Sequence[Token], Token):
         """Set of variables needed to evaluate the expression."""
         return {t.name for t in self._tokens if isinstance(t, Variable)}
 
-    # TODO: Remove the F811 statements bellow once
-    #       https://github.com/PyCQA/pyflakes/pull/435 makes it into a release.
-    #       Also update requirements to match.
-
-    @overload  # noqa: F811
-    def __init__(self, tokens: str) -> None:  # noqa: D107
-        ...
-
-    @overload  # noqa: F811, D107
-    def __init__(
-        self, tokens: Iterable[Union[Number, str, Token]]
-    ) -> None:  # noqa: D107
-        ...
-
-    def __init__(  # noqa: F811
-        self, tokens: Union[str, Iterable[Union[Number, str, Token]]]
-    ) -> None:
+    def __init__(self, tokens: Union[str, Iterable[Union[Number, str, Token]]]):
         r"""
         :param tokens:
             A Reverse Polish Notation expression given as a sequence of tokens
@@ -664,23 +648,7 @@ class Expression(Sequence[Token], Token):
 class CompleteExpression(Expression):
     """Reverse Polish Notation expression that can be evaluated."""
 
-    # TODO: Remove the F811 statements bellow once
-    #       https://github.com/PyCQA/pyflakes/pull/435 makes it into a release.
-    #       Also update requirements to match.
-
-    @overload  # noqa: F811
-    def __init__(self, tokens: str) -> None:  # noqa: D107
-        ...
-
-    @overload  # noqa: F811
-    def __init__(
-        self, tokens: Iterable[Union[Number, str, Token]]
-    ) -> None:  # noqa: D107
-        ...
-
-    def __init__(  # noqa: F811
-        self, tokens: Union[str, Iterable[Union[Number, str, Token]]]
-    ) -> None:
+    def __init__(self, tokens: Union[str, Iterable[Union[Number, str, Token]]]):
         r"""
         :param tokens:
             A Reverse Polish Notation expression given as a sequence of tokens

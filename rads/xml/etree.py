@@ -42,7 +42,7 @@ class Element(base.Element):
         index: Optional[int] = None,
         parent: Optional["Element"] = None,
         file: Optional[str] = None,
-    ) -> None:
+    ):
         """
         :param element:
             XML element from the standard :mod:`xml.etree.ElementTree`

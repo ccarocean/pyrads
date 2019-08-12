@@ -52,7 +52,7 @@ class ConfigError(Exception):
         file: Optional[str] = None,
         *,
         original: Optional[Exception] = None,
-    ) -> None:
+    ):
         """
         :param message:
             Error message.

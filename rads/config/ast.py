@@ -456,7 +456,7 @@ class Statement(ABC):
     source: Optional[Source]
     """Location in the source configuration this statement came from."""
 
-    def __init__(self, *, source: Optional[Source] = None) -> None:
+    def __init__(self, *, source: Optional[Source] = None):
         """
         :param source:
             Location in the source configuration this statement came from.
@@ -497,7 +497,7 @@ class NullStatement(Statement):
 class CompoundStatement(Sequence[Statement], Statement):
     """A sequence of statements."""
 
-    def __init__(self, *statements: Statement, source: Optional[Source] = None) -> None:
+    def __init__(self, *statements: Statement, source: Optional[Source] = None):
         r"""
         :param \*statements:
             Statements to be stored in the :class:`CompoundStatement`.
@@ -568,7 +568,7 @@ class If(Statement):
         false_statement: Optional[Statement] = None,
         *,
         source: Optional[Source] = None,
-    ) -> None:
+    ):
         """
         :param condition:
             Condition for the If statement.
@@ -652,7 +652,7 @@ class Assignment(Statement):
         action: Optional[ActionType] = None,
         *,
         source: Optional[Source] = None,
-    ) -> None:
+    ):
         """
         :param name:
             Name to assign a value to.
@@ -748,7 +748,7 @@ class Alias(Statement):
         action: Optional[ActionType] = None,
         *,
         source: Optional[Source] = None,
-    ) -> None:
+    ):
         """
         :param alias:
             Alias name (pseudo variable).
@@ -818,7 +818,7 @@ class SatelliteID(Statement):
         names: Optional[Collection[str]] = None,
         *,
         source: Optional[Source] = None,
-    ) -> None:
+    ):
         """
         :param id:
             2 character ID of the satellite.
@@ -866,9 +866,7 @@ class Satellites(Mapping[str, Statement], Statement):
     :class:`SatelliteID` statements.
     """
 
-    def __init__(
-        self, *satellites: SatelliteID, source: Optional[Source] = None
-    ) -> None:
+    def __init__(self, *satellites: SatelliteID, source: Optional[Source] = None):
         r"""
         :param \*satellites:
             :class:`SatelliteID` statements.
@@ -933,7 +931,7 @@ class NamedBlock(Statement, ABC):
         condition: Optional[Condition] = None,
         *,
         source: Optional[Source] = None,
-    ) -> None:
+    ):
         """
         :param name:
             Name of the block.  Usually the XML tag name.

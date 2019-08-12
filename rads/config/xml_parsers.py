@@ -138,7 +138,7 @@ class ParseFailure(Exception):
 
     def __init__(
         self, file: Optional[str], line: Optional[int], message: Optional[str] = None
-    ) -> None:
+    ):
         """
         :param file:
             Name of file that was being parsed when the error occurred.
@@ -348,7 +348,7 @@ class Apply(Parser):
         parser: Parser,
         func: Callable[[Any], Any],
         catch: Optional[Collection[type]] = None,
-    ) -> None:
+    ):
         """
         :param parser:
             The parser whose value result to apply the given `func` to the value
@@ -415,7 +415,7 @@ class Lazy(Parser):
 class Must(Parser):
     """Raise a LocalParseFailure to a GlobalParseFailure ending parsing."""
 
-    def __init__(self, parser: Parser, message: Optional[str] = None) -> None:
+    def __init__(self, parser: Parser, message: Optional[str] = None):
         """
         :param parser:
             Parser that must match.
@@ -436,7 +436,7 @@ class Must(Parser):
 class At(Parser):
     """Match a parser, consuming nothing."""
 
-    def __init__(self, parser: Parser) -> None:
+    def __init__(self, parser: Parser):
         """
         :param parser:
             Parser to match.
@@ -451,7 +451,7 @@ class At(Parser):
 class Not(Parser):
     """Invert a parser match, consuming nothing."""
 
-    def __init__(self, parser: Parser) -> None:
+    def __init__(self, parser: Parser):
         """
         :param parser:
             Parser to invert the match of.
@@ -469,7 +469,7 @@ class Not(Parser):
 class Repeat(Parser):
     """Match a parser zero or more times (greedily)."""
 
-    def __init__(self, parser: Parser) -> None:
+    def __init__(self, parser: Parser):
         """
         :param parser:
             Parser to match repeatedly.
@@ -490,7 +490,7 @@ class Repeat(Parser):
 class _MultiParser(Parser, ABC):
     """Base class of multiple parser combinators."""
 
-    def __init__(self, subtype: type, *parsers: Parser) -> None:
+    def __init__(self, subtype: type, *parsers: Parser):
         r"""
         :param subtype:
             The type of the child parser (the type of parser that subclasses
@@ -522,7 +522,7 @@ class Sequence(_MultiParser):
         Consecutive Sequence's are automatically flattened.
     """
 
-    def __init__(self, *parsers: Parser) -> None:
+    def __init__(self, *parsers: Parser):
         r"""
         :param \*parsers:
             Parsers to match in sequence.
@@ -581,7 +581,7 @@ class Alternate(_MultiParser):
         Consecutive Alternate's are automatically flattened.
     """
 
-    def __init__(self, *parsers: Parser) -> None:
+    def __init__(self, *parsers: Parser):
         r"""
         :param \*parsers:
             Pool of parsers to find a match in.
@@ -687,7 +687,7 @@ class AnyElement(Parser):
 class Tag(Parser):
     """Match an element by it's tag name."""
 
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str):
         """
         :param name:
             Tag name to match.

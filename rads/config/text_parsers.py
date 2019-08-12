@@ -97,7 +97,7 @@ if TYPE_CHECKING:
     from typing_extensions import Protocol
 
     class _SupportsFromString(Protocol):
-        def __init__(self, string: str) -> None:
+        def __init__(self, string: str):
             ...
 
 

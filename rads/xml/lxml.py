@@ -49,7 +49,7 @@ class Element(base.Element):
     .. _lxml: https://lxml.de/
     """
 
-    def __init__(self, element: etree._Element, file: Optional[str] = None) -> None:
+    def __init__(self, element: etree._Element, file: Optional[str] = None):
         """
         :param:
             XML element from the lxml_ library.
