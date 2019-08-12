@@ -55,14 +55,18 @@ def parse(
         The root XML element.  If `rootless` is True this will be the added
         `<rootless>` element
     """
+    filename = filestring(source)
     if fixer:
         with ensure_open(source) as file:
-            return fromstring(
-                file.read(), parser=parser, fixer=fixer, file=filestring(source)
-            )
-    return xml.Element(
-        xml.parse(_fix_source(source), parser).getroot(), file=filestring(source)
-    )
+            return fromstring(file.read(), parser=parser, fixer=fixer, file=filename)
+    try:
+        return xml.Element(
+            xml.parse(_fix_source(source), parser).getroot(), file=filename
+        )
+    except xml.ParseError as err:
+        if filename:
+            raise xml.error_with_file(err, filename) from err
+        raise
 
 
 def fromstring(
