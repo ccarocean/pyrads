@@ -12,7 +12,7 @@ from .ast import ASTEvaluationError
 from .builders import PreConfigBuilder, SatelliteBuilder
 from .grammar import dataroot_grammar, pre_config_grammar, satellite_grammar
 from .tree import Config, PreConfig
-from .xml_parsers import GlobalParseFailure
+from .xml_parsers import TerminalXMLParseError
 
 __all__ = ["ConfigError", "config_files", "get_dataroot", "load_config"]
 
@@ -91,7 +91,7 @@ def _to_config_error(exc: Exception) -> ConfigError:
     """
     if isinstance(exc, ParseError):
         return ConfigError(exc.msg, exc.lineno, exc.filename, original=exc)
-    if isinstance(exc, (GlobalParseFailure, ASTEvaluationError)):
+    if isinstance(exc, (TerminalXMLParseError, ASTEvaluationError)):
         return ConfigError(exc.message, exc.line, exc.file, original=exc)
     return ConfigError(str(exc), original=exc)
 
@@ -230,7 +230,7 @@ def get_dataroot(
             try:
                 ast = dataroot_grammar()(parse(file, rootless=True).down())[0]
                 ast.eval(env, {})
-            except (ParseError, GlobalParseFailure, ASTEvaluationError) as err:
+            except (ParseError, TerminalXMLParseError, ASTEvaluationError) as err:
                 raise _to_config_error(err) from err
         try:
             dataroot_ = Path(os.path.expanduser(os.path.expandvars(env["dataroot"])))
@@ -295,7 +295,7 @@ def load_config(
         # construct ast
         try:
             ast = satellite_grammar()(parse(file, rootless=True).down())[0]
-        except (ParseError, GlobalParseFailure) as err:
+        except (ParseError, TerminalXMLParseError) as err:
             raise _to_config_error(err) from err
         # evaluate ast for each satellite
         for sat, builder in builders.items():
@@ -338,7 +338,7 @@ def _load_preconfig(
         try:
             ast = pre_config_grammar()(parse(file, rootless=True).down())[0]
             ast.eval(builder, {})
-        except (ParseError, GlobalParseFailure, ASTEvaluationError) as err:
+        except (ParseError, TerminalXMLParseError, ASTEvaluationError) as err:
             raise _to_config_error(err) from err
     builder.dataroot = dataroot_
     builder.config_files = list(xml_paths)

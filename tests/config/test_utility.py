@@ -2,7 +2,7 @@ import pytest  # type: ignore
 
 from rads.config.ast import append, delete, edit_append, merge, replace
 from rads.config.utility import parse_action
-from rads.config.xml_parsers import GlobalParseFailure
+from rads.config.xml_parsers import TerminalXMLParseError
 
 
 def test_parse_action_replace_is_default(mocker):
@@ -32,7 +32,7 @@ def test_parse_action_merge(mocker):
 
 def test_parse_action_invalid(mocker):
     m = mocker.Mock(attributes={"action": "add"})
-    with pytest.raises(GlobalParseFailure):
+    with pytest.raises(TerminalXMLParseError):
         parse_action(m)
 
 
@@ -43,5 +43,5 @@ def test_parse_action_edit_append(mocker):
 
 def test_parse_action_invalid_edit(mocker):
     m = mocker.Mock(attributes={"edit": "replace"})
-    with pytest.raises(GlobalParseFailure):
+    with pytest.raises(TerminalXMLParseError):
         parse_action(m)

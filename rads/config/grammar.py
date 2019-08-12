@@ -41,8 +41,8 @@ from .utility import (
     source_from_element,
 )
 from .xml_parsers import (
-    GlobalParseFailure,
     Parser,
+    TerminalXMLParseError,
     any,
     end,
     lazy,
@@ -78,7 +78,7 @@ def alias() -> Parser:
         A parser that consumes the <alias> XML tag and produces a
         :class:`rads.config.ast.Alias` AST node.
 
-    :raises rads.config.xml_parsers.GlobalParseFailure:
+    :raises rads.config.xml_parsers.TerminalXMLParseError:
         Raised by the returned parser if an <alias> tag is empty or does not
         contain a "name" attribute.
     """
@@ -146,7 +146,7 @@ def value(
         A parser that consumes the given XML `tag_` and produces a
         :class:`rads.config.ast.Assignment` AST node.
 
-    :raises rads.config.xml_parsers.GlobalParseFailure:
+    :raises rads.config.xml_parsers.TerminalXMLParseError:
         Raised by the returned parser if the consumed tag is empty or the given
         text `parser` produces a :class:`rads.config.text_parsers.TextParseError`.
     """
@@ -289,7 +289,7 @@ def satellites() -> Parser:
         set the 2 and 3 character IDs as well as the alternate names of a
         satellite.
 
-    :raises rads.config.xml_parsers.GlobalParseFailure:
+    :raises rads.config.xml_parsers.TerminalXMLParseError:
         Raised by the returned parser if the text of the <satellites> tag
         cannot be parsed.
     """
@@ -307,7 +307,7 @@ def satellites() -> Parser:
                 try:
                     id_, id3, *names = line.split()
                 except ValueError:
-                    raise GlobalParseFailure(
+                    raise TerminalXMLParseError(
                         id_source.file,
                         id_source.line,
                         f"missing 3 character ID for satellite '{id_}'",
@@ -326,7 +326,7 @@ def satellite_ids() -> Parser:
         :class:`rads.config.ast.Assignment` AST node which assigns to
         "satellites" a list of the 2 character satellite ID's.
 
-    :raises rads.config.xml_parsers.GlobalParseFailure:
+    :raises rads.config.xml_parsers.TerminalXMLParseError:
         Raised by the returned parser if any of the satellite ID's is not
         exactly 2 characters long or the text of the <satellites> cannot
         otherwise be parsed.
@@ -344,7 +344,7 @@ def satellite_ids() -> Parser:
                 id_source = Source(line=line_, file=element.file)
                 id_, *_ = line.split()
                 if len(id_) != 2:
-                    raise GlobalParseFailure(
+                    raise TerminalXMLParseError(
                         id_source.file,
                         id_source.line,
                         "satellite id must be exactly 2 characters, found " f"'{id_}'",
@@ -363,7 +363,7 @@ def subcycles() -> Parser:
         :class:`rads.config.ast.Assignment` AST node which assigns to
         "subcycles" a :class:`rads.config.tree.SubCycles` dataclass.
 
-    :raises rads.config.xml_parsers.GlobalParseFailure:
+    :raises rads.config.xml_parsers.TerminalXMLParseError:
         Raised by the returned parser if the value of the "start" attribute or
         any of the sub-cycle lengths are not integers.
     """
@@ -405,17 +405,17 @@ def block(
         The XML parser to use for the internals of the block.
     :param error_msg:
         Override the error message used when the block raises a
-        :class:`rads.config.xml_parsers.LocalParseFailure`.
+        :class:`rads.config.xml_parsers.XMLParseError`.
 
     :return:
         A parser that consumes the contents of an XML block between a set of
         tags and produces a :class:`rads.config.ast.Statement` usually a
         :class:`rads.config.ast.CompoundStatement.`.
 
-    :raises rads.config.xml_parsers.GlobalParseFailure:
+    :raises rads.config.xml_parsers.TerminalXMLParseError:
         Raised by the returned parser if the internal `parser` produces a
-        :class:`rads.config.xml_parsers.LocalParseFailure`.
-    :raises rads.config.xml_parsers.GlobalParseFailure:
+        :class:`rads.config.xml_parsers.XMLParseError`.
+    :raises rads.config.xml_parsers.TerminalXMLParseError:
         Raise by the returned parser if not all of the tags within the block
         are consumed.
     """
@@ -510,7 +510,7 @@ def variable_override(
         :class:`rads.config.ast.Variable` AST node which overrides the given
         `field`.
 
-    :raises rads.config.xml_parsers.GlobalParseFailure:
+    :raises rads.config.xml_parsers.TerminalXMLParseError:
         Raised by the returned parser if the consumed tag is empty or the given
         text `parser` produces a :class:`rads.config.text_parsers.TextParseError`.
     """

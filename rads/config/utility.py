@@ -18,7 +18,7 @@ from .ast import (
     merge,
     replace,
 )
-from .xml_parsers import GlobalParseFailure, LocalParseFailure, Parser
+from .xml_parsers import Parser, TerminalXMLParseError, XMLParseError
 
 __all__ = [
     "error_at",
@@ -30,38 +30,38 @@ __all__ = [
 ]
 
 
-def error_at(element: Element) -> Callable[[str], GlobalParseFailure]:
-    """Make function to generate `GlobalParseFailure` from XML element.
+def error_at(element: Element) -> Callable[[str], TerminalXMLParseError]:
+    """Make function to generate `TerminalXMLParseError` from XML element.
 
     :param element:
         The XML element to generate the failure at.
 
     :return:
         A function that takes an error message and returns a
-        :class:`rads.config.xml_parsers.GlobalParseFailure` at the given XML
+        :class:`rads.config.xml_parsers.TerminalXMLParseError` at the given XML
         `element`.
     """
 
-    def error(message: str) -> GlobalParseFailure:
-        return GlobalParseFailure(element.file, element.opening_line, message)
+    def error(message: str) -> TerminalXMLParseError:
+        return TerminalXMLParseError(element.file, element.opening_line, message)
 
     return error
 
 
-def continue_from(element: Element) -> Callable[[str], LocalParseFailure]:
-    """Make function to generate `LocalParseFailure` from XML element.
+def continue_from(element: Element) -> Callable[[str], XMLParseError]:
+    """Make function to generate `XMLParseError` from XML element.
 
     :param element:
         The XML element to generate the failure at.
 
     :return:
         A function that takes an error message and returns a
-        :class:`rads.config.xml_parsers.LocalParseFailure` at the given XML
+        :class:`rads.config.xml_parsers.XMLParseError` at the given XML
         `element`.
     """
 
-    def error(message: str) -> LocalParseFailure:
-        return LocalParseFailure(element.file, element.opening_line, message)
+    def error(message: str) -> XMLParseError:
+        return XMLParseError(element.file, element.opening_line, message)
 
     return error
 
