@@ -39,6 +39,7 @@ class Element(base.Element):
     def __init__(
         self,
         element: etree.Element,
+        *,
         index: Optional[int] = None,
         parent: Optional["Element"] = None,
         file: Optional[str] = None,
@@ -74,7 +75,7 @@ class Element(base.Element):
         new_index = self._index + 1
         if new_index >= len(siblings):
             raise StopIteration()
-        return Element(siblings[new_index], new_index, self._parent, self._file)
+        return Element(siblings[new_index], index=new_index, parent=self._parent, file=self._file)
 
     def prev(self) -> "Element":  # noqa: D102
         if self._parent is None or self._index is None:
@@ -83,7 +84,7 @@ class Element(base.Element):
         new_index = self._index - 1
         if new_index < 0:
             raise StopIteration()
-        return Element(siblings[new_index], new_index, self._parent, self._file)
+        return Element(siblings[new_index], index=new_index, parent=self._parent, file=self._file)
 
     def up(self) -> "Element":  # noqa: D102
         if self._parent is None:
@@ -93,7 +94,7 @@ class Element(base.Element):
     def down(self) -> "Element":  # noqa: D102
         try:
             element = list(self._element)[0]
-            return Element(element, 0, self, self.file)
+            return Element(element, index=0, parent=self, file=self.file)
         except IndexError:
             raise StopIteration()
 
