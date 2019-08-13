@@ -14,7 +14,7 @@ except ImportError:
     #  fixed.
     from .etree import Element, ParseError  # type: ignore
 
-from .utility import fromstring, fromstringlist, parse, rootless_fixer
+from .utility import fromstring, fromstringlist, parse, rads_fixer, rootless_fixer
 
 __all__ = [
     "ParseError",
@@ -23,4 +23,5 @@ __all__ = [
     "fromstring",
     "fromstringlist",
     "rootless_fixer",
+    "rads_fixer",
 ]

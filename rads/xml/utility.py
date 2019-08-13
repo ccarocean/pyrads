@@ -19,6 +19,7 @@ __all__ = [
     "parse",
     "fromstring",
     "fromstringlist",
+    "rads_fixer",
     "rootless_fixer",
     "strip_blanklines",
     "strip_comments",
@@ -137,6 +138,34 @@ def fromstringlist(
         if file:
             raise xml.error_with_file(err, file) from err
         raise
+
+
+def rads_fixer(text: str) -> str:
+    """Fix XML problems with the upstream RADS XML configuration.
+
+    This fixer is for problems that will not be fixed upstream or for which the
+    fix has been delayed.  It is primary for making up the difference between
+    the official RADS parser which is very lenient and the PyRADS parser which
+    is very strict.
+
+    Currently, this fixes the following bugs with the RADS config.
+
+    * The RADS XML file does not have a root as dictated by the XML 1.0
+      standard.  This is fixed by adding <__ROOTLESS__> tags around the entire
+      file.  This is the only fix that is considered part of the RADS standard
+      (that is RADS lies about it being XML 1.0).
+    * The RADS MXL file has some instances of `int3` used in the <compress>
+      tag.  This is an invalid type (there is no 3 byte integer) and in the
+      official RADS implementation all invalid types default to `dble`
+      (double).  However, The intended type here is `int4`.  This fix corrects
+      this.
+
+    :param text:
+        RADS XML string to fix.
+    :return:
+        Repaired RADS XML string.
+    """
+    return rootless_fixer(text).replace("int3", "int4")
 
 
 def rootless_fixer(text: str) -> str:

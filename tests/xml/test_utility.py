@@ -8,6 +8,7 @@ from rads.xml.utility import (
     fromstring,
     fromstringlist,
     parse,
+    rads_fixer,
     rootless_fixer,
     strip_blanklines,
     strip_comments,
@@ -89,6 +90,27 @@ def test_rootless_fixer():
         "<__ROOTLESS__>",
         "<a>Hello World</a>",
         "<a>Goodbye</a>",
+        "</__ROOTLESS__>",
+    ]
+
+
+def test_rads_fixer():
+    xml = """\
+    <?xml version="1.0"?>
+    <!--This is a RADS XML file.-->
+    <var name="range_s">
+        <compress>int3 1e-4</compress>
+    </var>
+    <satellite>ENVISAT1</satellite>
+    """
+    assert rads_fixer(dedent(xml)).splitlines() == [
+        '<?xml version="1.0"?>',
+        "<__ROOTLESS__>",
+        "<!--This is a RADS XML file.-->",
+        '<var name="range_s">',
+        "    <compress>int4 1e-4</compress>",
+        "</var>",
+        "<satellite>ENVISAT1</satellite>",
         "</__ROOTLESS__>",
     ]
 
