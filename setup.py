@@ -58,18 +58,21 @@ class Test(Command):
 
     def initialize_options(self):
         self.coverage = False
-        pass
 
     def finalize_options(self):
+        self.verbose = int(self.verbose)
         self.coverage = bool(self.coverage)
 
     def run(self):
+        pytest_args = ["pytest"]
+        if self.verbose >= 1:
+            pytest_args.append("-" + ("v" * self.verbose))
+        if self.coverage:
+            pytest_args.extend(["--cov", _PACKAGE, "--cov-branch"])
         try:
+            run(pytest_args, check=True)
             if self.coverage:
-                run(["pytest", "--cov", _PACKAGE, "--cov-branch"], check=True)
                 run(["coverage", "html"], check=True)
-            else:
-                run(["pytest"], check=True)
         except CalledProcessError as err:
             print("\n💀 Testing failed 💀")
             sys.exit(err.returncode)
