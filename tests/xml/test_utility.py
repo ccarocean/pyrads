@@ -81,19 +81,6 @@ def test_strip_blanklines():
     ]
 
 
-def test_rootless_fixer():
-    xml = """\
-    <a>Hello World</a>
-    <a>Goodbye</a>
-    """
-    assert rootless_fixer(dedent(xml)).splitlines() == [
-        "<__ROOTLESS__>",
-        "<a>Hello World</a>",
-        "<a>Goodbye</a>",
-        "</__ROOTLESS__>",
-    ]
-
-
 def test_rads_fixer():
     xml = """\
     <?xml version="1.0"?>
@@ -115,12 +102,40 @@ def test_rads_fixer():
     ]
 
 
+def test_rootless_fixer():
+    xml = """\
+    <a>Hello World</a>
+    <a>Goodbye</a>
+    """
+    assert rootless_fixer(dedent(xml)).splitlines() == [
+        "<__ROOTLESS__>",
+        "<a>Hello World</a>",
+        "<a>Goodbye</a>",
+        "</__ROOTLESS__>",
+    ]
+
+
 def test_rootless_fixer_with_empty_file():
     xml = """\
     <?xml version="1.0"?>
     <!-- This is an empty rootless XML file-->
     """
-    assert rootless_fixer(dedent(xml)).splitlines() == dedent(xml).splitlines()
+    assert rootless_fixer(dedent(xml)).splitlines() == [
+        '<?xml version="1.0"?>',
+        "<__ROOTLESS__>",
+        "<!-- This is an empty rootless XML file-->",
+        "</__ROOTLESS__>",
+    ]
+    assert rootless_fixer(dedent(xml), preserve_empty=False).splitlines() == [
+        '<?xml version="1.0"?>',
+        "<__ROOTLESS__>",
+        "<!-- This is an empty rootless XML file-->",
+        "</__ROOTLESS__>",
+    ]
+    assert (
+        rootless_fixer(dedent(xml), preserve_empty=True).splitlines()
+        == dedent(xml).splitlines()
+    )
 
 
 # NOTE: A full path file is used below since the API is allowed to expand to a

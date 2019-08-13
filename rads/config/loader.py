@@ -232,6 +232,8 @@ def get_dataroot(
                 ast.eval(env, {})
             except (ParseError, TerminalXMLParseError, ASTEvaluationError) as err:
                 raise _to_config_error(err) from err
+            except StopIteration:
+                pass
         try:
             dataroot_ = Path(os.path.expanduser(os.path.expandvars(env["dataroot"])))
         except KeyError:
@@ -297,6 +299,8 @@ def load_config(
             ast = satellite_grammar()(parse(file, fixer=rads_fixer).down())[0]
         except (ParseError, TerminalXMLParseError) as err:
             raise _to_config_error(err) from err
+        except StopIteration:
+            pass
         # evaluate ast for each satellite
         for sat, builder in builders.items():
             try:
@@ -340,6 +344,8 @@ def _load_preconfig(
             ast.eval(builder, {})
         except (ParseError, TerminalXMLParseError, ASTEvaluationError) as err:
             raise _to_config_error(err) from err
+        except StopIteration:
+            pass
     builder.dataroot = dataroot_
     builder.config_files = list(xml_paths)
     try:
