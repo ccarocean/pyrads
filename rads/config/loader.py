@@ -7,7 +7,7 @@ from appdirs import AppDirs, system  # type: ignore
 from dataclass_builder import MissingFieldError
 
 from ..typing import PathLike
-from ..xml import ParseError, parse
+from ..xml import ParseError, parse, rads_fixer
 from .ast import ASTEvaluationError
 from .builders import PreConfigBuilder, SatelliteBuilder
 from .grammar import dataroot_grammar, pre_config_grammar, satellite_grammar
@@ -228,7 +228,7 @@ def get_dataroot(
         env: Dict[str, str] = {}
         for file in config_paths:
             try:
-                ast = dataroot_grammar()(parse(file, rootless=True).down())[0]
+                ast = dataroot_grammar()(parse(file, fixer=rads_fixer).down())[0]
                 ast.eval(env, {})
             except (ParseError, TerminalXMLParseError, ASTEvaluationError) as err:
                 raise _to_config_error(err) from err
@@ -294,7 +294,7 @@ def load_config(
     for file in pre_config.config_files:
         # construct ast
         try:
-            ast = satellite_grammar()(parse(file, rootless=True).down())[0]
+            ast = satellite_grammar()(parse(file, fixer=rads_fixer).down())[0]
         except (ParseError, TerminalXMLParseError) as err:
             raise _to_config_error(err) from err
         # evaluate ast for each satellite
@@ -336,7 +336,7 @@ def _load_preconfig(
     builder = PreConfigBuilder()
     for file in xml_paths:
         try:
-            ast = pre_config_grammar()(parse(file, rootless=True).down())[0]
+            ast = pre_config_grammar()(parse(file, fixer=rads_fixer).down())[0]
             ast.eval(builder, {})
         except (ParseError, TerminalXMLParseError, ASTEvaluationError) as err:
             raise _to_config_error(err) from err
