@@ -21,6 +21,7 @@ __all__ = [
     "fromstringlist",
     "rads_fixer",
     "rootless_fixer",
+    "is_empty",
     "strip_blanklines",
     "strip_comments",
     "strip_processing_instructions",
@@ -165,29 +166,35 @@ def rads_fixer(text: str) -> str:
     :return:
         Repaired RADS XML string.
     """
-    return rootless_fixer(text).replace("int3", "int4")
+    return rootless_fixer(text, preserve_empty=False).replace("int3", "int4")
 
 
-def rootless_fixer(text: str) -> str:
+def rootless_fixer(text: str, preserve_empty: bool = False) -> str:
     """Fix rootless XML files.
 
     Give this as the `fixer` argument in :func:`parse`, :func:`fromstring`, or
     :func:`fromstringlist` to load XML files that do not have a root tag.  This
     is done by adding a <__ROOTLESS__> block around the entire document.
 
-    .. note::
+    .. note:
 
-        If the file does not contain any XML tags (only processing instructions
-        and comments) the original text will be returned unchanged in an effort
-        to preserve error handling.
+        When `preserve_empty` is False this can also be used to detect empty
+        XML files by first loading the file with this fixer and then using the
+        :func:`rads.xml.Element.down()` method. If the original file was empty
+        this will raise :class:`StopIteration`.
 
     :param text:
         XML text to wrap <__ROOTLESS__> tags around.
+    :param preserve_empty:
+        Set to False to skip adding <__ROOTLESS__> tags to an empty XML file.
+        See :func:`is_empty` for the definition of *empty*.  In order to set
+        this :func:`functools.partial` should be used.
+
     :return:
         The given `text` with <__ROOTLESS__> tags added (after beginning
         processing instructions).
     """
-    if not strip_blanklines(strip_comments(strip_processing_instructions(text))):
+    if preserve_empty and is_empty(text):
         return text
 
     def is_prolog(text: str) -> bool:
@@ -197,6 +204,22 @@ def rootless_fixer(text: str) -> str:
     prolog = takewhile(is_prolog, it1)
     body = dropwhile(is_prolog, it2)
     return "\n".join(chain(prolog, ["<__ROOTLESS__>"], body, ["</__ROOTLESS__>"]))
+
+
+def is_empty(text: str) -> bool:
+    """Determine if XML string is empty.
+    The XML string is considered empty if it only contains processing
+    instructions and comments.
+    :param text:
+        XML text to check for being empty.
+
+    :return:
+        True if the given XML `text` is empty.
+    """
+    return (
+        strip_blanklines(strip_comments(strip_processing_instructions(text))).strip()
+        == ""
+    )
 
 
 def strip_comments(text: str) -> str:
@@ -241,6 +264,7 @@ def strip_blanklines(text: str) -> str:
 
     :param text:
         String to remove blank lines from.
+
     :return:
         String without blank lines.
     """
