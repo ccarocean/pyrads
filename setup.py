@@ -239,6 +239,11 @@ setup(
     license="MIT",
     url="https://github.com/ccarocean/pyrads",
     packages=find_packages(),
+    package_data={
+        "rads": ["py.typed"],
+        "rads.config": ["py.typed"],
+        "rads.xml": ["py.typed"],
+    },
     python_requires=">=3.6",
     install_requires=install_requires,
     extras_require={
