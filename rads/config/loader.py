@@ -1,20 +1,21 @@
 """PyRADS XML file loader functions."""
 import os
+from functools import wraps
 from pathlib import Path
-from typing import Dict, Iterable, Optional
+from typing import Any, Callable, Dict, Iterable, Mapping, Optional, TypeVar, cast
 
 from appdirs import AppDirs, system  # type: ignore
 from dataclass_builder import MissingFieldError
 
 from ..typing import PathLike
 from ..xml import ParseError, parse, rads_fixer
-from .ast import ASTEvaluationError
+from .ast import ASTEvaluationError, NullStatement, Statement
 from .builders import PreConfigBuilder, SatelliteBuilder
 from .grammar import dataroot_grammar, pre_config_grammar, satellite_grammar
 from .tree import Config, PreConfig
-from .xml_parsers import TerminalXMLParseError
+from .xml_parsers import Parser, TerminalXMLParseError
 
-__all__ = ["ConfigError", "config_files", "get_dataroot", "load_config"]
+__all__ = ["ConfigError", "config_files", "get_dataroot", "load_config", "xml_loader"]
 
 _APPNAME = "pyrads"
 _APPDIRS = AppDirs(_APPNAME, appauthor=False, roaming=False)
@@ -224,20 +225,12 @@ def get_dataroot(
             config_paths = [
                 Path(os.path.expanduser(os.path.expandvars(f))) for f in xml_files
             ]
-        config_paths = [p for p in config_paths if p.is_file()]
-        env: Dict[str, str] = {}
-        for file in config_paths:
-            try:
-                ast = dataroot_grammar()(parse(file, fixer=rads_fixer).down())[0]
-                ast.eval(env, {})
-            except (ParseError, TerminalXMLParseError, ASTEvaluationError) as err:
-                raise _to_config_error(err) from err
-            except StopIteration:
-                pass
-        try:
-            dataroot_ = Path(os.path.expanduser(os.path.expandvars(env["dataroot"])))
-        except KeyError:
+        dataroot_maybe = None
+        for file in [p for p in config_paths if p.is_file()]:
+            dataroot_maybe = _load_dataroot(file, dataroot)
+        if dataroot_maybe is None:
             raise RuntimeError("cannot find RADS data directory")
+        dataroot_ = Path(os.path.expanduser(os.path.expandvars(dataroot_maybe)))
 
     # verify the dataroot directory
     if dataroot_.is_dir() and (dataroot_ / "conf" / "rads.xml").is_file():
@@ -286,27 +279,15 @@ def load_config(
     )
 
     # initialize configuration object and satellite configuration builders
-    builders = {
+    builders: Mapping[str, Any] = {
         sat: SatelliteBuilder()
         for sat in pre_config.satellites
         if sat not in pre_config.blacklist
     }
 
-    # parse and evaluate each configuration file for each satellite
+    # parse and evaluate each configuration file
     for file in pre_config.config_files:
-        # construct ast
-        try:
-            ast = satellite_grammar()(parse(file, fixer=rads_fixer).down())[0]
-        except (ParseError, TerminalXMLParseError) as err:
-            raise _to_config_error(err) from err
-        except StopIteration:
-            pass
-        # evaluate ast for each satellite
-        for sat, builder in builders.items():
-            try:
-                ast.eval(builder, {"id": sat})
-            except ASTEvaluationError as err:
-                raise _to_config_error(err) from err
+        builders = _load_satellites(file, builders)
 
     # build each satellite configuration object
     satellites = {}
@@ -317,6 +298,76 @@ def load_config(
             raise ConfigError(str(err)) from err
 
     return Config(pre_config, satellites)
+
+
+T = TypeVar("T")
+
+
+def xml_loader(grammar: Parser) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    r"""Decorate a function taking an AST to allow it to take a file path.
+
+    This decorates a function which takes an AST statement (and any extra
+    arguments) and replaces the first argument (the AST statement) with a file
+    path.  It also adds error handling for loading, parsing, and evaluation (if
+    the decorated function attempts to evaluate the AST statement).  It does
+    this by converting all errors to :class:`ConfigError`\ s.
+
+    If the file is empty the decorated function will get a
+    :class:`rads.config.ast.NullStatement`.
+
+    :param grammar:
+        The grammar to parse the file with.
+
+    :return:
+        The decorator.
+
+    :raises ConfigError:
+        By the decorated function if the given file cannot be loaded, parsed,
+        or evaluated.
+    """
+
+    def _decorator(func: Callable[..., T]) -> Callable[..., T]:
+        @wraps(func)
+        def _loader(source: PathLike, *args: Any, **kwargs: Any) -> T:
+            try:
+                return func(_load_ast(source, grammar), *args, **kwargs)
+            except ASTEvaluationError as err:
+                raise _to_config_error(err) from err
+
+        return _loader
+
+    return _decorator
+
+
+def _load_ast(source: PathLike, grammar: Parser) -> Statement:
+    """Load AST from a file.
+
+    :param source:
+        Path of the file to load the AST from.
+    :param grammar:
+        Grammar used to generate the AST.
+
+    :return:
+        The resulting AST.  This will be :class:`rads.config.ast.NullStatement`
+        if the file is empty.
+
+    :raises ConfigError:
+        If there is any problem reading the given XML file or in parsing it
+        with the given `grammar`.
+    """
+    try:
+        return cast(Statement, grammar(parse(source, fixer=rads_fixer).down())[0])
+    except StopIteration:
+        return NullStatement()
+    except (ParseError, TerminalXMLParseError) as err:
+        raise _to_config_error(err) from err
+
+
+@xml_loader(dataroot_grammar())
+def _load_dataroot(ast: Statement, dataroot: Optional[str] = None) -> Optional[str]:
+    env: Dict[str, str] = {}
+    ast.eval(env, {})
+    return env.get("dataroot", dataroot)
 
 
 def _load_preconfig(
@@ -339,13 +390,7 @@ def _load_preconfig(
     # load preconfig
     builder = PreConfigBuilder()
     for file in xml_paths:
-        try:
-            ast = pre_config_grammar()(parse(file, fixer=rads_fixer).down())[0]
-            ast.eval(builder, {})
-        except (ParseError, TerminalXMLParseError, ASTEvaluationError) as err:
-            raise _to_config_error(err) from err
-        except StopIteration:
-            pass
+        builder = _load_preconfig2(file, builder)
     builder.dataroot = dataroot_
     builder.config_files = list(xml_paths)
     try:
@@ -367,6 +412,19 @@ def _load_preconfig(
     )
 
     return pre_config
+
+
+@xml_loader(pre_config_grammar())
+def _load_preconfig2(ast: Statement, builder: T) -> T:
+    ast.eval(builder, {})
+    return builder
+
+
+@xml_loader(satellite_grammar())
+def _load_satellites(ast: Statement, builders: Mapping[str, T]) -> Mapping[str, T]:
+    for sat, builder in builders.items():
+        ast.eval(builder, {"id": sat})
+    return builders
 
 
 # The paths below are in order of config file loading.
