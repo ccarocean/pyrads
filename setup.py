@@ -247,7 +247,7 @@ setup(
         "tests": tests_require,
         "dev": docs_require + tests_require + ["black", "isort", "twine"],
     },
-    tests_require=["pytest", "pytest-mock"],
+    tests_require=tests_require,
     classifiers=[
         "Development Status :: 1 - Planning",
         "Intended Audience :: Science/Research",
