@@ -93,87 +93,41 @@ documentation.
 Development
 -----------
 
-The simplest way to get started working on PyRADS is:
+invoke_
+^^^^^^^
 
-.. code-block:: bash
-
-    git pull git@github.com:ccarocean/pyrads.git
-    cd pyrads
-    python3 -m venv --prompt PyRADS .venv
-    source .venv/bin/activate
-    pip install --upgrade pip setuptools wheel
-    pip install -e ".[dev]"
-
-*Naturally, you should fork the repository first.*
-
-If you are working on a system where libxml2_ is installed you may wish to replace the last command with:
-
-.. code-block:: bash
-
-    pip install -e ".[lxml,dev]"
-
-This will provide for faster XML parsing and more importantly better error messages.
-
-setup.py commands
-^^^^^^^^^^^^^^^^^
-
-PyRADS uses custom :code:`setup.py` commands to ease development.
-
-To run all quality checks simply use:
-
-.. code-block:: bash
-
-    python setup.py quality
-
-To run isort_ and black_ before the quality checks (recommended) use
-
-.. code-block:: bash
-
-    python setup.py quality --format
-
-To run all tests:
-
-.. code-block:: bash
-
-    python setup.py test
-
-or with coverage reports:
-
-.. code-block:: bash
-
-    python setup.py test --coverage
-
-To build source and wheel distributions (and check them):
+PyRADS uses invoke_ to make common development tasks easier.  For example the simplest way to get started working on PyRADS is to fork and clone the repository and then from within the main project directory:
 
 .. code-block::
 
-    python setup.py dist
+    pip install invoke && invoke develop
 
-To build the HTML documentation:
+This will install all development requirements with :code:`pip` and thus it is recommended to do this from a :code:`virtualenv`.
 
-.. code-block::
+If you are working on a system where libxml2_ is installed you may wish to also install lxml_ to provide faster XML parsing, but more importantly better error messages.  With lxml_, configuration parsing errors will be identified by line number.
 
-    python setup.py docs
-    # located at docs/_build/html/index.html
-
-or the PDF documentation (requires XeTeX_, xindy_, and latexmk_):
+To get the full list tasks that can be run by invoke_:
 
 .. code-block::
 
-    python setup.py docs --pdf
-    # located at docs/_build/latex/PyRADS.pdf
+    invoke -l
 
-Finally, to cleanup temporary files:
+For example, to run the formatters (isort_ and black_), static checkers, and
+all tests (with coverage report):
 
 .. code-block::
 
-    python setup.py cleanup
+    invoke format check test --coverage
+
+*NOTE: This should be ran before making any commits.*
+
+If on a non UNIX environment some of the tasks may fail.  If this happens you can use the :code:`--dry` flag to print out the commands that would be ran and then adjust accordingly.
 
 
-tox
-^^^
+tox_
+^^^^
 
-While the above :code:`setup.py` commands are relatively quick and are good for development they are insufficient to ensure PyRADS is working properly across all options (lxml or not) and all supported Python versions.  For this a tox configuration is provided.  To run the full test suite simply run:
+While the above invoke_ tasks are relatively quick and are good for development they are insufficient to ensure PyRADS is working properly across all options (lxml_ or not) and all supported Python versions.  For this a tox_ configuration is provided.  To run the full test suite simply run:
 
 .. code-block::
 
@@ -187,14 +141,17 @@ Or if you have a recent version of :code:`tox` you can speed up the process with
 
 The :code:`doc-pdf` environment will fail if XeTeX_, xindy_, and latexmk_.  This is usually fine.
 
-If all tests run by tox succeed the TravisCI build should succeed as well.
+If all tests run by tox succeed (except for :code:`doc-pdf`) the TravisCI build should succeed as well.
 
 
 .. _Radar Altimeter Database System: https://github.com/remkos/rads
 .. _RADS User Manual: https://github.com/remkos/rads/blob/master/doc/manuals/rads4_user_manual.pdf
 .. _libxml2: http://www.xmlsoft.org/
+.. _lxml: https://lxml.de/
+.. _invoke: http://www.pyinvoke.org/
 .. _isort: https://github.com/timothycrosley/isort
 .. _black: https://black.readthedocs.io/en/stable/
+.. _tox: https://tox.readthedocs.io/en/latest/
 .. _XeTeX: http://xetex.sourceforge.net/
 .. _xindy: http://xindy.sourceforge.net/
 .. _latexmk: https://mg.readthedocs.io/latexmk.html
