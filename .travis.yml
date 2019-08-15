@@ -15,7 +15,7 @@ matrix:
     - python: 3.7
       env: TOXENV=py37-lxml
     - python: 3.7
-      env: TOXENV=quality
+      env: TOXENV=checks
     - python: 3.7
       env: TOXENV=docs-html
     - python: 3.7
