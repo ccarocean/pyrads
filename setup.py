@@ -20,8 +20,17 @@ def read(filename):
     return text
 
 
+# These are separated in order to always use the minimum packages for each.
+# This reduces the possibility of missing errors due to having a package
+# installed that will not be installed when deployed.
+docs_require = ["sphinx>=1.7", "sphinxcontrib-apidoc"]
+checks_require = ["flake8>=3.7.7", "mypy", "pydocstyle", "typing-extensions"]
+tests_require = ["pytest", "pytest-cov", "pytest-mock"]
+dev_requires = ["black", "isort", "twine"]
+
 if os.environ.get("READTHEDOCS") == "True":
     install_requires = ["dataclass_builder", "dataclasses;python_version=='3.6'"]
+    # install_requires += docs_require
 else:
     install_requires = [
         "appdirs",
@@ -37,18 +46,6 @@ else:
         "wrapt",
         "yzal",
     ]
-
-docs_require = ["sphinx>=1.7", "sphinxcontrib-apidoc"]
-tests_require = [
-    "flake8>=3.7.7",
-    "mypy",
-    "pydocstyle",
-    "pytest",
-    "pytest-cov",
-    "pytest-mock",
-    "pyflakes>=2.1.0",
-    "typing-extensions",
-]
 
 setup(
     name="rads",
@@ -67,12 +64,14 @@ setup(
         "rads.xml": ["py.typed"],
     },
     python_requires=">=3.6",
+    setup_requires=["pytest-runner"],
     install_requires=install_requires,
     extras_require={
         "lxml": ["lxml"],  # use libxml2 to read configuration files
-        "docs": docs_require,
+        "checks": checks_require,
         "tests": tests_require,
-        "dev": docs_require + tests_require + ["black", "isort", "twine"],
+        "docs": docs_require,
+        "dev": dev_requires + checks_require + tests_require + docs_require,
     },
     tests_require=tests_require,
     classifiers=[

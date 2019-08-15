@@ -121,6 +121,8 @@ all tests (with coverage report):
 
 *NOTE: This should be ran before making any commits.*
 
+The classic :code:`python setup.py test` is supported as well but only runs the unit tests.
+
 If on a non UNIX environment some of the tasks may fail.  If this happens you can use the :code:`--dry` flag to print out the commands that would be ran and then adjust accordingly.
 
 
