@@ -7,6 +7,7 @@ from typing import Any, Callable, Dict, Iterable, Mapping, Optional, TypeVar, ca
 from appdirs import AppDirs, system  # type: ignore
 from dataclass_builder import MissingFieldError
 
+from ..exceptions import ConfigError, InvalidDataroot
 from ..typing import PathLike
 from ..xml import ParseError, parse, rads_fixer
 from .ast import ASTEvaluationError, NullStatement, Statement
@@ -15,7 +16,7 @@ from .grammar import dataroot_grammar, pre_config_grammar, satellite_grammar
 from .tree import Config, PreConfig
 from .xml_parsers import Parser, TerminalXMLParseError
 
-__all__ = ["ConfigError", "config_files", "get_dataroot", "load_config", "xml_loader"]
+__all__ = ["config_files", "get_dataroot", "load_config", "xml_loader"]
 
 _APPNAME = "pyrads"
 _APPDIRS = AppDirs(_APPNAME, appauthor=False, roaming=False)
@@ -29,53 +30,6 @@ _APPDIRS = AppDirs(_APPNAME, appauthor=False, roaming=False)
 # load all satellites instead of just one and therefore it will break
 # for incomplete configurations.
 _BLACKLISTED_SATELLITES = ["g3", "ss"]
-
-
-class ConfigError(Exception):
-    """Exception raised when there is a problem loading the configuration file.
-
-    It is usually raised after another more specific exception has been caught.
-    """
-
-    message: str
-    """Error message."""
-    line: Optional[int] = None
-    """Line that cause the exception, if known (None otherwise)."""
-    file: Optional[str] = None
-    """File that caused the exception, if known (None otherwise)."""
-    original_exception: Optional[Exception] = None
-    """Optionally the original exception (None otherwise)."""
-
-    def __init__(
-        self,
-        message: str,
-        line: Optional[int] = None,
-        file: Optional[str] = None,
-        *,
-        original: Optional[Exception] = None,
-    ):
-        """
-        :param message:
-            Error message.
-        :param line:
-            Line that cause the exception, if known.
-        :param file:
-            File that caused the exception, if known.
-        :param original:
-            Optionally the original exception.
-        """
-        if line is not None:
-            self.line = line
-        if file:
-            self.file = file
-        if original is not None:
-            self.original_exception = original
-        if file or line:
-            file_ = self.file if self.file else ""
-            line_ = self.line if self.line is not None else ""
-            super().__init__(f"{file_}:{line_}: {message}")
-        else:
-            super().__init__(message)
 
 
 def _to_config_error(exc: Exception) -> ConfigError:
@@ -98,7 +52,7 @@ def _to_config_error(exc: Exception) -> ConfigError:
 
 
 def config_files(
-    dataroot_path: Optional[PathLike] = None, rads: bool = True, pyrads: bool = True
+    dataroot: Optional[PathLike] = None, rads: bool = True, pyrads: bool = True
 ) -> Iterable[Path]:
     """Get a list of the paths that configuration files will be searched for.
 
@@ -119,7 +73,7 @@ def config_files(
 
         load_config(config_files=(xml_files() + '/path/to/custom/config.xml'))
 
-    :param dataroot_path:
+    :param dataroot:
         Optionally specify the path to the RADS dataroot.  If not given
         :func:`get_dataroot` will be used with default arguments to retrieve
         the RADS dataroot.
@@ -151,7 +105,9 @@ def config_files(
     """
     files = []
     if rads:
-        files.append(_rads_xml(get_dataroot(dataroot_path)))
+        dataroot = get_dataroot(dataroot)  # verify or find dataroot
+        if dataroot:
+            files.append(_rads_xml(dataroot))
     if pyrads:
         files.append(_site_config())
     if rads:
@@ -169,7 +125,8 @@ def get_dataroot(
     dataroot: Optional[PathLike] = None,
     *,
     xml_files: Optional[Iterable[PathLike]] = None,
-) -> Path:
+    require: bool = False,
+) -> Optional[Path]:
     """Get the RADS dataroot.
 
     The *dataroot* or RADSDATAROOT as it is referred to in the official RADS
@@ -205,13 +162,16 @@ def get_dataroot(
             The ``<dataroot>`` tag is a PyRADS only tag.  Adding it to any
             official RADS configuration file will result in an error if the
             official RADS implementation is used.
+    :param require:
+        If True a :class:`rads.exceptions.InvalidDataroot` error will be raised
+        instead of returning None if the *dataroot* cannot be found.
 
     :return:
-        The path to the RADS *dataroot*.
+        The path to the RADS *dataroot* or None if it cannot be found.
 
-    :raises RuntimeError:
-        If the *dataroot* cannot be found or the given/configured *dataroot* is
-        not a valid RADS *dataroot*.
+    :raises InvalidDataroot:
+        If the *dataroot* the given/configured *dataroot* is not a valid RADS
+        *dataroot*.
     """
     # find the dataroot
     if dataroot is not None:
@@ -225,17 +185,19 @@ def get_dataroot(
             config_paths = [
                 Path(os.path.expanduser(os.path.expandvars(f))) for f in xml_files
             ]
-        dataroot_maybe = None
+        dataroot_value: Optional[str] = None
         for file in [p for p in config_paths if p.is_file()]:
-            dataroot_maybe = _load_dataroot(file, dataroot)
-        if dataroot_maybe is None:
-            raise RuntimeError("cannot find RADS data directory")
-        dataroot_ = Path(os.path.expanduser(os.path.expandvars(dataroot_maybe)))
+            dataroot_value = _load_dataroot(file, dataroot_value)
+        if dataroot_value is None:
+            if require:
+                raise InvalidDataroot("cannot find RADS data directory")
+            return None
+        dataroot_ = Path(os.path.expanduser(os.path.expandvars(dataroot_value)))
 
     # verify the dataroot directory
     if dataroot_.is_dir() and (dataroot_ / "conf" / "rads.xml").is_file():
         return dataroot_
-    raise RuntimeError(f"'{str(dataroot_)}' is not a RADS data directory")
+    raise InvalidDataroot(f"'{str(dataroot_)}' is not a RADS data directory")
 
 
 def load_config(
@@ -382,9 +344,9 @@ def _load_preconfig(
 
     """
     # get dataroot and xml paths
-    dataroot_ = get_dataroot(dataroot, xml_files=xml_files)
+    dataroot_ = get_dataroot(dataroot, xml_files=xml_files, require=True)
     if xml_files is None:
-        xml_files = config_files(dataroot, rads=True, pyrads=True)
+        xml_files = config_files(dataroot_, rads=True, pyrads=True)
     xml_paths = [p for p in [Path(f) for f in xml_files] if p.is_file()]
 
     # load preconfig
