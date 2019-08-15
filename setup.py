@@ -1,16 +1,11 @@
 import os
 import re
-import sys
 from pathlib import Path
-from subprocess import CalledProcessError, run
 
-from setuptools import Command, find_packages, setup
+from setuptools import find_packages, setup
 
 _SETUP = Path(__file__)
 _PROJECT = _SETUP.parent
-_DOCS = _PROJECT / "docs"
-_PACKAGE = _PROJECT / "rads"
-_TESTS = _PROJECT / "tests"
 
 
 def read_version(filename):
@@ -25,174 +20,17 @@ def read(filename):
     return text
 
 
-class Quality(Command):
-
-    description = "run code quality checkers"
-    user_options = [("format", "f", "run isort+black before QA")]
-
-    def initialize_options(self):
-        self.format = False
-
-    def finalize_options(self):
-        self.format = bool(self.format)
-
-    def run(self):
-        try:
-            if self.format:
-                run(["isort", "-rc", _PROJECT], check=True)
-                run(["black", _PROJECT], check=True)
-            run(["mypy", _PACKAGE], check=True)
-            run(["mypy", "--config-file", _TESTS / "mypy.ini", _TESTS], check=True)
-            run(["flake8", _SETUP, _PACKAGE, _TESTS], check=True)
-            run(["pydocstyle", _PACKAGE], check=True)
-        except CalledProcessError as err:
-            print("\n💀 Quality analysis failed 💀")
-            sys.exit(err.returncode)
-        print("\n✨ Quality analysis complete ✨")
-
-
-class Test(Command):
-
-    description = "run tests"
-    user_options = [("coverage", "c", "generate test coverage report")]
-
-    def initialize_options(self):
-        self.coverage = False
-
-    def finalize_options(self):
-        self.verbose = int(self.verbose)
-        self.coverage = bool(self.coverage)
-
-    def run(self):
-        pytest_args = ["pytest"]
-        if self.verbose >= 1:
-            pytest_args.append("-" + ("v" * self.verbose))
-        if self.coverage:
-            pytest_args.extend(["--cov", _PACKAGE, "--cov-branch"])
-        try:
-            run(pytest_args, check=True)
-            if self.coverage:
-                run(["coverage", "html"], check=True)
-        except CalledProcessError as err:
-            print("\n💀 Testing failed 💀")
-            sys.exit(err.returncode)
-        print("\n✨ Testing complete ✨")
-
-
-class Dist(Command):
-
-    description = "build source and wheel distributions"
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-        try:
-            run(["python", _SETUP, "sdist"], check=True)
-            run(["python", _SETUP, "bdist_wheel"], check=True)
-            run(["twine", "check", _PROJECT / "dist/*"], check=True)
-        except CalledProcessError as err:
-            print("\n💀 Build failed 💀")
-            sys.exit(err.returncode)
-        print("\n✨ Build complete ✨")
-
-
-class Doc(Command):
-
-    description = "build documentation"
-    user_options = [("pdf", None, "Build PDF instead of HTML documentation.")]
-
-    def initialize_options(self):
-        self.pdf = False
-
-    def finalize_options(self):
-        self.pdf = bool(self.pdf)
-
-    def run(self):
-        try:
-            if self.pdf:
-                run(
-                    ["sphinx-build", "-M", "latexpdf", _DOCS, _DOCS / "_build"],
-                    check=True,
-                )
-            else:
-                run(
-                    ["sphinx-build", "-b", "html", _DOCS, _DOCS / "_build" / "html"],
-                    check=True,
-                )
-        except CalledProcessError as err:
-            print("\n💀 Documentation build failed 💀")
-            sys.exit(err.returncode)
-        print("\n✨ Documentation build complete ✨")
-
-
-class Cleanup(Command):
-
-    description = "cleanup temporary files"
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    @staticmethod
-    def remove(path):
-        if path.is_file():
-            print(f"removing {path}")
-            path.unlink()
-        if path.is_dir():
-            for file in path.iterdir():
-                Cleanup.remove(file)
-            path.rmdir()
-            print(f"removing {path}")
-
-    @staticmethod  # noqa: C901
-    def remove_matching(matcher, files=False, dirs=False):
-        for file in _PROJECT.iterdir():
-            if files and file.is_file() and matcher(file):
-                Cleanup.remove(file)
-            if dirs and file.is_dir() and matcher(file):
-                Cleanup.remove(file)
-
-        for dir in ["rads", "tests"]:
-            for root, dirs_, files_ in os.walk(_PROJECT / dir):
-                if files:
-                    for file in [Path(root) / f for f in files_]:
-                        if matcher(file):
-                            Cleanup.remove(file)
-                if dirs:
-                    for dir in [Path(root) / f for f in dirs_]:
-                        if matcher(dir):
-                            Cleanup.remove(dir)
-
-    def run(self):
-        try:
-            for file in (_DOCS / "api" / "apidoc").iterdir():
-                if file.is_file() and file.suffix == ".rst":
-                    self.remove(file)
-            self.remove(_DOCS / "_build")
-            self.remove(_PROJECT / "dist")
-            self.remove(_PROJECT / "build")
-            self.remove_matching(lambda f: f.suffix == ".pyc", files=True)
-            self.remove_matching(lambda f: f.name == ".coverage", files=True)
-            self.remove_matching(lambda f: f.name == ".pytest_cache", dirs=True)
-            self.remove_matching(lambda f: f.name == ".mypy_cache", dirs=True)
-            self.remove_matching(lambda f: f.name == "htmlcov", dirs=True)
-            self.remove_matching(lambda f: f.suffix == ".egg-info", dirs=True)
-        except Exception:
-            print("\n💀 Documentation build failed 💀")
-            sys.exit(1)
-        print("\n✨ Cleanup complete ✨")
-
+# These are separated in order to always use the minimum packages for each.
+# This reduces the possibility of missing errors due to having a package
+# installed that will not be installed when deployed.
+docs_require = ["sphinx>=1.7", "sphinxcontrib-apidoc"]
+checks_require = ["flake8>=3.7.7", "mypy", "pydocstyle", "typing-extensions"]
+tests_require = ["pytest", "pytest-cov", "pytest-mock"]
+dev_requires = ["black", "isort", "twine"]
 
 if os.environ.get("READTHEDOCS") == "True":
     install_requires = ["dataclass_builder", "dataclasses;python_version=='3.6'"]
+    # install_requires += docs_require
 else:
     install_requires = [
         "appdirs",
@@ -209,26 +47,7 @@ else:
         "yzal",
     ]
 
-docs_require = ["sphinx>=1.7", "sphinxcontrib-apidoc"]
-tests_require = [
-    "flake8>=3.7.7",
-    "mypy",
-    "pydocstyle",
-    "pytest",
-    "pytest-cov",
-    "pytest-mock",
-    "pyflakes>=2.1.0",
-    "typing-extensions",
-]
-
 setup(
-    cmdclass={
-        "quality": Quality,
-        "test": Test,
-        "dist": Dist,
-        "doc": Doc,
-        "cleanup": Cleanup,
-    },
     name="rads",
     version=read_version("rads/__version__.py"),
     author="Michael R. Shannon",
@@ -245,12 +64,14 @@ setup(
         "rads.xml": ["py.typed"],
     },
     python_requires=">=3.6",
+    setup_requires=["pytest-runner"],
     install_requires=install_requires,
     extras_require={
         "lxml": ["lxml"],  # use libxml2 to read configuration files
-        "docs": docs_require,
+        "checks": checks_require,
         "tests": tests_require,
-        "dev": docs_require + tests_require + ["black", "isort", "twine"],
+        "docs": docs_require,
+        "dev": dev_requires + checks_require + tests_require + docs_require,
     },
     tests_require=tests_require,
     classifiers=[

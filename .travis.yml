@@ -6,23 +6,32 @@ install:
 script: tox
 matrix:
   include:
-    - python: 3.6
+    - name: run test suite with python 3.6
+      python: 3.6
       env: TOXENV=py36
-    - python: 3.6
+    - name: run test suite with python 3.6 (using lxml)
+      python: 3.6
       env: TOXENV=py36-lxml
-    - python: 3.7
+    - name: run test suite with python 3.7
+      python: 3.7
       env: TOXENV=py37
-    - python: 3.7
+    - name: run test suite with python 3.7 (using lxml)
+      python: 3.7
       env: TOXENV=py37-lxml
-    - python: 3.7
-      env: TOXENV=quality
-    - python: 3.7
+    - name: typing and style checks
+      python: 3.7
+      env: TOXENV=checks
+    - name: test documentation build
+      python: 3.7
       env: TOXENV=docs-html
-    - python: 3.7
+    - name: test install and import
+      python: 3.7
       env: TOXENV=install
-    - python: 3.7
+    - name: test install and import (using lxml)
+      python: 3.7
       env: TOXENV=install-lxml
-    - python: 3.7
+    - name: generate report for codecov.io
+      python: 3.7
       install:
         - pip install tox codecov
       after_success:
