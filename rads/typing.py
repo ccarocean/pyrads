@@ -5,14 +5,23 @@ from typing import IO, TYPE_CHECKING, Any, Union
 
 import numpy as np  # type: ignore
 
-__all__ = ["PathLike", "PathOrFile", "Number", "IntOrArray", "NumberOrArray"]
+__all__ = [
+    "PathLike",
+    "PathLikeOrFile",
+    "PathOrFile",
+    "Number",
+    "IntOrArray",
+    "NumberOrArray",
+]
 
 if TYPE_CHECKING:
     PathLike = Union[str, os.PathLike[str]]
+    PathOrFile = Union[os.PathLike[str], IO[Any]]
 else:
     PathLike = Union[str, os.PathLike]
+    PathOrFile = Union[os.PathLike, IO[Any]]
 
-PathOrFile = Union[PathLike, IO[Any], int]
+PathLikeOrFile = Union[PathLike, IO[Any]]
 
 # for the purpose of PyRADS bool as a number since it will act
 # as 0 or 1 when used as a number

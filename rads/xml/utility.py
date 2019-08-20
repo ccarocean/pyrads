@@ -5,7 +5,7 @@ import re
 from itertools import chain, dropwhile, takewhile, tee
 from typing import Any, Callable, Optional, Sequence, cast
 
-from ..typing import PathLike, PathOrFile
+from ..typing import PathLike, PathLikeOrFile
 from ..utility import ensure_open, filestring
 
 try:
@@ -29,7 +29,7 @@ __all__ = [
 
 
 # TODO: Remove when ElementTree.parse accepts PathLike objects.
-def _fix_source(source: PathOrFile) -> Any:
+def _fix_source(source: PathLikeOrFile) -> Any:
     if isinstance(source, int):
         return source
     if hasattr(source, "read"):
@@ -38,7 +38,7 @@ def _fix_source(source: PathOrFile) -> Any:
 
 
 def parse(
-    source: PathOrFile,
+    source: PathLikeOrFile,
     parser: Optional[xml.XMLParser] = None,
     fixer: Optional[Callable[[str], str]] = None,
 ) -> xml.Element:

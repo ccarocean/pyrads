@@ -5,7 +5,7 @@ from typing import IO, Any, List, Optional, Union, cast
 
 from wrapt import ObjectProxy  # type: ignore
 
-from .typing import PathLike, PathOrFile
+from .typing import PathLike, PathLikeOrFile
 
 __all__ = [
     "ensure_open",
@@ -27,7 +27,7 @@ class _NoCloseIOWrapper(ObjectProxy):  # type: ignore
 
 
 def ensure_open(
-    file: PathOrFile,
+    file: PathLikeOrFile,
     mode: str = "r",
     buffering: int = -1,
     encoding: Optional[str] = None,
@@ -96,8 +96,8 @@ def ensure_open(
     )
 
 
-def filestring(file: PathOrFile) -> Optional[str]:
-    """Convert a PathOrFile to a string.
+def filestring(file: PathLikeOrFile) -> Optional[str]:
+    """Convert a PathLikeOrFile to a string.
 
     :param file:
         file or file-like object to get the string for.
