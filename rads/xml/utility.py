@@ -6,7 +6,7 @@ from itertools import chain, dropwhile, takewhile, tee
 from typing import Any, Callable, Optional, Sequence, cast
 
 from ..typing import PathLike, PathLikeOrFile
-from ..utility import ensure_open, filestring
+from ..utility import ensure_open, filestring, isio
 
 try:
     from ..xml import lxml as xml
@@ -30,9 +30,7 @@ __all__ = [
 
 # TODO: Remove when ElementTree.parse accepts PathLike objects.
 def _fix_source(source: PathLikeOrFile) -> Any:
-    if isinstance(source, int):
-        return source
-    if hasattr(source, "read"):
+    if isio(source, read=True):
         return source
     return os.fspath(cast(PathLike, source))
 

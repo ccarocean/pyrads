@@ -1,34 +1,67 @@
 import io
+
 import pytest  # type: ignore
 
 from rads.utility import (
-    ensure_open,
     contains_sublist,
     delete_sublist,
+    ensure_open,
     fortran_float,
+    isio,
     merge_sublist,
     xor,
 )
 
 
 def test_ensure_open_closeio_default():
-    file = io.StringIO("contents")
+    file = io.StringIO("content")
     with ensure_open(file) as f:
         assert not f.closed
     assert not f.closed
 
+
 def test_ensure_open_closeio_true():
-    file = io.StringIO("contents")
+    file = io.StringIO("content")
     with ensure_open(file, closeio=True) as f:
         assert not f.closed
     assert f.closed
 
 
 def test_ensure_open_closeio_false():
-    file = io.StringIO("contents")
+    file = io.StringIO("content")
     with ensure_open(file, closeio=False) as f:
         assert not f.closed
     assert not f.closed
+
+
+def test_isio(mocker):
+    assert isio(io.StringIO("content"))
+    assert not isio("string is not io")
+    m = mocker.Mock()
+    m.read.return_value = "duck typing not accepted"
+    assert not isio(m)
+
+
+def test_isio_read(mocker):
+    assert isio(io.StringIO("content"), read=True)
+    assert not isio("string is not io", read=True)
+    m = mocker.Mock(spec=["read"])
+    m.read.return_value = "duck typing is accepted"
+    assert isio(m, read=True)
+    m = mocker.Mock(spec=["write"])
+    m.write.return_value = "duck typing is accepted"
+    assert not isio(m, read=True)
+
+
+def test_isio_write(mocker):
+    assert isio(io.StringIO("content"), write=True)
+    assert not isio("string is not io", write=True)
+    m = mocker.Mock(spec=["read"])
+    m.read.return_value = "duck typing is accepted"
+    assert not isio(m, write=True)
+    m = mocker.Mock(spec=["write"])
+    m.write.return_value = "duck typing is accepted"
+    assert isio(m, write=True)
 
 
 def test_xor():

@@ -2,8 +2,8 @@
 
 from .__version__ import __version__
 from .config.loader import config_files, get_dataroot, load_config
-from .exceptions import RADSError, ConfigError, InvalidDataroot
 from .constants import EPOCH
+from .exceptions import ConfigError, InvalidDataroot, RADSError
 
 __all__ = [
     "__version__",

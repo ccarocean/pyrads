@@ -1,5 +1,6 @@
 """Utility functions."""
 
+import io
 import os
 from typing import IO, Any, List, Optional, Union, cast
 
@@ -10,6 +11,7 @@ from .typing import PathLike, PathLikeOrFile
 __all__ = [
     "ensure_open",
     "filestring",
+    "isio",
     "xor",
     "contains_sublist",
     "merge_sublist",
@@ -124,6 +126,32 @@ def filestring(file: PathLikeOrFile) -> Optional[str]:
         except UnicodeDecodeError:
             return None
     raise TypeError(f"'{type(file)}' is not a file like object")
+
+
+def isio(obj: Any, *, read: bool = False, write: bool = False) -> bool:
+    """Determine if object is IO like and is read and/or write.
+
+    .. note::
+
+        Falls back to :code:`isinstnace(obj, io.IOBase)` if neither `read` nor
+        `write` is True.
+
+    :param obj:
+        Object to check if it is an IO like object.
+    :param read:
+        Require `obj` to be readable if True.
+    :param write:
+        Require `obj` to be writable if True.
+
+    :return:
+        True if the given `obj` is readable and/or writeable as defined by the
+        `read` and `write` arguments.
+    """
+    if read or write:
+        return (not read or hasattr(obj, "read")) and (
+            not write or hasattr(obj, "write")
+        )
+    return isinstance(obj, io.IOBase)
 
 
 def xor(a: bool, b: bool) -> bool:

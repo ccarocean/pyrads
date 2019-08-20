@@ -2,13 +2,14 @@
 import os
 from functools import wraps
 from pathlib import Path
-from typing import Any, Callable, Dict, Iterable, Mapping, Optional, TypeVar, cast
+from typing import IO, Any, Callable, Dict, Iterable, Mapping, Optional, TypeVar, cast
 
 from appdirs import AppDirs, system  # type: ignore
 from dataclass_builder import MissingFieldError
 
 from ..exceptions import ConfigError, InvalidDataroot
-from ..typing import PathLike
+from ..typing import PathLike, PathLikeOrFile, PathOrFile
+from ..utility import isio
 from ..xml import ParseError, parse, rads_fixer
 from .ast import ASTEvaluationError, NullStatement, Statement
 from .builders import PreConfigBuilder, SatelliteBuilder
@@ -48,6 +49,8 @@ def _to_config_error(exc: Exception) -> ConfigError:
         return ConfigError(exc.msg, exc.lineno, exc.filename, original=exc)
     if isinstance(exc, (TerminalXMLParseError, ASTEvaluationError)):
         return ConfigError(exc.message, exc.line, exc.file, original=exc)
+    if isinstance(exc, MissingFieldError):
+        return ConfigError(f"tag '<{exc.field.name}>' is not optional")
     return ConfigError(str(exc), original=exc)
 
 
@@ -124,7 +127,7 @@ def config_files(
 def get_dataroot(
     dataroot: Optional[PathLike] = None,
     *,
-    xml_files: Optional[Iterable[PathLike]] = None,
+    xml_files: Optional[Iterable[PathLikeOrFile]] = None,
     require: bool = False,
 ) -> Optional[Path]:
     """Get the RADS dataroot.
@@ -180,13 +183,9 @@ def get_dataroot(
         dataroot_ = Path(os.environ["RADSDATAROOT"]).expanduser()
     else:  # read from XML files
         if xml_files is None:
-            config_paths = config_files(dataroot, rads=False, pyrads=True)
-        else:
-            config_paths = [
-                Path(os.path.expanduser(os.path.expandvars(f))) for f in xml_files
-            ]
+            xml_files = config_files(dataroot, rads=False, pyrads=True)
         dataroot_value: Optional[str] = None
-        for file in [p for p in config_paths if p.is_file()]:
+        for file in _filter_files(xml_files):
             dataroot_value = _load_dataroot(file, dataroot_value)
         if dataroot_value is None:
             if require:
@@ -200,10 +199,20 @@ def get_dataroot(
     raise InvalidDataroot(f"'{str(dataroot_)}' is not a RADS data directory")
 
 
+def _filter_files(files: Iterable[PathLikeOrFile]) -> Iterable[PathOrFile]:
+    for file in files:
+        if isio(file, read=True):
+            yield cast(IO[Any], file)
+        else:
+            path = Path(cast(PathLike, file))
+            if path.is_file():
+                yield path
+
+
 def load_config(
     *,
     dataroot: Optional[PathLike] = None,
-    xml_files: Optional[Iterable[PathLike]] = None,
+    xml_files: Optional[Iterable[PathLikeOrFile]] = None,
     satellites: Optional[Iterable[str]] = None,
 ) -> Config:
     """Load the PyRADS configuration from one or more XML files.
@@ -257,7 +266,7 @@ def load_config(
         try:
             satellites[sat] = builder.build()
         except MissingFieldError as err:
-            raise ConfigError(str(err)) from err
+            raise _to_config_error(err) from err
 
     return Config(pre_config, satellites)
 
@@ -290,7 +299,7 @@ def xml_loader(grammar: Parser) -> Callable[[Callable[..., T]], Callable[..., T]
 
     def _decorator(func: Callable[..., T]) -> Callable[..., T]:
         @wraps(func)
-        def _loader(source: PathLike, *args: Any, **kwargs: Any) -> T:
+        def _loader(source: PathLikeOrFile, *args: Any, **kwargs: Any) -> T:
             try:
                 return func(_load_ast(source, grammar), *args, **kwargs)
             except ASTEvaluationError as err:
@@ -301,7 +310,7 @@ def xml_loader(grammar: Parser) -> Callable[[Callable[..., T]], Callable[..., T]
     return _decorator
 
 
-def _load_ast(source: PathLike, grammar: Parser) -> Statement:
+def _load_ast(source: PathLikeOrFile, grammar: Parser) -> Statement:
     """Load AST from a file.
 
     :param source:
@@ -335,7 +344,7 @@ def _load_dataroot(ast: Statement, dataroot: Optional[str] = None) -> Optional[s
 def _load_preconfig(
     *,
     dataroot: Optional[PathLike] = None,
-    xml_files: Optional[Iterable[PathLike]] = None,
+    xml_files: Optional[Iterable[PathLikeOrFile]] = None,
     satellites: Optional[Iterable[str]] = None,
 ) -> PreConfig:
     """Load the pre-configuration object.
@@ -347,18 +356,17 @@ def _load_preconfig(
     dataroot_ = get_dataroot(dataroot, xml_files=xml_files, require=True)
     if xml_files is None:
         xml_files = config_files(dataroot_, rads=True, pyrads=True)
-    xml_paths = [p for p in [Path(f) for f in xml_files] if p.is_file()]
 
     # load preconfig
     builder = PreConfigBuilder()
-    for file in xml_paths:
+    for file in _filter_files(xml_files):
         builder = _load_preconfig2(file, builder)
     builder.dataroot = dataroot_
-    builder.config_files = list(xml_paths)
+    builder.config_files = list(_filter_files(xml_files))
     try:
         pre_config: PreConfig = builder.build()
     except MissingFieldError as err:
-        raise ConfigError(str(err)) from err
+        raise _to_config_error(err) from err
 
     # allow satellite subsetting
     if satellites is not None:
