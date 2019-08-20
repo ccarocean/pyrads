@@ -24,7 +24,7 @@ import numpy as np  # type: ignore
 from cf_units import Unit  # type: ignore
 
 from ..rpn import CompleteExpression
-from ..typing import IntOrArray, Number, NumberOrArray, PathLike
+from ..typing import IntOrArray, Number, NumberOrArray, PathLike, PathLikeOrFile
 
 __all__ = [
     "PreConfig",
@@ -60,7 +60,7 @@ class PreConfig:
 
     dataroot: PathLike
     """The location of the RADS data root."""
-    config_files: Sequence[PathLike]
+    config_files: Sequence[PathLikeOrFile]
     """
     XML configuration files used to load this pre-config. Also the XML files to
     use when loading the main PyRADS configuration.
@@ -592,7 +592,7 @@ class Config:
 
     dataroot: PathLike
     """Path to the RADS data root."""
-    config_files: Sequence[PathLike]
+    config_files: Sequence[PathLikeOrFile]
     """Paths to the XML configuration files used to load this configuration.
 
     *The order is the same as they were loaded.*
