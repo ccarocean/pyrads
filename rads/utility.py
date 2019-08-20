@@ -82,7 +82,7 @@ def ensure_open(
     .. seealso:: :func:`open`
     """
     if hasattr(file, "read"):
-        if closeio:
+        if not closeio:
             return cast(IO[Any], _NoCloseIOWrapper(file))
         return cast(IO[Any], file)
     return open(

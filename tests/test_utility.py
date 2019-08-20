@@ -1,12 +1,34 @@
+import io
 import pytest  # type: ignore
 
 from rads.utility import (
+    ensure_open,
     contains_sublist,
     delete_sublist,
     fortran_float,
     merge_sublist,
     xor,
 )
+
+
+def test_ensure_open_closeio_default():
+    file = io.StringIO("contents")
+    with ensure_open(file) as f:
+        assert not f.closed
+    assert not f.closed
+
+def test_ensure_open_closeio_true():
+    file = io.StringIO("contents")
+    with ensure_open(file, closeio=True) as f:
+        assert not f.closed
+    assert f.closed
+
+
+def test_ensure_open_closeio_false():
+    file = io.StringIO("contents")
+    with ensure_open(file, closeio=False) as f:
+        assert not f.closed
+    assert not f.closed
 
 
 def test_xor():
