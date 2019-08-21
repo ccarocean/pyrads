@@ -22,6 +22,7 @@ from typing import (
 )
 
 from dataclass_builder import MISSING, MissingFieldError, UndefinedFieldError, build
+from sortedcontainers import SortedList  # type: ignore
 
 from ..rpn import CompleteExpression, Expression
 from ..utility import delete_sublist, merge_sublist, xor
@@ -994,7 +995,7 @@ class Phase(Block):
 
     @staticmethod
     def _store_value(environment: Any, value: Any) -> None:
-        _get_or_init(environment, "phases", list).append(value)
+        _get_or_init(environment, "phases", SortedList).add(value)
 
 
 class Variable(Block):

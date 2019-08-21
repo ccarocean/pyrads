@@ -43,6 +43,7 @@ else:
         "numpy>=1.16.0",
         "regex",
         "scipy",
+        "sortedcontainers",
         "wrapt",
         "yzal",
     ]
