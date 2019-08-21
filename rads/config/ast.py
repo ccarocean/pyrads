@@ -16,11 +16,12 @@ from typing import (
     MutableMapping,
     Optional,
     Sequence,
+    TypeVar,
     Union,
     cast,
 )
 
-from dataclass_builder import MISSING, MissingFieldError, UndefinedFieldError
+from dataclass_builder import MISSING, MissingFieldError, UndefinedFieldError, build
 
 from ..rpn import CompleteExpression, Expression
 from ..utility import delete_sublist, merge_sublist, xor
@@ -42,9 +43,8 @@ __all__ = [
     "Statement",
     "NullStatement",
     "CompoundStatement",
+    "Block",
     "If",
-    "NamedBlock",
-    "UniqueNamedBlock",
     "Alias",
     "Assignment",
     "Phase",
@@ -55,13 +55,13 @@ __all__ = [
 
 ActionType = Callable[[Any, str, Any], None]
 
+T = TypeVar("T")
 
-def _get_mapping(
-    environment: Any, attr: str, mapping: Callable[[], Mapping[str, Any]] = dict
-) -> Any:
-    if not hasattr(environment, attr) or getattr(environment, attr) == MISSING:
-        setattr(environment, attr, mapping())
-    return getattr(environment, attr)
+
+def _get_or_init(environment: Any, attr: str, mapping: Callable[[], T]) -> T:
+    if not _has(environment, attr):
+        _set(environment, attr, mapping())
+    return cast(T, _get(environment, attr))
 
 
 def _suggest_field(dataclass: Any, attempt: str) -> Optional[str]:
@@ -71,29 +71,29 @@ def _suggest_field(dataclass: Any, attempt: str) -> Optional[str]:
     return None
 
 
-def _has(o: Any, attr: str) -> bool:
-    if isinstance(o, Mapping):
-        return attr in o
-    return hasattr(o, attr)
+def _has(obj: Any, attr: str) -> bool:
+    if isinstance(obj, Mapping):
+        return attr in obj and obj[attr] != MISSING
+    return hasattr(obj, attr) and getattr(obj, attr) != MISSING
 
 
-def _get(o: Any, attr: str) -> Any:
-    if isinstance(o, Mapping):
-        return o[attr]
-    return getattr(o, attr)
+def _get(obj: Any, attr: str) -> Any:
+    if isinstance(obj, Mapping):
+        return obj[attr]
+    return getattr(obj, attr)
 
 
-def _set(o: Any, attr: str, value: Any) -> None:
-    if isinstance(o, MutableMapping):
-        o[attr] = value
+def _set(obj: Any, attr: str, value: Any) -> None:
+    if isinstance(obj, MutableMapping):
+        obj[attr] = value
     else:
-        setattr(o, attr, value)
+        setattr(obj, attr, value)
 
 
-def _del(o: Any, attr: str) -> None:
-    if isinstance(o, MutableMapping):
-        del o[attr]
-    return delattr(o, attr)
+def _del(obj: Any, attr: str) -> None:
+    if isinstance(obj, MutableMapping):
+        del obj[attr]
+    return delattr(obj, attr)
 
 
 def replace(environment: Any, attr: str, value: Any) -> None:
@@ -794,7 +794,7 @@ class Alias(Statement):
         """
         if self.condition.test(selectors):
             action = cast(ActionType, self.action)
-            aliases = _get_mapping(environment, "aliases")
+            aliases = _get_or_init(environment, "aliases", dict)
             try:
                 action(aliases, self.alias, deepcopy(self.variables))
             except (TypeError, ValueError, KeyError) as err:
@@ -910,15 +910,13 @@ class Satellites(Mapping[str, Statement], Statement):
             pass
 
 
-class NamedBlock(Statement, ABC):
-    """Abstract named block statement, non unique version.
+class Block(Statement, ABC):
+    """Abstract block statement.
 
-    This named block need not be unique because each name maintains a list of
-    blocks that match it in the environment.
+    Overload the :func:`_init_builder` and :func:`_store_value` to dictate how
+    blocks are stored.
     """
 
-    name: str
-    """Name of the block."""
     inner_statement: Statement
     """Inner statement stored in the block."""
     condition: Condition = TrueCondition()
@@ -926,15 +924,12 @@ class NamedBlock(Statement, ABC):
 
     def __init__(
         self,
-        name: str,
         inner_statement: Statement,
         condition: Optional[Condition] = None,
         *,
         source: Optional[Source] = None,
     ):
         """
-        :param name:
-            Name of the block.  Usually the XML tag name.
         :param inner_statement:
             The inner statement stored in the block.  This is usually a
             :class:`CompoundStatement`.
@@ -944,85 +939,71 @@ class NamedBlock(Statement, ABC):
             Location in the source configuration this statement came from.
         """
         super().__init__(source=source)
-        self.name = name
         self.inner_statement = inner_statement
         if condition is not None:
             self.condition = condition
 
     def __repr__(self) -> str:
-        prefix = (
-            f"{self.__class__.__qualname__}"
-            f"({repr(self.name)}, {repr(self.inner_statement)}"
-        )
+        prefix = f"{self.__class__.__qualname__}" f"({repr(self.inner_statement)}"
         if isinstance(self.condition, TrueCondition):
             return prefix + ")"
         return prefix + f", {self.condition})"
 
-    def _eval_runner(
-        self, mapping: str, builder: Any, environment: Any, selectors: Mapping[str, Any]
-    ) -> None:
-        if self.condition and not self.condition.test(selectors):
-            return
+    @staticmethod
+    @abstractmethod
+    def _init_builder() -> Any:
+        """Return a dataclass builder."""
 
-        # initialize and/or retrieve mapping
-        mapping_ = _get_mapping(environment, mapping)
-
-        builder_ = builder(id=self.name)
-        self.inner_statement.eval(builder_, selectors)
+    def _eval_inner(self, builder: Any, selectors: Mapping[str, Any]) -> Any:
+        self.inner_statement.eval(builder, selectors)
         try:
-            if self.name not in mapping_:
-                mapping_[self.name] = []
-            mapping_[self.name].append(builder_.build())
+            return build(builder)
         except MissingFieldError as err:
             raise ASTEvaluationError(
                 f"missing required attribute '{err.field.name}'", source=self.source
             )
 
+    @staticmethod
+    @abstractmethod
+    def _store_value(environment: Any, value: Any) -> None:
+        """Store the value in the environment."""
 
-class UniqueNamedBlock(NamedBlock, ABC):
-    """Abstract named block statement, unique version.
+    def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
+        """Evaluate statement, modifying the environment object.
 
-    This named block is unique.  Therefore, a delicately named block will
-    update the original data in the environment.
-    """
-
-    def _eval_runner(
-        self, mapping: str, builder: Any, environment: Any, selectors: Mapping[str, Any]
-    ) -> None:
+        :param environment:
+            Environment object to modify.  If this is a mapping it will be used
+            as such, otherwise attribute assignment will be used instead.
+        :param selectors:
+            Key/value pairs of things that can be used for conditional parsing
+            of the configuration file.
+        """
         if self.condition and not self.condition.test(selectors):
             return
-
-        # initialize and/or retrieve mapping
-        mapping_ = _get_mapping(environment, mapping)
-
-        if self.name in mapping_:
-            # update current structure
-            self.inner_statement.eval(mapping_[self.name], selectors)
-        else:
-            # build initial structure
-            builder_ = builder(id=self.name)
-            self.inner_statement.eval(builder_, selectors)
-            try:
-                mapping_[self.name] = builder_.build()
-            except MissingFieldError as err:
-                raise ASTEvaluationError(
-                    f"missing required attribute '{err.field.name}'", source=self.source
-                )
+        builder = self._init_builder()
+        value = self._eval_inner(builder, selectors)
+        self._store_value(environment, value)
 
 
-class Phase(NamedBlock):
+class Phase(Block):
     """Phase statement, for all phase related information."""
 
-    def eval(
-        self, environment: Any, selectors: Mapping[str, Any]
-    ) -> None:  # noqa: D102
-        self._eval_runner("phases", PhaseBuilder, environment, selectors)
+    @staticmethod
+    def _init_builder() -> Any:
+        return PhaseBuilder()
+
+    @staticmethod
+    def _store_value(environment: Any, value: Any) -> None:
+        _get_or_init(environment, "phases", list).append(value)
 
 
-class Variable(UniqueNamedBlock):
+class Variable(Block):
     """Variable statement, for all phase related information."""
 
-    def eval(
-        self, environment: Any, selectors: Mapping[str, Any]
-    ) -> None:  # noqa: D102
-        self._eval_runner("variables", VariableBuilder, environment, selectors)
+    @staticmethod
+    def _init_builder() -> Any:
+        return VariableBuilder()
+
+    @staticmethod
+    def _store_value(environment: Any, value: Any) -> None:
+        _get_or_init(environment, "variables", dict)[value.id] = value

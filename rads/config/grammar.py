@@ -529,8 +529,10 @@ def variable_override(
             value = parser(text, element.attributes)
         except TextParseError as err:
             raise error_at(element)(str(err)) from err
-        statement = Assignment(name=var_, value=value, action=action, source=source)
-        return Variable(name, statement, condition, source=source)
+        name_assignment = Assignment("id", name, source=source)
+        assignment = Assignment(name=var_, value=value, action=action, source=source)
+        statement = CompoundStatement(name_assignment, assignment, source=source)
+        return Variable(statement, condition, source=source)
 
     return tag(tag_) ^ process
 
