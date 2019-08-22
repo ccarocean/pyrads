@@ -44,7 +44,6 @@ __all__ = [
     "Grid",
     "NetCDFAttribute",
     "NetCDFVariable",
-    "N",
     "Range",
     "Variable",
     "Satellite",

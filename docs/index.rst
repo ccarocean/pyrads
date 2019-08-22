@@ -21,18 +21,24 @@ Get this documentation as a download in several formats:
 User Guide
 ----------
 
-Work in progress.
+Work in progress, see the README_ for now.
+
+.. _README: https://github.com/ccarocean/pyrads/blob/master/README.rst
 
 
 API Documentation
 -----------------
 
-If you are looking for information on a specific function, class, or method, this part of the documentation is for you, in particular the :ref:`public_api`.
+If you are looking for information on a specific function, class, or method, this part of the documentation is for you, in particular :ref:`public_api`.
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
 
-   api/public
+   api/rads
+
+.. note::
+
+   Cross reference links in this section will always link to the private API section below due to limitations with Sphinx.
 
 
 Contributor Guide
