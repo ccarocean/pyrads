@@ -11,9 +11,15 @@ Python access to the Radar Altimeter Database System
 |code-style|
 |license|
 
-WORK IN PROGRESS - This will be removed upon first release.
-
 Python library for access to the `Radar Altimeter Database System`_ (RADS).
+
+**Current Features**
+
+* Loading of the RADS XML files.
+
+**Planned Features**
+
+* Loading of RADS data.
 
 
 
@@ -111,8 +117,7 @@ Usage
 -----
 
 *PyRADS is currently in development, and will remain so until its first v1.0.0
-release.  Until then, only functions and classes exported at the top (rads
-module) level are considered somewhat stable.*
+release.  Until then the public API may change from one minor release to another.  However, patch releases will not change the public API.*
 
 
 Loading RADS configuration files
@@ -161,6 +166,13 @@ The RADS data root can also be overridden:
 
     >>> import rads
     >>> rads_config = rads.load_config(dataroot='/path/to/custom/dataroot')
+
+The entire RADS config can be displayed in human readable form with:
+
+.. code-block:: python
+
+    >>> import rads
+    >>> print(rads.load_config().full_string())
 
 For more information on loading of RADS v4 XML configuration files consult the
 documentation.
