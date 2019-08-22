@@ -81,7 +81,7 @@ setup(
     },
     tests_require=tests_require,
     classifiers=[
-        "Development Status :: 1 - Planning",
+        "Development Status :: 3 - Alpha",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: MIT License",
         "Programming Language :: Python",
@@ -89,9 +89,9 @@ setup(
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: Implementation :: CPython",
-        "Topic :: Database :: Front-Ends"
-        "Topic :: Scientific/Engineering"
-        "Topic :: Scientific/Engineering :: GIS"
+        "Topic :: Database :: Front-Ends",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: GIS",
         "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     zip_safe=False,
