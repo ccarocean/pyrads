@@ -114,7 +114,7 @@ def clean(c):
     c.run("rm -rf .mypy_cache")
     c.run("rm -rf *.egg-info")
     for top_dir in ["rads", "tests"]:
-        for root, dirs, files in os.walk(top_dir):
+        for root, dirs, _ in os.walk(top_dir):
             for dir in dirs:
                 if dir == "__pycache__":
                     c.run(f"rm -rf {os.path.join(root, dir)}")

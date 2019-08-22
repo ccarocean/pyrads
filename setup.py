@@ -23,14 +23,19 @@ def read(filename):
 # These are separated in order to always use the minimum packages for each.
 # This reduces the possibility of missing errors due to having a package
 # installed that will not be installed when deployed.
-docs_require = ["sphinx>=1.7", "sphinxcontrib-apidoc"]
-checks_require = ["flake8>=3.7.7", "mypy", "pydocstyle", "typing-extensions"]
+docs_require = ["packaging", "sphinx>=1.7", "sphinxcontrib-apidoc"]
+checks_require = [
+    "flake8>=3.7.7",
+    "flake8-bugbear",
+    "mypy",
+    "pydocstyle",
+    "typing-extensions",
+]
 tests_require = ["pytest", "pytest-cov", "pytest-mock"]
 dev_requires = ["black", "isort", "twine"]
 
 if os.environ.get("READTHEDOCS") == "True":
     install_requires = ["dataclass_builder", "dataclasses;python_version=='3.6'"]
-    # install_requires += docs_require
 else:
     install_requires = [
         "appdirs",
