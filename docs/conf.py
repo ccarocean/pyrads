@@ -15,6 +15,7 @@
 import re
 from pathlib import Path
 
+import packaging.version
 from sphinx.ext.autodoc import ClassLevelDocumenter, InstanceAttributeDocumenter
 
 _CONF = Path(__file__)
@@ -38,10 +39,12 @@ project = "PyRADS"
 copyright = "2018-2019, Michael R. Shannon"
 author = "Michael R. Shannon"
 
+_version = packaging.version.parse(read_version("../rads/__version__.py"))
 # The short X.Y version
-version = read_version("../rads/__version__.py")
+version = _version.base_version
 # The full version, including alpha/beta/rc tags
-release = version
+release = _version.public
+
 
 # -- General configuration ---------------------------------------------------
 
@@ -90,6 +93,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
+
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -107,9 +111,6 @@ html_theme_options = {
     "github_repo": "pyrads",
     "github_banner": True,
     "github_button": False,
-    # currently bugged: https://github.com/bitprophet/alabaster/issues/145
-    # "travis_button": True,
-    # "codecov_button": True,
     "fixed_sidebar": True,
     "sidebar_collapse": True,
     "show_relbars": False,
@@ -143,6 +144,7 @@ html_sidebars = {
 # Output file base name for HTML help builder.
 htmlhelp_basename = "PyRADSdoc"
 
+
 # -- Options for LaTeX output ------------------------------------------------
 
 latex_engine = "xelatex"
@@ -171,6 +173,7 @@ latex_documents = [
     (master_doc, "PyRADS.tex", "Documentation", "Michael R. Shannon", "manual")
 ]
 
+
 # -- Options for manual page output ------------------------------------------
 
 # One entry per manual page. List of tuples
@@ -194,6 +197,7 @@ texinfo_documents = [
     )
 ]
 
+
 # -- Options for Epub output -------------------------------------------------
 
 # Bibliographic Dublin Core info.
@@ -210,6 +214,7 @@ epub_title = project
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ["search.html"]
+
 
 # -- Extension configuration -------------------------------------------------
 
