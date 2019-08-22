@@ -38,7 +38,7 @@ else:
         "cached_property",
         "cf_units>=2.1.1",
         "dataclasses;python_version=='3.6'",
-        "dataclass-builder>=1.1.3",
+        "dataclass-builder>=1.2.0",
         "fortran-format-converter>=0.1.3",
         "numpy>=1.16.0",
         "regex",

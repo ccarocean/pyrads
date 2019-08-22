@@ -21,7 +21,13 @@ from typing import (
     cast,
 )
 
-from dataclass_builder import MISSING, MissingFieldError, UndefinedFieldError, build
+from dataclass_builder import (
+    MISSING,
+    MissingFieldError,
+    UndefinedFieldError,
+    build,
+    update,
+)
 from sortedcontainers import SortedList  # type: ignore
 
 from ..rpn import CompleteExpression, Expression
@@ -950,13 +956,25 @@ class Block(Statement, ABC):
             return prefix + ")"
         return prefix + f", {self.condition})"
 
-    @staticmethod
     @abstractmethod
-    def _init_builder() -> Any:
+    def _init_builder(self) -> Any:
         """Return a dataclass builder."""
 
-    def _eval_inner(self, builder: Any, selectors: Mapping[str, Any]) -> Any:
-        self.inner_statement.eval(builder, selectors)
+    def _build(self, builder: Any) -> Any:
+        """Build a given builder, converting MissingFieldError to ASTEvaluationError.
+
+        This should be used by :func:`_update_or_store` implementations to
+        build dataclasses with the proper error handling.
+
+        :param builder:
+            The dataclass builder to build.
+
+        :return:
+            The built dataclass.
+
+        :raises ASTEvaluationError:
+            If there is a missing required field in the builder.
+        """
         try:
             return build(builder)
         except MissingFieldError as err:
@@ -964,10 +982,9 @@ class Block(Statement, ABC):
                 f"missing required attribute '{err.field.name}'", source=self.source
             )
 
-    @staticmethod
     @abstractmethod
-    def _store_value(environment: Any, value: Any) -> None:
-        """Store the value in the environment."""
+    def _update_or_store(self, environment: Any, builder: Any) -> None:
+        """Store the value in the environment or update the current value."""
 
     def eval(self, environment: Any, selectors: Mapping[str, Any]) -> None:
         """Evaluate statement, modifying the environment object.
@@ -982,29 +999,29 @@ class Block(Statement, ABC):
         if self.condition and not self.condition.test(selectors):
             return
         builder = self._init_builder()
-        value = self._eval_inner(builder, selectors)
-        self._store_value(environment, value)
+        self.inner_statement.eval(builder, selectors)
+        self._update_or_store(environment, builder)
 
 
 class Phase(Block):
     """Phase statement, for all phase related information."""
 
-    @staticmethod
-    def _init_builder() -> Any:
+    def _init_builder(self) -> Any:
         return PhaseBuilder()
 
-    @staticmethod
-    def _store_value(environment: Any, value: Any) -> None:
-        _get_or_init(environment, "phases", SortedList).add(value)
+    def _update_or_store(self, environment: Any, builder: Any) -> None:
+        _get_or_init(environment, "phases", SortedList).add(self._build(builder))
 
 
 class Variable(Block):
     """Variable statement, for all phase related information."""
 
-    @staticmethod
-    def _init_builder() -> Any:
+    def _init_builder(self) -> Any:
         return VariableBuilder()
 
-    @staticmethod
-    def _store_value(environment: Any, value: Any) -> None:
-        _get_or_init(environment, "variables", dict)[value.id] = value
+    def _update_or_store(self, environment: Any, builder: Any) -> None:
+        mapping = _get_or_init(environment, "variables", dict)
+        try:
+            update(mapping[builder.id], builder)
+        except KeyError:
+            mapping[builder.id] = self._build(builder)
