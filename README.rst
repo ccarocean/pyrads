@@ -9,6 +9,9 @@ Python access to the Radar Altimeter Database System
 |doc-status|
 |coverage-status|
 |code-style|
+|version|
+|supported-versions|
+|status|
 |license|
 
 Python library for access to the `Radar Altimeter Database System`_ (RADS).
@@ -265,6 +268,18 @@ If all tests run by tox succeed (except for :code:`doc-pdf`) the TravisCI build 
 .. |code-style| image:: https://img.shields.io/badge/code%20style-black-000000.svg
     :target: https://github.com/psf/black
     :alt: Code style is black
+
+.. |version| image:: https://img.shields.io/pypi/v/rads.svg
+    :alt: PyPI Package latest release
+    :target: https://pypi.python.org/pypi/rads
+
+.. |status| image:: https://img.shields.io/pypi/status/rads.svg
+    :alt: Status
+    :target: https://pypi.python.org/pypi/rads
+
+.. |supported-versions| image:: https://img.shields.io/pypi/pyversions/rads.svg
+    :alt: Supported versions
+    :target: https://pypi.python.org/pypi/rads
 
 .. |license| image:: https://img.shields.io/github/license/ccarocean/pyrads.svg
     :alt: MIT
