@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from numbers import Integral
+from textwrap import indent
 from typing import (
     Any,
     Collection,
@@ -49,6 +50,9 @@ __all__ = [
     "Satellite",
     "Config",
 ]
+
+
+_INDENT = " " * 4
 
 
 @dataclass
@@ -107,6 +111,17 @@ class ReferencePass:
     absolute_orbit_number: int = 1
     """Absolute orbit number of reference pass."""
 
+    def __str__(self) -> str:
+        strings = [
+            f"time: {self.time} UTC",
+            f"longitude: {self.longitude}",
+            f"cycle_number: {self.cycle_number}",
+            f"pass_number: {self.pass_number}",
+        ]
+        if self.absolute_orbit_number != 1:
+            strings.append(f"absolute_orbit_number: {self.absolute_orbit_number}")
+        return "\n".join(strings)
+
 
 @dataclass
 class Repeat:
@@ -126,6 +141,12 @@ class Repeat:
     longitude_drift: Optional[float] = None
     """Longitudinal drift per repeat cycle."""
 
+    def __str__(self) -> str:
+        strings = [f"days: {self.days}", f"passes: {self.passes}"]
+        if self.longitude_drift is not None:
+            strings.append(f"longitude_drift: {self.longitude_drift}")
+        return "\n".join(strings)
+
 
 @dataclass
 class SubCycles:
@@ -138,6 +159,13 @@ class SubCycles:
     Start cycle of the sub cycle sequence.  Can be None, in which case the sub
     cycle sequence starts with the first cycle of the phase.
     """
+
+    def __str__(self) -> str:
+        strings = []
+        if self.start is not None:
+            strings.append(f"start: {self.start}")
+        strings.append(f"lengths: {' '.join(str(l) for l in self.lengths)}")
+        return "\n".join(strings)
 
 
 @dataclass
@@ -187,6 +215,21 @@ class Phase:
             return NotImplemented
         return self.start_time > other.start_time
 
+    def __str__(self) -> str:
+        strings = [
+            f"id: {self.id}",
+            f"mission: {self.mission}",
+            f"cycles: {self.cycles.first} to {self.cycles.last}",
+            f"repeat:\n{indent(str(self.repeat), _INDENT)}",
+            f"reference_pass:\n{indent(str(self.reference_pass), _INDENT)}",
+            f"start_time: {self.start_time} UTC",
+        ]
+        if self.end_time is not None:
+            strings.append(f"end_time: {self.end_time} UTC")
+        if self.subcycles is not None:
+            strings.append(f"subcycles:\n{indent(str(self.subcycles), _INDENT)}")
+        return "phase:\n" + indent("\n".join(strings), _INDENT)
+
 
 @dataclass
 class Compress:
@@ -214,6 +257,14 @@ class Compress:
     """Scale factor of stored data."""
     add_offset: Union[int, float] = 0
     """Add offset of stored data."""
+
+    def __str__(self) -> str:
+        strings = [f"type: {self.type.__name__}"]
+        if self.scale_factor != 1:
+            strings.append(f"scale_factor: {self.scale_factor}")
+        if self.add_offset != 0:
+            strings.append(f"add_offset: {self.add_offset}")
+        return "\n".join(strings)
 
 
 @dataclass
@@ -301,6 +352,9 @@ class MultiBitFlag(Flags):
         return result
         # can't reach this unless a larger integer is added to NumPy
 
+    def __str__(self) -> str:
+        return f"bits {self.bit}-{self.bit+self.length-1}"
+
 
 @dataclass
 class SingleBitFlag(Flags):
@@ -337,6 +391,9 @@ class SingleBitFlag(Flags):
             flag.
         """
         return flags & (1 << self.bit) != 0
+
+    def __str__(self) -> str:
+        return f"bit {self.bit}"
 
 
 @dataclass
@@ -379,6 +436,9 @@ class SurfaceType(Flags):
         if (flags & 0b100000) != 0:
             return 2  # enclosed sea or lake
         return 0  # ocean
+
+    def __str__(self) -> str:
+        return "surface_type"
 
 
 @dataclass
@@ -430,6 +490,13 @@ class NetCDFAttribute:
         compatibility with RADS no more than 4 should be used.
     """
 
+    def __str__(self) -> str:
+        return (
+            f"{'' if self.variable is None else self.variable}:{self.name}" + ""
+            if self.branch is None
+            else f"({self.branch})"
+        )
+
 
 @dataclass
 class NetCDFVariable:
@@ -449,6 +516,9 @@ class NetCDFVariable:
         PyRADS supports an unlimited number of branches.  However, to maintain
         compatibility with RADS no more than 4 should be used.
     """
+
+    def __str__(self) -> str:
+        return self.name + "" if self.branch is None else f"({self.branch})"
 
 
 N = TypeVar("N", int, float)
@@ -545,6 +615,43 @@ class Variable(Generic[N]):
     default: Optional[Number] = None
     """Default numerical or boolean value to use when data sources is unavailable."""
 
+    def __str__(self) -> str:  # noqa: C901
+        strings = [
+            f"id: {self.id}",
+            f"name: {self.name}",
+            f"data: {self.data}",
+            f"units: {self.units}",
+        ]
+        if self.standard_name is not None:
+            strings.append(f"standard_name: {self.standard_name}")
+        if self.source:
+            strings.append(f"source: {self.source}")
+        if self.comment:
+            strings.append(f"comment: {self.comment}")
+        if self.flag_values is not None:
+            strings.append(f"flag_values: {' '.join(str(l) for l in self.flag_values)}")
+        if self.flag_masks is not None:
+            strings.append(f"flag_masks: {' '.join(str(l) for l in self.flag_masks)}")
+        if self.limits is not None:
+            strings.append(f"limits: {self.limits.min} to {self.limits.max}")
+        if self.plot_range is not None:
+            strings.append(
+                f"plot_range: {self.plot_range.min} to {self.plot_range.max}"
+            )
+        if self.quality_flag is not None:
+            strings.append(
+                f"quality_flag: {' '.join(str(l) for l in self.quality_flag)}"
+            )
+        if self.dimensions != 1:
+            strings.append(f"dimensions: {self.dimensions}")
+        if self.format is not None:
+            strings.append(f"format: {self.format}")
+        if self.compress is not None:
+            strings.append(f"compress:\n{indent(str(self.compress), _INDENT)}")
+        if self.default is not None:
+            strings.append(f"default: {self.default}")
+        return "variable:\n" + indent("\n".join(strings), _INDENT)
+
 
 @dataclass
 class Satellite:
@@ -596,6 +703,55 @@ class Satellite:
     See :class:`Variable`.
     """
 
+    def __str__(self) -> str:
+        strings = [
+            f"id: {self.id}",
+            f"id3: {self.id3}",
+            f"name: {self.name}",
+            f"names: {' '.join(str(n) for n in self.names)}",
+            f"dt1hz: {self.dt1hz}",
+            f"inclination: {self.inclination}",
+            f"frequency: {' '.join(str(n) for n in self.frequency)}",
+            f"phases:",
+        ]
+        for phase in self.phases:
+            strings.append(f"{_INDENT}{phase.id}: {phase.mission}")
+        strings.append("aliases:")
+        for var, aliases in self.aliases.items():
+            strings.append(f"{_INDENT}{var}: {' '.join(str(a) for a in aliases)}")
+        strings.append("variables:")
+        for variable in self.variables.values():
+            strings.append(f"{_INDENT}{variable.id}: {variable.name}")
+        return "satellite:\n" + indent("\n".join(strings), _INDENT)
+
+    def full_string(self) -> str:
+        """Get full human friendly string representation.
+
+        Unlike :func:`__str__` this prints the full representation of the
+        phases, aliases, and variables.
+
+        :return:
+            Human readable string representation of the configuration for the
+            satellite.
+        """
+        strings = [
+            f"id: {self.id}",
+            f"id3: {self.id3}",
+            f"name: {self.name}",
+            f"names: {' '.join(str(n) for n in self.names)}",
+            f"dt1hz: {self.dt1hz}",
+            f"inclination: {self.inclination}",
+            f"frequency: {' '.join(str(n) for n in self.frequency)}",
+        ]
+        for phase in self.phases:
+            strings.append(str(phase))
+        strings.append("aliases:")
+        for var, aliases in self.aliases.items():
+            strings.append(f"{_INDENT}{var}: {' '.join(str(a) for a in aliases)}")
+        for variable in self.variables.values():
+            strings.append(str(variable))
+        return "satellite:\n" + indent("\n".join(strings), _INDENT)
+
 
 @dataclass
 class Config:
@@ -626,3 +782,26 @@ class Config:
         self.dataroot = pre_config.dataroot
         self.config_files = pre_config.config_files[:]
         self.satellites = satellites
+
+    def __str__(self) -> str:
+        strings = [f"dataroot: {self.dataroot}", "config_files:"]
+        for file in self.config_files:
+            strings.append(_INDENT + str(file))
+        strings.append(f"satellites: {' '.join(self.satellites)}")
+        return "config:\n" + indent("\n".join(strings), _INDENT)
+
+    def full_string(self) -> str:
+        """Get full human friendly string representation.
+
+        Unlike :func:`__str__` this prints the full representation of the
+        satellites.
+
+        :return:
+            Human readable string representation of the PyRADS configuration.
+        """
+        strings = [f"dataroot: {self.dataroot}", f"config_files:"]
+        for file in self.config_files:
+            strings.append(_INDENT + str(file))
+        for satellite in self.satellites.values():
+            strings.append(satellite.full_string())
+        return "config:\n" + indent("\n".join(strings), _INDENT)
