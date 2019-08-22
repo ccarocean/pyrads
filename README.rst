@@ -106,13 +106,13 @@ Now that the system dependencies have been installed PyRADS can be installed fro
 
 .. code-block:: text
 
-    $ pip install pyrads
+    $ pip install rads
 
 or if libxml2_ is installed
 
 .. code-block:: text
 
-    $ pip install pyrads[lxml]
+    $ pip install rads[lxml]
 
 
 
