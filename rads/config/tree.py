@@ -10,6 +10,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from numbers import Integral
 from typing import (
+    Any,
     Collection,
     Generic,
     Mapping,
@@ -175,6 +176,16 @@ class Phase:
 
     See :class:`SubCycles`.
     """
+
+    def __lt__(self, other: Any) -> bool:
+        if not isinstance(other, Phase):
+            return NotImplemented
+        return self.start_time < other.start_time
+
+    def __gt__(self, other: Any) -> bool:
+        if not isinstance(other, Phase):
+            return NotImplemented
+        return self.start_time > other.start_time
 
 
 @dataclass
