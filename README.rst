@@ -15,21 +15,96 @@ WORK IN PROGRESS - This will be removed upon first release.
 
 Python library for access to the `Radar Altimeter Database System`_ (RADS).
 
+
+
 Documentation
 -------------
 
 Documentation for PyRADS can be found at `https://pyrads.readthedocs.io/en/latest/ <https://pyrads.readthedocs.io/en/latest/>`_ or in `PDF <https://readthedocs.org/projects/pyrads/downloads/pdf/latest/>`_ and `Epub <https://readthedocs.org/projects/pyrads/downloads/epub/latest/>`_ formats.
 
 
-Requirements
+
+Installation
 ------------
 
-* Python 3.6 or greater
-* NumPy + SciPy
-* UDUNITS
+Only POSIX complaint systems are officially supported.  PyRADS should work on Microsoft Windows but it has not been tested.
 
-*NOTE: A Fortran compiler is not required as PyRADS is not a wrapper around the
-official Fortran library but a complete re-write in Python.*
+
+UDUINITS2_
+^^^^^^^^^^
+
+In addition to CPython 3.6+ PyRADS requires the UDUNITS2_ library and header files to be installed.  Below are instructions for accomplishing this on some common systems:
+
+Ubuntu and Debian
+"""""""""""""""""
+
+.. code-block:: text
+
+    # apt-get install libudunits2-dev
+
+Red Hat and Fedora
+""""""""""""""""""
+
+.. code-block:: text
+
+    # yum install udunits2-devel
+
+Mac OS X (using _homebrew)
+""""""""""""""""""""""""""
+
+.. code-block:: text
+
+    $ brew install udunits
+
+Microsoft Windows
+"""""""""""""""""
+
+No binary is provided for Windows so UDUNITS2_ must be built from `source <ftp://ftp.unidata.ucar.edu/pub/udunits>`_.
+
+
+libxml2_
+^^^^^^^^
+
+PyRADS also optionally requires libxml2_ which it uses for better error messages and slightly faster RADS XML file loading.
+
+
+Ubuntu and Debian
+"""""""""""""""""
+
+.. code-block:: text
+
+    # apt-get install libxml2
+
+Red Hat and Fedora
+""""""""""""""""""
+
+.. code-block:: text
+
+    # yum install libxml2
+
+Mac OS X (using _homebrew)
+""""""""""""""""""""""""""
+
+.. code-block:: text
+
+    $ brew install libxml2
+
+
+PyRADS
+^^^^^^
+
+Now that the system dependencies have been installed PyRADS can be installed from PyPI_:
+
+.. code-block:: text
+
+    $ pip install pyrads
+
+or if libxml2_ is installed
+
+.. code-block:: text
+
+    $ pip install pyrads[lxml]
+
 
 
 Usage
@@ -91,6 +166,7 @@ For more information on loading of RADS v4 XML configuration files consult the
 documentation.
 
 
+
 Development
 -----------
 
@@ -147,8 +223,10 @@ The :code:`doc-pdf` environment will fail if XeTeX_, xindy_, and latexmk_.  This
 If all tests run by tox succeed (except for :code:`doc-pdf`) the TravisCI build should succeed as well.
 
 
+.. _PyPI: https://pypi.org/
 .. _Radar Altimeter Database System: https://github.com/remkos/rads
 .. _RADS User Manual: https://github.com/remkos/rads/blob/master/doc/manuals/rads4_user_manual.pdf
+.. _UDUNITS2: https://www.unidata.ucar.edu/software/udunits/
 .. _libxml2: http://www.xmlsoft.org/
 .. _lxml: https://lxml.de/
 .. _invoke: http://www.pyinvoke.org/
@@ -158,6 +236,7 @@ If all tests run by tox succeed (except for :code:`doc-pdf`) the TravisCI build 
 .. _XeTeX: http://xetex.sourceforge.net/
 .. _xindy: http://xindy.sourceforge.net/
 .. _latexmk: https://mg.readthedocs.io/latexmk.html
+.. _homebrew: https://brew.sh/
 
 .. |build-status| image:: https://travis-ci.com/ccarocean/pyrads.svg?branch=master&style=flat
     :target: https://travis-ci.com/ccarocean/pyrads
