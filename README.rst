@@ -9,6 +9,7 @@ Python access to the Radar Altimeter Database System
 |doc-status|
 |coverage-status|
 |code-style|
+|license|
 
 WORK IN PROGRESS - This will be removed upon first release.
 
@@ -157,15 +158,24 @@ If all tests run by tox succeed (except for :code:`doc-pdf`) the TravisCI build 
 .. _XeTeX: http://xetex.sourceforge.net/
 .. _xindy: http://xindy.sourceforge.net/
 .. _latexmk: https://mg.readthedocs.io/latexmk.html
+
 .. |build-status| image:: https://travis-ci.com/ccarocean/pyrads.svg?branch=master&style=flat
-   :target: https://travis-ci.com/ccarocean/pyrads
-   :alt: Build status
+    :target: https://travis-ci.com/ccarocean/pyrads
+    :alt: Build status
+
 .. |doc-status| image:: https://readthedocs.org/projects/pyrads/badge/?version=latest
-   :target: https://pyrads.readthedocs.io/en/latest/
-   :alt: Documentation status
+    :target: https://pyrads.readthedocs.io/en/latest/
+    :alt: Documentation status
+
 .. |coverage-status| image:: https://codecov.io/github/ccarocean/pyrads/coverage.svg?branch=master
-   :target: https://codecov.io/github/ccarocean/pyrads?branch=master
-   :alt: Test coverage
+    :target: https://codecov.io/github/ccarocean/pyrads?branch=master
+    :alt: Test coverage
+
 .. |code-style| image:: https://img.shields.io/badge/code%20style-black-000000.svg
-   :target: https://github.com/psf/black
-   :alt: Code style is black
+    :target: https://github.com/psf/black
+    :alt: Code style is black
+
+.. |license| image:: https://img.shields.io/github/license/ccarocean/pyrads.svg
+    :alt: MIT
+    :target: https://opensource.org/licenses/MIT
+
