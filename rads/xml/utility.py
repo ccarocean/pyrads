@@ -206,8 +206,10 @@ def rootless_fixer(text: str, preserve_empty: bool = False) -> str:
 
 def is_empty(text: str) -> bool:
     """Determine if XML string is empty.
+
     The XML string is considered empty if it only contains processing
     instructions and comments.
+
     :param text:
         XML text to check for being empty.
 

@@ -172,7 +172,7 @@ def get_dataroot(
     :return:
         The path to the RADS *dataroot* or None if it cannot be found.
 
-    :raises InvalidDataroot:
+    :raises rads.exceptions.InvalidDataroot:
         If the *dataroot* the given/configured *dataroot* is not a valid RADS
         *dataroot*.
     """
@@ -292,7 +292,7 @@ def xml_loader(grammar: Parser) -> Callable[[Callable[..., T]], Callable[..., T]
     :return:
         The decorator.
 
-    :raises ConfigError:
+    :raises rads.exceptions.ConfigError:
         By the decorated function if the given file cannot be loaded, parsed,
         or evaluated.
     """
