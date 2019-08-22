@@ -13,4 +13,4 @@ v0.1.0 - 2019-08-22
 * Locating the RADS dataroot with the :code:`get_dataroot` function.
 
 
-.. _Unreleased: https://github.com/mrshannon/dataclass-builder/compare/v0.1.0...HEAD
+.. _Unreleased: https://github.com/ccarocean/pyrads/compare/v0.1.0...HEAD
