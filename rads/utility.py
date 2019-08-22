@@ -1,15 +1,17 @@
 """Utility functions."""
 
+import io
 import os
 from typing import IO, Any, List, Optional, Union, cast
 
 from wrapt import ObjectProxy  # type: ignore
 
-from .typing import PathLike, PathOrFile
+from .typing import PathLike, PathLikeOrFile
 
 __all__ = [
     "ensure_open",
     "filestring",
+    "isio",
     "xor",
     "contains_sublist",
     "merge_sublist",
@@ -27,7 +29,7 @@ class _NoCloseIOWrapper(ObjectProxy):  # type: ignore
 
 
 def ensure_open(
-    file: PathOrFile,
+    file: PathLikeOrFile,
     mode: str = "r",
     buffering: int = -1,
     encoding: Optional[str] = None,
@@ -82,7 +84,7 @@ def ensure_open(
     .. seealso:: :func:`open`
     """
     if hasattr(file, "read"):
-        if closeio:
+        if not closeio:
             return cast(IO[Any], _NoCloseIOWrapper(file))
         return cast(IO[Any], file)
     return open(
@@ -96,8 +98,8 @@ def ensure_open(
     )
 
 
-def filestring(file: PathOrFile) -> Optional[str]:
-    """Convert a PathOrFile to a string.
+def filestring(file: PathLikeOrFile) -> Optional[str]:
+    """Convert a PathLikeOrFile to a string.
 
     :param file:
         file or file-like object to get the string for.
@@ -124,6 +126,32 @@ def filestring(file: PathOrFile) -> Optional[str]:
         except UnicodeDecodeError:
             return None
     raise TypeError(f"'{type(file)}' is not a file like object")
+
+
+def isio(obj: Any, *, read: bool = False, write: bool = False) -> bool:
+    """Determine if object is IO like and is read and/or write.
+
+    .. note::
+
+        Falls back to :code:`isinstnace(obj, io.IOBase)` if neither `read` nor
+        `write` is True.
+
+    :param obj:
+        Object to check if it is an IO like object.
+    :param read:
+        Require `obj` to be readable if True.
+    :param write:
+        Require `obj` to be writable if True.
+
+    :return:
+        True if the given `obj` is readable and/or writeable as defined by the
+        `read` and `write` arguments.
+    """
+    if read or write:
+        return (not read or hasattr(obj, "read")) and (
+            not write or hasattr(obj, "write")
+        )
+    return isinstance(obj, io.IOBase)
 
 
 def xor(a: bool, b: bool) -> bool:
