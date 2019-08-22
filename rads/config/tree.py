@@ -571,7 +571,7 @@ class Satellite:
     """Orbital inclination in degrees."""
     frequency: Sequence[float]
     """List of altimeter frequencies."""
-    phases: Mapping[str, Sequence[Phase]] = field(default_factory=dict)
+    phases: Sequence[Phase] = field(default_factory=list)
     """Mapping from 1 character phase ID's to lists of mission phases.
 
     .. note::
