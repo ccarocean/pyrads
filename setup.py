@@ -27,7 +27,7 @@ docs_require = ["packaging", "sphinx>=1.7", "sphinxcontrib-apidoc"]
 checks_require = [
     "flake8>=3.7.7",
     "flake8-bugbear",
-    "mypy",
+    "mypy>=0.730",
     "pydocstyle",
     "typing-extensions",
 ]
