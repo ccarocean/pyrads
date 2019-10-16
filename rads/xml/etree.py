@@ -133,13 +133,9 @@ def error_with_file(error: ParseError, file: str) -> ParseError:
         added.
     """
     error.filename = file
-    # TODO: Remove the type ignore's below when
-    #  https://github.com/python/typeshed/pull/3158 makes it into Mypy, also
-    #  update Mypy version as well.
     new_error = type(error)(
-        error.msg,
-        (file, error.position[0], error.position[1], error.text),  # type: ignore
+        error.msg, (file, error.position[0], error.position[1], error.text)
     )
-    new_error.code = error.code  # type: ignore
-    new_error.position = error.position  # type: ignore
+    new_error.code = error.code
+    new_error.position = error.position
     return new_error

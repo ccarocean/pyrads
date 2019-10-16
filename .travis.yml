@@ -1,3 +1,6 @@
+branches:
+  only:
+  - master
 language: python
 before_install:
   - sudo apt-get install -y libudunits2-dev libxml2
