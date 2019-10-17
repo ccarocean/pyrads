@@ -1,10 +1,11 @@
 import logging
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
-from typing import Union
+from typing import Union, Optional
+from .typing import PathLike
 
 __all__ = [
     "configure_logging",
-    "logger",
+    "log",
     "DEBUG",
     "INFO",
     "WARNING",
@@ -12,20 +13,23 @@ __all__ = [
     "CRITICAL",
 ]
 
-logger = logging.getLogger(__name__.split(".")[0])
+log = logging.getLogger(__name__.split(".")[0])
 
 
-def configure_logging(level: Union[str, int]):
-    for handler in logger.handlers:
-        logger.removeHandler(handler)
+def configure_logging(level: Union[str, int], file: Optional[PathLike] = None):
+    for handler in log.handlers:
+        log.removeHandler(handler)
 
-    handler = logging.StreamHandler()
+    if file:
+        handler = logging.FileHandler(str(file))
+    else:
+        handler = logging.StreamHandler()
     formatter = logging.Formatter(
         "%(asctime)s %(levelname)s: %(message)s", datefmt="%d-%b-%y %H:%M:%S"
     )
     handler.setFormatter(formatter)
-    logger.addHandler(handler)
-    logger.setLevel(level)
+    log.addHandler(handler)
+    log.setLevel(level)
 
 
 # default logging level
