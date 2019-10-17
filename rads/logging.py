@@ -2,18 +2,11 @@
 
 import logging
 from logging import CRITICAL, DEBUG, ERROR, INFO, WARNING
-from typing import Union, Optional
+from typing import Optional, Union
+
 from .typing import PathLike
 
-__all__ = [
-    "configure_logging",
-    "log",
-    "DEBUG",
-    "INFO",
-    "WARNING",
-    "ERROR",
-    "CRITICAL",
-]
+__all__ = ["configure_logging", "log", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 log = logging.getLogger(__name__.split(".")[0])
 """The PyRADS logger, use :func:`configure_logging` to set level and destination."""
