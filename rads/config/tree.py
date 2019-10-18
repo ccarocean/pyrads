@@ -14,6 +14,7 @@ from typing import (
     Any,
     Collection,
     Generic,
+    List,
     Mapping,
     Optional,
     Sequence,
@@ -25,6 +26,7 @@ from typing import (
 import numpy as np  # type: ignore
 from cf_units import Unit  # type: ignore
 
+from ..paths import cachedb_url
 from ..rpn import CompleteExpression
 from ..typing import IntOrArray, Number, NumberOrArray, PathLike, PathLikeOrFile
 
@@ -78,6 +80,10 @@ class PreConfig:
     """
     A collection of 2 character satellite ID strings giving the satellites
     that should not be loaded regardless of the value of `satellites`.
+    """
+    cachedb: str = field(default_factory=cachedb_url)
+    """
+    SQLAlchemy compatible URL to the cache database.
     """
 
 
@@ -763,6 +769,10 @@ class Config:
 
     *The order is the same as they were loaded.*
     """
+    cachedb: str
+    """
+    SQLAlchemy compatible URL to the cache database.
+    """
     satellites: Mapping[str, Satellite]
     """Mapping from 2 character satellite ID's to satellite descriptors.
 
@@ -780,12 +790,11 @@ class Config:
         """
         self.dataroot = pre_config.dataroot
         self.config_files = pre_config.config_files[:]
+        self.cachedb = pre_config.cachedb
         self.satellites = satellites
 
     def __str__(self) -> str:
-        strings = [f"dataroot: {self.dataroot}", "config_files:"]
-        for file in self.config_files:
-            strings.append(_INDENT + str(file))
+        strings = self._common_strings()
         strings.append(f"satellites: {' '.join(self.satellites)}")
         return "config:\n" + indent("\n".join(strings), _INDENT)
 
@@ -798,9 +807,14 @@ class Config:
         :return:
             Human readable string representation of the PyRADS configuration.
         """
-        strings = [f"dataroot: {self.dataroot}", f"config_files:"]
-        for file in self.config_files:
-            strings.append(_INDENT + str(file))
+        strings = self._common_strings()
         for satellite in self.satellites.values():
             strings.append(satellite.full_string())
         return "config:\n" + indent("\n".join(strings), _INDENT)
+
+    def _common_strings(self) -> List[str]:
+        strings = [f"dataroot: {self.dataroot}", "config_files:"]
+        for file in self.config_files:
+            strings.append(_INDENT + str(file))
+        strings.append(f"cachedb: {self.cachedb}")
+        return strings

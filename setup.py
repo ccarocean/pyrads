@@ -49,6 +49,7 @@ else:
         "regex",
         "scipy",
         "sortedcontainers",
+        "sqlalchemy",
         "wrapt",
         "yzal",
     ]

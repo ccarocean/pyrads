@@ -605,6 +605,7 @@ def satellite_grammar() -> Parser:
         # PyRADS specific tags
         | ignore("dataroot")
         | ignore("blacklist")
+        | ignore("cachedb")
     )
     return root_block
 
@@ -620,10 +621,12 @@ def pre_config_grammar() -> Parser:
 
         * 2 character ID's of available satellites.
         * 2 character ID's of satellites to blacklist.
+        * location of cache database
     """
     root_block = block(
         satellite_ids()
         | value(list_of(lift(str)), "blacklist")
+        | value(lift(str), "cachedb")
         | ignore()  # ignore everything else
     )
     return root_block

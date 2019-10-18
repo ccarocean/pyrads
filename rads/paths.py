@@ -123,6 +123,7 @@ def local_config() -> Path:
 # Cache path
 ################################################################################
 
+
 def cachedb_url() -> str:
     """URL to default cache database.
 

@@ -3,6 +3,15 @@
 from .__version__ import __version__
 from .config.loader import config_files, get_dataroot, load_config
 from .constants import EPOCH
+from .index import update_index
 from .logging import log
 
-__all__ = ["__version__", "EPOCH", "config_files", "get_dataroot", "load_config", "log"]
+__all__ = [
+    "__version__",
+    "EPOCH",
+    "config_files",
+    "get_dataroot",
+    "load_config",
+    "log",
+    "update_index",
+]
