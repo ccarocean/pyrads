@@ -1,11 +1,13 @@
 """Utility functions."""
 
+import datetime
 import io
 import os
 from typing import IO, Any, List, Optional, Union, cast
 
 from wrapt import ObjectProxy  # type: ignore
 
+from .constants import EPOCH
 from .typing import PathLike, PathLikeOrFile
 
 __all__ = [
@@ -17,6 +19,8 @@ __all__ = [
     "merge_sublist",
     "delete_sublist",
     "fortran_float",
+    "datetime_to_timestamp",
+    "timestamp_to_datetime",
 ]
 
 
@@ -289,3 +293,35 @@ def fortran_float(string: str) -> float:
                 return float(string.replace("+", "e+").replace("-", "e-"))
             except ValueError:
                 raise err
+
+
+def datetime_to_timestamp(
+    time: datetime.datetime, *, epoch: datetime.datetime = EPOCH
+) -> float:
+    """Convert datetime object to timestamp relative to an epoch.
+
+    :param time:
+        Date and time.
+    :param epoch:
+        Date and time of epoch.  Defaults to the RADS epoch.
+
+    :return:
+        The number of seconds between the `epoch` and the given `time`.
+    """
+    return (time - epoch).total_seconds()
+
+
+def timestamp_to_datetime(
+    seconds: float, *, epoch: datetime.datetime = EPOCH
+) -> datetime.datetime:
+    """Convert timestamp relative to an epoch to a datetime.
+
+    :param seconds:
+        Seconds since the given `epoch`.
+    :param epoch:
+        Date and time of epoch.  Defaults to the RADS epoch.
+
+    :return:
+        Date and time corresponding to the given `seconds` since the `epoch`.
+    """
+    return epoch + datetime.timedelta(seconds=seconds)
