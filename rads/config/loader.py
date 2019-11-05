@@ -4,10 +4,17 @@ from functools import wraps
 from pathlib import Path
 from typing import IO, Any, Callable, Dict, Iterable, Mapping, Optional, TypeVar, cast
 
-from appdirs import AppDirs, system  # type: ignore
 from dataclass_builder import MissingFieldError
 
 from ..exceptions import ConfigError, InvalidDataroot
+from ..paths import (
+    local_config,
+    local_xml,
+    rads_xml,
+    site_config,
+    user_config,
+    user_xml,
+)
 from ..typing import PathLike, PathLikeOrFile, PathOrFile
 from ..utility import isio
 from ..xml import ParseError, parse, rads_fixer
@@ -18,9 +25,6 @@ from .tree import Config, PreConfig
 from .xml_parsers import Parser, TerminalXMLParseError
 
 __all__ = ["config_files", "get_dataroot", "load_config", "xml_loader"]
-
-_APPNAME = "pyrads"
-_APPDIRS = AppDirs(_APPNAME, appauthor=False, roaming=False)
 
 # TODO: Remove satellites from blacklist.
 
@@ -110,17 +114,17 @@ def config_files(
     if rads:
         dataroot = get_dataroot(dataroot)  # verify or find dataroot
         if dataroot:
-            files.append(_rads_xml(dataroot))
+            files.append(rads_xml(dataroot))
     if pyrads:
-        files.append(_site_config())
+        files.append(site_config())
     if rads:
-        files.append(_user_xml())
+        files.append(user_xml())
     if pyrads:
-        files.append(_user_config())
+        files.append(user_config())
     if rads:
-        files.append(_local_xml())
+        files.append(local_xml())
     if pyrads:
-        files.append(_local_config())
+        files.append(local_config())
     return files
 
 
@@ -395,114 +399,3 @@ def _load_satellites(ast: Statement, builders: Mapping[str, T]) -> Mapping[str, 
     for sat, builder in builders.items():
         ast.eval(builder, {"id": sat})
     return builders
-
-
-# The paths below are in order of config file loading.
-
-
-def _rads_xml(dataroot: PathLike) -> Path:
-    """Path to the main RADS configuration file.
-
-    This will be at `<dataroot>/conf/rads.xml`.
-
-    .. note:
-
-        PyRADS specific XML tags are not allowed in this file.
-
-    :param dataroot:
-        Path to the RADS data root.
-
-    :return:
-        Path to the main RADS configuration file.
-    """
-    return Path(dataroot) / "conf" / "rads.xml"
-
-
-def _site_config() -> Path:
-    r"""Path to the PyRADS site/system configuration file.
-
-    ================  ================================================
-    Operating System  Path
-    ================  ================================================
-    Mac OS X          /Library/Application Support/pyrads/settings.xml
-    Unix              /etc/pyrads
-    Windows           C:\ProgramData\pyrads\settings.xml
-    ================  ================================================
-
-    .. note:
-
-        RADS, not only PyRADS overrides are allowed in this file.
-
-    :return:
-        Path to the PyRADS site/system wide configuration file.
-    """
-    if system in ("win32", "darwin"):
-        return Path(_APPDIRS.site_config_dir)
-    # appdirs does not handle site config on linux properly
-    return Path("/etc") / _APPNAME / "settings.xml"
-
-
-def _user_xml() -> Path:
-    """Path to the user local RADS configuration file.
-
-    This will be at `~/.rads/rads.xml` regardless of operating system.
-
-    .. note:
-
-        PyRADS specific XML tags are not allowed in this file.
-
-    :return:
-        Path to the user local RADS configuration file.
-    """
-    return Path("~/.rads/rads.xml").expanduser()
-
-
-def _user_config() -> Path:
-    r"""Path to the PyRADS user local configuration file.
-
-    ================  =====================================================
-    Operating System  Path
-    ================  =====================================================
-    Mac OS X          ~/Library/Preferences/pyrads/settings.xml
-    Unix              ~/.config/pyrads/settings.xml
-    Windows           C:\Users\<username>\AppData\Local\pyrads\settings.xml
-    ================  =====================================================
-
-    .. note:
-
-        RADS, not only PyRADS overrides are allowed in this file.
-
-    :return:
-        Path to the PyRADS user local configuration file.
-    """
-    return Path(_APPDIRS.user_config_dir) / "settings.xml"
-
-
-def _local_xml() -> Path:
-    """Path to the local RADS configuration file.
-
-    This will be `rads.xml` in the current directory.
-
-    .. note:
-
-        PyRADS specific XML tags are not allowed in this file.
-
-    :return:
-        Path to the local RADS configuration file.
-    """
-    return Path("rads.xml")
-
-
-def _local_config() -> Path:
-    """Path to the local RADS configuration file.
-
-    This will be `pyrads.xml` in the current directory.
-
-    .. note:
-
-        RADS, not only PyRADS overrides are allowed in this file.
-
-    :return:
-        Path to the local RADS configuration file.
-    """
-    return Path("pyrads.xml")
