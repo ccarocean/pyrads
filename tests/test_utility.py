@@ -1,14 +1,18 @@
 import io
+from datetime import datetime
 
 import pytest  # type: ignore
 
+from rads.constants import EPOCH
 from rads.utility import (
     contains_sublist,
+    datetime_to_timestamp,
     delete_sublist,
     ensure_open,
     fortran_float,
     isio,
     merge_sublist,
+    timestamp_to_datetime,
     xor,
 )
 
@@ -121,3 +125,41 @@ def test_fortran_float():
     assert fortran_float("3.14-100") == pytest.approx(3.14e-100)
     with pytest.raises(ValueError):
         fortran_float("not a float")
+
+
+def test_datetime_to_epoch():
+    epoch = datetime(2000, 1, 1, 0, 0, 0)
+    assert datetime_to_timestamp(datetime(2000, 1, 1, 0, 0, 0), epoch=epoch) == 0.0
+    assert datetime_to_timestamp(datetime(2000, 1, 1, 0, 0, 1), epoch=epoch) == 1.0
+    assert datetime_to_timestamp(datetime(2000, 1, 1, 0, 1, 0), epoch=epoch) == 60.0
+    assert datetime_to_timestamp(datetime(2000, 1, 1, 1, 0, 0), epoch=epoch) == 3600.0
+
+
+def test_datetime_to_epoch_with_default_epoch():
+    assert datetime_to_timestamp(
+        datetime(2000, 1, 1, 0, 0, 0)
+    ) == datetime_to_timestamp(datetime(2000, 1, 1, 0, 0, 0), epoch=EPOCH)
+    assert datetime_to_timestamp(
+        datetime(2000, 1, 1, 0, 0, 1)
+    ) == datetime_to_timestamp(datetime(2000, 1, 1, 0, 0, 1), epoch=EPOCH)
+    assert datetime_to_timestamp(
+        datetime(2000, 1, 1, 0, 1, 0)
+    ) == datetime_to_timestamp(datetime(2000, 1, 1, 0, 1, 0), epoch=EPOCH)
+    assert datetime_to_timestamp(
+        datetime(2000, 1, 1, 1, 0, 0)
+    ) == datetime_to_timestamp(datetime(2000, 1, 1, 1, 0, 0), epoch=EPOCH)
+
+
+def test_epoch_to_datetime():
+    epoch = datetime(2000, 1, 1, 0, 0, 0)
+    assert timestamp_to_datetime(0.0, epoch=epoch) == datetime(2000, 1, 1, 0, 0, 0)
+    assert timestamp_to_datetime(1.0, epoch=epoch) == datetime(2000, 1, 1, 0, 0, 1)
+    assert timestamp_to_datetime(60.0, epoch=epoch) == datetime(2000, 1, 1, 0, 1, 0)
+    assert timestamp_to_datetime(3600.0, epoch=epoch) == datetime(2000, 1, 1, 1, 0, 0)
+
+
+def test_epoch_to_datetime_with_default_epoch():
+    assert timestamp_to_datetime(0.0) == timestamp_to_datetime(0.0, epoch=EPOCH)
+    assert timestamp_to_datetime(1.0) == timestamp_to_datetime(1.0, epoch=EPOCH)
+    assert timestamp_to_datetime(60.0) == timestamp_to_datetime(60.0, epoch=EPOCH)
+    assert timestamp_to_datetime(3600.0) == timestamp_to_datetime(3600.0, epoch=EPOCH)
