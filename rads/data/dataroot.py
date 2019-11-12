@@ -3,10 +3,11 @@
 import os
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any, Iterator, Optional, cast
+from typing import TYPE_CHECKING, Any, Iterator
 
-from rads.config.loader import get_dataroot
-from rads.typing import PathLike
+from ..exceptions import InvalidDataroot
+
+from ..typing import PathLike
 
 if TYPE_CHECKING:
     _PathLike = os.PathLike[str]
@@ -22,7 +23,7 @@ _RE_CYCLE = re.compile(r"^c\d\d\d$")
 class Dataroot(_PathLike):
     """Representation of a RADS dataroot allowing for easy traversal."""
 
-    def __init__(self, dataroot: Optional[PathLike] = None):
+    def __init__(self, dataroot: PathLike):
         """
         :param dataroot:
             Path to RADS dataroot to build this abstraction for.
@@ -31,8 +32,11 @@ class Dataroot(_PathLike):
             If the *dataroot* the given/configured *dataroot* is not a valid RADS
             *dataroot*.
         """
-        # cast required because with require=True get_dataroot always returns a Path
-        self._path = cast(Path, get_dataroot(dataroot, require=True)).resolve()
+        dataroot_ = Path(dataroot).resolve()
+        if dataroot_.is_dir() and (dataroot_ / "conf" / "rads.xml").is_file():
+            self._path = dataroot_
+        else:
+            raise InvalidDataroot(f"'{str(dataroot_)}' is not a RADS data directory")
 
     @property
     def path(self) -> Path:

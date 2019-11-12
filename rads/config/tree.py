@@ -25,8 +25,9 @@ from typing import (
 import numpy as np  # type: ignore
 from cf_units import Unit  # type: ignore
 
+from ..data.dataroot import Dataroot
 from ..rpn import CompleteExpression
-from ..typing import IntOrArray, Number, NumberOrArray, PathLike, PathLikeOrFile
+from ..typing import IntOrArray, Number, NumberOrArray, PathLikeOrFile
 
 __all__ = [
     "PreConfig",
@@ -62,8 +63,8 @@ class PreConfig:
     configurations are loaded.
     """
 
-    dataroot: PathLike
-    """The location of the RADS data root."""
+    dataroot: Dataroot
+    """PyRADS data root object."""
     config_files: Sequence[PathLikeOrFile]
     """
     XML configuration files used to load this pre-config. Also the XML files to
@@ -756,8 +757,8 @@ class Satellite:
 class Config:
     """**dataclass**: PyRADS configuration."""
 
-    dataroot: PathLike
-    """Path to the RADS data root."""
+    dataroot: Dataroot
+    """PyRADS data root object."""
     config_files: Sequence[PathLikeOrFile]
     """Paths to the XML configuration files used to load this configuration.
 

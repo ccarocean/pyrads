@@ -63,10 +63,6 @@ class TestDataroot:
         with pytest.raises(InvalidDataroot):
             assert Dataroot("/var/rads").path == Path("/var/rads")
 
-    def test_init_with_default_dataroot(self, dataroot, monkeypatch):
-        monkeypatch.setenv("RADSDATAROOT", "/var/rads")
-        assert Dataroot().path == Path("/var/rads")
-
     def test_str(self, dataroot):
         assert str(Dataroot("/var/rads")) == "/var/rads"
 
