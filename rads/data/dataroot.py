@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Iterator
 
 from ..exceptions import InvalidDataroot
-
 from ..typing import PathLike
 
 if TYPE_CHECKING:
@@ -205,7 +204,7 @@ class Dataroot(_PathLike):
         :param phase:
             1 character phase name.
         :param cycle:
-            Cycle number, between 1 and 999.
+            Cycle number, between 0 and 999.
 
         :return:
             Iterator of pass numbers for the given satellite, phase, and cycle.
@@ -226,7 +225,7 @@ class Dataroot(_PathLike):
         :param phase:
             1 characeter phase name, defaults to all phases.
         :param cycle:
-            Cycle number, between 1 and 999, defaults to all cycles.
+            Cycle number, between 0 and 999, defaults to all cycles.
 
         :return:
             Iterator of absolute paths to pass files for the given satellite,
@@ -265,7 +264,7 @@ class Dataroot(_PathLike):
         :param phase:
             1 characeter phase name, defaults to all phases.
         :param cycle:
-            Cycle number, between 1 and 999, defaults to all cycles.
+            Cycle number, between 0 and 999, defaults to all cycles.
 
         :return:
             Iterator of absolute paths to pass files for the given satellite,
