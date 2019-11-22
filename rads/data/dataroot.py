@@ -223,7 +223,7 @@ class Dataroot(_PathLike):
         :param satellite:
             2 character satellite name, defaults to all satellites.
         :param phase:
-            1 characeter phase name, defaults to all phases.
+            1 character phase name, defaults to all phases.
         :param cycle:
             Cycle number, between 0 and 999, defaults to all cycles.
 
@@ -251,6 +251,30 @@ class Dataroot(_PathLike):
                     except FileNotFoundError:
                         pass
 
+    def pass_file(self, satellite: str, phase: str, cycle: int, pass_: int) -> Path:
+        """Get path to a pass file give satellite, phase, cycle, and pass.
+
+        :param satellite:
+            2 character satellite name.
+        :param phase:
+            1 character phase name.
+        :param cycle:
+            Cycle number, between 0 and 999.
+        :param pass_:
+            Pass number, between 0 and 9999.
+
+        :return:
+            Path to the associated pass data file.
+
+        :raises FileExistsError:
+            If the pass file does not exist.
+        """
+        filename = f"{satellite}p{pass_:04d}c{cycle:03d}.nc"
+        path = self._path / satellite / phase / f"c{cycle:03d}" / filename
+        if path.is_file():
+            return path
+        raise FileExistsError(f"{path} does not exist")
+
     def passindex_files(
         self, satellite: str = "", phase: str = "", cycle: int = -1
     ) -> Iterator[Path]:
@@ -262,7 +286,7 @@ class Dataroot(_PathLike):
         :param satellite:
             2 character satellite name, defaults to all satellites.
         :param phase:
-            1 characeter phase name, defaults to all phases.
+            1 character phase name, defaults to all phases.
         :param cycle:
             Cycle number, between 0 and 999, defaults to all cycles.
 

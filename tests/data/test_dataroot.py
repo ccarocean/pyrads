@@ -61,7 +61,7 @@ class TestDataroot:
     def test_init_with_invalid_dataroot(self, dataroot):
         Path("/var/rads/conf/rads.xml").unlink()
         with pytest.raises(InvalidDataroot):
-            assert Dataroot("/var/rads").path == Path("/var/rads")
+            Dataroot("/var/rads").path
 
     def test_str(self, dataroot):
         assert str(Dataroot("/var/rads")) == "/var/rads"
@@ -353,6 +353,27 @@ class TestDataroot:
             Path("/var/rads/xy/a/c448/xyp0002c448.nc"),
             Path("/var/rads/xy/a/c448/xyp0003c448.nc"),
         }
+
+    def test_pass_file(self, dataroot):
+        assert Dataroot("/var/rads").pass_file("ab", "1", 1, 1) == Path(
+            "/var/rads/ab/1/c001/abp0001c001.nc"
+        )
+        assert Dataroot("/var/rads").pass_file("ab", "1", 1, 2) == Path(
+            "/var/rads/ab/1/c001/abp0002c001.nc"
+        )
+        assert Dataroot("/var/rads").pass_file("xy", "a", 447, 13) == Path(
+            "/var/rads/xy/a/c447/xyp0013c447.nc"
+        )
+
+    def test_pass_file_with_missing_file(self, dataroot):
+        with pytest.raises(FileExistsError):
+            Dataroot("/var/rads").pass_file("xy", "a", 447, 14)
+        with pytest.raises(FileExistsError):
+            Dataroot("/var/rads").pass_file("xy", "a", 449, 10)
+        with pytest.raises(FileExistsError):
+            Dataroot("/var/rads").pass_file("xy", "b", 449, 10)
+        with pytest.raises(FileExistsError):
+            Dataroot("/var/rads").pass_file("uv", "b", 449, 10)
 
     def test_passindex_files(self, dataroot):
         assert set(Dataroot("/var/rads").passindex_files()) == {
