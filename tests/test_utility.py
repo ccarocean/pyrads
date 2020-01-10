@@ -1,5 +1,6 @@
 import io
 from datetime import datetime
+from typing import List
 
 import pytest  # type: ignore
 
@@ -10,6 +11,7 @@ from rads.utility import (
     delete_sublist,
     ensure_open,
     fortran_float,
+    get,
     isio,
     merge_sublist,
     timestamp_to_datetime,
@@ -127,7 +129,7 @@ def test_fortran_float():
         fortran_float("not a float")
 
 
-def test_datetime_to_epoch():
+def test_datetime_to_timestamp():
     epoch = datetime(2000, 1, 1, 0, 0, 0)
     assert datetime_to_timestamp(datetime(2000, 1, 1, 0, 0, 0), epoch=epoch) == 0.0
     assert datetime_to_timestamp(datetime(2000, 1, 1, 0, 0, 1), epoch=epoch) == 1.0
@@ -135,7 +137,7 @@ def test_datetime_to_epoch():
     assert datetime_to_timestamp(datetime(2000, 1, 1, 1, 0, 0), epoch=epoch) == 3600.0
 
 
-def test_datetime_to_epoch_with_default_epoch():
+def test_datetime_to_timestamp_with_default_epoch():
     assert datetime_to_timestamp(
         datetime(2000, 1, 1, 0, 0, 0)
     ) == datetime_to_timestamp(datetime(2000, 1, 1, 0, 0, 0), epoch=EPOCH)
@@ -150,7 +152,7 @@ def test_datetime_to_epoch_with_default_epoch():
     ) == datetime_to_timestamp(datetime(2000, 1, 1, 1, 0, 0), epoch=EPOCH)
 
 
-def test_epoch_to_datetime():
+def test_timestamp_to_datetime():
     epoch = datetime(2000, 1, 1, 0, 0, 0)
     assert timestamp_to_datetime(0.0, epoch=epoch) == datetime(2000, 1, 1, 0, 0, 0)
     assert timestamp_to_datetime(1.0, epoch=epoch) == datetime(2000, 1, 1, 0, 0, 1)
@@ -158,8 +160,42 @@ def test_epoch_to_datetime():
     assert timestamp_to_datetime(3600.0, epoch=epoch) == datetime(2000, 1, 1, 1, 0, 0)
 
 
-def test_epoch_to_datetime_with_default_epoch():
+def test_timestamp_to_datetime_with_default_epoch():
     assert timestamp_to_datetime(0.0) == timestamp_to_datetime(0.0, epoch=EPOCH)
     assert timestamp_to_datetime(1.0) == timestamp_to_datetime(1.0, epoch=EPOCH)
     assert timestamp_to_datetime(60.0) == timestamp_to_datetime(60.0, epoch=EPOCH)
     assert timestamp_to_datetime(3600.0) == timestamp_to_datetime(3600.0, epoch=EPOCH)
+
+
+def test_get_with_dict():
+    d = {"a": 1, "b": 2, "c": 3}
+    assert get(d, "a") == 1
+    assert get(d, "b") == 2
+    assert get(d, "c") == 3
+    assert get(d, "d") is None
+
+
+def test_get_with_dict_and_custom_default():
+    d = {"a": 1, "b": 2, "c": 3}
+    assert get(d, "a", 10) == 1
+    assert get(d, "b", 10) == 2
+    assert get(d, "c", 10) == 3
+    assert get(d, "d", 10) == 10
+    assert get(d, "d", "not found") == "not found"
+
+
+def test_get_with_list():
+    l = ["a", "b", "c"]
+    assert get(l, 0) == "a"
+    assert get(l, 1) == "b"
+    assert get(l, 2) == "c"
+    assert get(l, 3) is None
+
+
+def test_get_with_list_and_custom_default():
+    l = ["a", "b", "c"]
+    assert get(l, 0) == "a"
+    assert get(l, 1) == "b"
+    assert get(l, 2) == "c"
+    assert get(l, 3, 10) == 10
+    assert get(l, 3, "not found") == "not found"

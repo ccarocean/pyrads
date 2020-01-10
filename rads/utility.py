@@ -3,12 +3,12 @@
 import datetime
 import io
 import os
-from typing import IO, Any, List, Optional, Union, cast
+from typing import IO, Any, List, Optional, TypeVar, Union, cast, overload
 
 from wrapt import ObjectProxy  # type: ignore
 
 from .constants import EPOCH
-from .typing import PathLike, PathLikeOrFile
+from .typing import PathLike, PathLikeOrFile, SupportsGetItem
 
 __all__ = [
     "ensure_open",
@@ -21,6 +21,7 @@ __all__ = [
     "fortran_float",
     "datetime_to_timestamp",
     "timestamp_to_datetime",
+    "get",
 ]
 
 
@@ -325,3 +326,44 @@ def timestamp_to_datetime(
         Date and time corresponding to the given `seconds` since the `epoch`.
     """
     return epoch + datetime.timedelta(seconds=seconds)
+
+
+# type variables used with get below
+_K = TypeVar("_K")
+_V = TypeVar("_V")
+_D = TypeVar("_D")
+
+
+@overload
+def get(obj: SupportsGetItem[_K, _V], item: _K, default: _D) -> Union[_V, _D]:
+    pass
+
+
+@overload
+def get(obj: SupportsGetItem[_K, _V], item: _K) -> Union[_V, None]:
+    pass
+
+
+def get(
+    obj: SupportsGetItem[_K, _V], item: _K, default: Optional[_D] = None
+) -> Union[_V, Optional[_D]]:
+    """Extends dict.get to any type supporting :func:`__getitem__`.
+
+    Returns value of `item` if found, otherwise returns the `default`.
+
+    :param obj:
+        An object supporting :func:`__getitem__`.  It should raise
+        :class:`IndexError` or :class:`KeyError` if the index/key is outside
+        of the valid range or does not exist.
+    :param item:
+        Index or key to get from the container.
+    :param default:
+        The default value when the `item` does not exist.  Defaults to `None`.
+
+    :return:
+        The value associated with the given index/key.
+    """
+    try:
+        return obj[item]
+    except (IndexError, KeyError):
+        return default
