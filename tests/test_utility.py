@@ -15,6 +15,7 @@ from rads.utility import (
     getsorted,
     isio,
     merge_sublist,
+    outliers,
     timestamp_to_datetime,
     xor,
 )
@@ -268,4 +269,15 @@ def test_getsorted_with_vector_value_and_valid_only_and_sorter():
             array, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], valid_only=True, sorter=sorter
         ),
         np.array([2, 0, 4, 3, 1]),
+    )
+
+
+def test_outliers():
+    data = np.array([3, 30, 45, 50, 48, 52, 55, 70, 98])
+    np.testing.assert_equal(
+        outliers(data), [True, False, False, False, False, False, False, False, True]
+    )
+    np.testing.assert_equal(
+        outliers(data, zscore_limit=1.0),
+        [True, True, False, False, False, False, False, True, True],
     )

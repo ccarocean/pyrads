@@ -34,6 +34,7 @@ __all__ = [
     "timestamp_to_datetime",
     "get",
     "getsorted",
+    "outliers",
 ]
 
 
@@ -453,3 +454,29 @@ def getsorted(
     result = len(array) * np.ones(indices.size)
     result[valid] = sorter[indices[valid]]
     return result
+
+
+def outliers(data: np.ndarray, zscore_limit: float = 3.5) -> np.ndarray:
+    """Detect outliers.
+
+    Based the modified Z-value method at:
+        https://www.itl.nist.gov/div898/handbook/eda/section3/eda35h.htm
+
+    Upstream reference:
+         Boris Iglewicz and David Hoaglin (1993), "Volume 16: How to Detect and
+         Handle Outliers", The ASQC Basic References in Quality Control:
+         Statistical Techniques, Edward F. Mykytka, Ph.D., Editor.
+
+    :param data:
+        Data to detect outliers in.
+    :param zscore_limit:
+        Z-score limit, defaults to 3.5 which is recommended by Iglewicz and Hoaglin.
+
+    :return:
+        Boolean array giving location of outliers in `data`.
+    """
+    median = np.median(data)
+    median_absolute_deviation = np.median(np.abs(data - median))
+    if median_absolute_deviation == 0:
+        return np.zeros(data.shape, dtype=bool)
+    return np.abs(0.6745 * (data - median) / median_absolute_deviation) > zscore_limit
