@@ -1,6 +1,5 @@
 import io
 from datetime import datetime
-from typing import List
 
 import pytest  # type: ignore
 
@@ -168,34 +167,34 @@ def test_timestamp_to_datetime_with_default_epoch():
 
 
 def test_get_with_dict():
-    d = {"a": 1, "b": 2, "c": 3}
-    assert get(d, "a") == 1
-    assert get(d, "b") == 2
-    assert get(d, "c") == 3
-    assert get(d, "d") is None
+    dict_ = {"a": 1, "b": 2, "c": 3}
+    assert get(dict_, "a") == 1
+    assert get(dict_, "b") == 2
+    assert get(dict_, "c") == 3
+    assert get(dict_, "d") is None
 
 
 def test_get_with_dict_and_custom_default():
-    d = {"a": 1, "b": 2, "c": 3}
-    assert get(d, "a", 10) == 1
-    assert get(d, "b", 10) == 2
-    assert get(d, "c", 10) == 3
-    assert get(d, "d", 10) == 10
-    assert get(d, "d", "not found") == "not found"
+    dict_ = {"a": 1, "b": 2, "c": 3}
+    assert get(dict_, "a", 10) == 1
+    assert get(dict_, "b", 10) == 2
+    assert get(dict_, "c", 10) == 3
+    assert get(dict_, "d", 10) == 10
+    assert get(dict_, "d", "not found") == "not found"
 
 
 def test_get_with_list():
-    l = ["a", "b", "c"]
-    assert get(l, 0) == "a"
-    assert get(l, 1) == "b"
-    assert get(l, 2) == "c"
-    assert get(l, 3) is None
+    list_ = ["a", "b", "c"]
+    assert get(list_, 0) == "a"
+    assert get(list_, 1) == "b"
+    assert get(list_, 2) == "c"
+    assert get(list_, 3) is None
 
 
 def test_get_with_list_and_custom_default():
-    l = ["a", "b", "c"]
-    assert get(l, 0) == "a"
-    assert get(l, 1) == "b"
-    assert get(l, 2) == "c"
-    assert get(l, 3, 10) == 10
-    assert get(l, 3, "not found") == "not found"
+    list_ = ["a", "b", "c"]
+    assert get(list_, 0) == "a"
+    assert get(list_, 1) == "b"
+    assert get(list_, 2) == "c"
+    assert get(list_, 3, 10) == 10
+    assert get(list_, 3, "not found") == "not found"
