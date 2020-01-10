@@ -366,13 +366,13 @@ class TestDataroot:
         )
 
     def test_pass_file_with_missing_file(self, dataroot):
-        with pytest.raises(FileExistsError):
+        with pytest.raises(FileNotFoundError):
             Dataroot("/var/rads").pass_file("xy", "a", 447, 14)
-        with pytest.raises(FileExistsError):
+        with pytest.raises(FileNotFoundError):
             Dataroot("/var/rads").pass_file("xy", "a", 449, 10)
-        with pytest.raises(FileExistsError):
+        with pytest.raises(FileNotFoundError):
             Dataroot("/var/rads").pass_file("xy", "b", 449, 10)
-        with pytest.raises(FileExistsError):
+        with pytest.raises(FileNotFoundError):
             Dataroot("/var/rads").pass_file("uv", "b", 449, 10)
 
     def test_passindex_files(self, dataroot):
@@ -455,3 +455,22 @@ class TestDataroot:
 
     def test_passindex_files_with_satellite_and_invalid_cycle(self, dataroot):
         assert set(Dataroot("/var/rads").passindex_files("xy", cycle=999)) == set()
+
+    def test_passindex_file(self, dataroot):
+        assert Dataroot("/var/rads").passindex_file("ab", "1", 1) == Path(
+            "/var/rads/ab/1/c001/.passindex"
+        )
+        assert Dataroot("/var/rads").passindex_file("ab", "1", 1) == Path(
+            "/var/rads/ab/1/c001/.passindex"
+        )
+        assert Dataroot("/var/rads").passindex_file("xy", "a", 447) == Path(
+            "/var/rads/xy/a/c447/.passindex"
+        )
+
+    def test_passindex_file_with_missing_file(self, dataroot):
+        with pytest.raises(FileNotFoundError):
+            Dataroot("/var/rads").passindex_file("xy", "a", 449)
+        with pytest.raises(FileNotFoundError):
+            Dataroot("/var/rads").passindex_file("xy", "b", 447)
+        with pytest.raises(FileNotFoundError):
+            Dataroot("/var/rads").passindex_file("uv", "b", 449)

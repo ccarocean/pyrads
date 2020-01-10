@@ -273,7 +273,7 @@ class Dataroot(_PathLike):
         path = self._path / satellite / phase / f"c{cycle:03d}" / filename
         if path.is_file():
             return path
-        raise FileExistsError(f"{path} does not exist")
+        raise FileNotFoundError(f"{path} does not exist")
 
     def passindex_files(
         self, satellite: str = "", phase: str = "", cycle: int = -1
@@ -291,8 +291,8 @@ class Dataroot(_PathLike):
             Cycle number, between 0 and 999, defaults to all cycles.
 
         :return:
-            Iterator of absolute paths to pass files for the given satellite,
-            phase, and cycle number.
+            Iterator of absolute paths to passindex files for the given
+            satellite, phase, and cycle number.
         """
         for satellite_ in [satellite] if satellite else self.satellites():
             satellite_path = self._path / satellite_
@@ -307,3 +307,29 @@ class Dataroot(_PathLike):
                                 yield path
                     except FileNotFoundError:
                         pass
+
+    def passindex_file(self, satellite: str, phase: str, cycle: int) -> Path:
+        """Get pass file for the given satellite, phase, and cycle.
+
+        If the given satellite, phase, and/or cycle does not exist a
+        have any passes the returned iterator will be of length 0.
+
+        :param satellite:
+            2 character satellite name.
+        :param phase:
+            1 character phase name.
+        :param cycle:
+            Cycle number, between 0 and 999.
+
+        :return:
+            Absolute path to the pass
+            Iterator of absolute paths to passindex files for the given
+            satellite, phase, and cycle number.
+
+        :raises FileNotFoundError:
+            If there is no passindex file for the given satellite, phase, and cycle.
+        """
+        path = self._path / satellite / phase / f"c{cycle:03d}" / ".passindex"
+        if path.is_file():
+            return path
+        raise FileNotFoundError(f"{path} does not exist")
