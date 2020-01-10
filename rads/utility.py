@@ -3,12 +3,22 @@
 import datetime
 import io
 import os
-from typing import IO, Any, List, Optional, TypeVar, Union, cast, overload
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    List,
+    Optional,
+    TypeVar,
+    Union,
+    cast,
+    overload,
+)
 
 from wrapt import ObjectProxy  # type: ignore
 
 from .constants import EPOCH
-from .typing import PathLike, PathLikeOrFile, SupportsGetItem
+from .typing import PathLike, PathLikeOrFile
 
 __all__ = [
     "ensure_open",
@@ -329,23 +339,30 @@ def timestamp_to_datetime(
 
 
 # type variables used with get below
-_K = TypeVar("_K")
-_V = TypeVar("_V")
+_K = TypeVar("_K", contravariant=True)
+_V = TypeVar("_V", covariant=True)
 _D = TypeVar("_D")
+
+if TYPE_CHECKING:
+    from typing_extensions import Protocol
+
+    class SupportsGetItem(Protocol[_K, _V]):
+        def __getitem__(self, item: _K) -> _V:
+            pass
 
 
 @overload
-def get(obj: SupportsGetItem[_K, _V], item: _K, default: _D) -> Union[_V, _D]:
+def get(obj: "SupportsGetItem[_K, _V]", item: _K, default: _D) -> Union[_V, _D]:
     pass
 
 
 @overload
-def get(obj: SupportsGetItem[_K, _V], item: _K) -> Union[_V, None]:
+def get(obj: "SupportsGetItem[_K, _V]", item: _K) -> Union[_V, None]:
     pass
 
 
 def get(
-    obj: SupportsGetItem[_K, _V], item: _K, default: Optional[_D] = None
+    obj: "SupportsGetItem[_K, _V]", item: _K, default: Optional[_D] = None
 ) -> Union[_V, Optional[_D]]:
     """Extends dict.get to any type supporting :func:`__getitem__`.
 

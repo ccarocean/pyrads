@@ -1,19 +1,11 @@
 """Type aliases."""
 
 import os
-from typing import IO, TYPE_CHECKING, Any, TypeVar, Union
+from typing import IO, TYPE_CHECKING, Any, Union
 
 import numpy as np  # type: ignore
-from typing_extensions import Protocol
 
-__all__ = [
-    "PathLike",
-    "PathLikeOrFile",
-    "PathOrFile",
-    "IntOrArray",
-    "FloatOrArray",
-    "SupportsGetItem",
-]
+__all__ = ["PathLike", "PathLikeOrFile", "PathOrFile", "IntOrArray", "FloatOrArray"]
 
 if TYPE_CHECKING:
     PathLike = Union[str, os.PathLike[str]]
@@ -26,11 +18,3 @@ PathLikeOrFile = Union[PathLike, IO[Any]]
 
 IntOrArray = Union[int, np.generic, np.ndarray]
 FloatOrArray = Union[float, np.generic, np.ndarray]
-
-_K = TypeVar("_K", contravariant=True)
-_V = TypeVar("_V", covariant=True)
-
-
-class SupportsGetItem(Protocol[_K, _V]):
-    def __getitem__(self, item: _K) -> _V:
-        pass
