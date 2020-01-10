@@ -139,7 +139,7 @@ from astropy.convolution import Box1DKernel, Gaussian1DKernel, convolve  # type:
 
 from .constants import EPOCH
 from .datetime64util import ymdhmsus
-from .typing import Number, NumberOrArray
+from .typing import FloatOrArray
 from .utility import fortran_float
 
 # TODO: Change to functools.cached_property when dropping support for
@@ -275,8 +275,8 @@ class Token(ABC):
     @abstractmethod
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         """Perform token's action on the given `stack`.
 
@@ -330,8 +330,8 @@ class Literal(Token):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         """Place literal value on top of the given `stack`.
 
@@ -412,8 +412,8 @@ class Variable(Token):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         """Get variable value from `environment` and place on stack.
 
@@ -507,7 +507,7 @@ class Expression(Sequence[Token], Token):
         """Set of variables needed to evaluate the expression."""
         return {t.name for t in self._tokens if isinstance(t, Variable)}
 
-    def __init__(self, tokens: Union[str, Iterable[Union[Number, str, Token]]]):
+    def __init__(self, tokens: Union[str, Iterable[Union[float, str, Token]]]):
         r"""
         :param tokens:
             A Reverse Polish Notation expression given as a sequence of tokens
@@ -557,8 +557,8 @@ class Expression(Sequence[Token], Token):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         """Evaluate the expression as a token on the given `stack`.
 
@@ -648,7 +648,7 @@ class Expression(Sequence[Token], Token):
 class CompleteExpression(Expression):
     """Reverse Polish Notation expression that can be evaluated."""
 
-    def __init__(self, tokens: Union[str, Iterable[Union[Number, str, Token]]]):
+    def __init__(self, tokens: Union[str, Iterable[Union[float, str, Token]]]):
         r"""
         :param tokens:
             A Reverse Polish Notation expression given as a sequence of tokens
@@ -680,8 +680,8 @@ class CompleteExpression(Expression):
         return self
 
     def eval(
-        self, environment: Optional[Mapping[str, NumberOrArray]] = None
-    ) -> NumberOrArray:
+        self, environment: Optional[Mapping[str, FloatOrArray]] = None
+    ) -> FloatOrArray:
         """Evaluate the expression and return a numerical or logical result.
 
         :param environment:
@@ -725,7 +725,7 @@ class CompleteExpression(Expression):
         """
         if not environment:
             environment = {}
-        stack: List[NumberOrArray] = []
+        stack: List[FloatOrArray] = []
         for token_ in self._tokens:
             token_(stack, environment)
         # NOTE: The stack will always have exactly one element at this point
@@ -824,8 +824,8 @@ class _SUBType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(x - y)
@@ -843,8 +843,8 @@ class _ADDType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(x + y)
@@ -861,8 +861,8 @@ class _MULType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(x * y)
@@ -879,8 +879,8 @@ class _POPType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         _get_x(stack)
 
@@ -896,8 +896,8 @@ class _NEGType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(-x)
@@ -914,8 +914,8 @@ class _ABSType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.absolute(x))
@@ -932,8 +932,8 @@ class _INVType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(1 / x)
@@ -950,8 +950,8 @@ class _SQRTType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.sqrt(x))
@@ -968,8 +968,8 @@ class _SQRType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.square(x))
@@ -986,8 +986,8 @@ class _EXPType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.exp(x))
@@ -1004,8 +1004,8 @@ class _LOGType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.log(x))
@@ -1022,8 +1022,8 @@ class _LOG10Type(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.log10(x))
@@ -1040,8 +1040,8 @@ class _SINType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.sin(x))
@@ -1058,8 +1058,8 @@ class _COSType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.cos(x))
@@ -1076,8 +1076,8 @@ class _TANType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.tan(x))
@@ -1094,8 +1094,8 @@ class _SINDType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.sin(np.deg2rad(x)))
@@ -1112,8 +1112,8 @@ class _COSDType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.cos(np.deg2rad(x)))
@@ -1130,8 +1130,8 @@ class _TANDType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.tan(np.deg2rad(x)))
@@ -1148,8 +1148,8 @@ class _SINHType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.sinh(x))
@@ -1166,8 +1166,8 @@ class _COSHType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.cosh(x))
@@ -1184,8 +1184,8 @@ class _TANHType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.tanh(x))
@@ -1202,8 +1202,8 @@ class _ASINType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.arcsin(x))
@@ -1220,8 +1220,8 @@ class _ACOSType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.arccos(x))
@@ -1238,8 +1238,8 @@ class _ATANType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.arctan(x))
@@ -1256,8 +1256,8 @@ class _ASINDType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.rad2deg(np.arcsin(x)))
@@ -1274,8 +1274,8 @@ class _ACOSDType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.rad2deg(np.arccos(x)))
@@ -1292,8 +1292,8 @@ class _ATANDType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.rad2deg(np.arctan(x)))
@@ -1310,8 +1310,8 @@ class _ASINHType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.arcsinh(x))
@@ -1328,8 +1328,8 @@ class _ACOSHType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.arccosh(x))
@@ -1346,8 +1346,8 @@ class _ATANHType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.arctanh(x))
@@ -1364,8 +1364,8 @@ class _ISNANType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.isnan(x))
@@ -1382,8 +1382,8 @@ class _ISANType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.logical_not(np.isnan(x)))
@@ -1400,8 +1400,8 @@ class _RINTType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.round(x))
@@ -1418,8 +1418,8 @@ class _CEILType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.ceil(x))
@@ -1436,8 +1436,8 @@ class _FLOORType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.floor(x))
@@ -1454,8 +1454,8 @@ class _D2RType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.deg2rad(x))
@@ -1472,8 +1472,8 @@ class _R2DType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.rad2deg(x))
@@ -1490,8 +1490,8 @@ class _YMDHMSType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         if isinstance(x, np.ndarray):
@@ -1531,8 +1531,8 @@ class _SUMType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.nansum(x))
@@ -1549,8 +1549,8 @@ class _DIFType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(np.diff(np.ravel(x), prepend=np.nan))
@@ -1567,8 +1567,8 @@ class _DUPType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x = _get_x(stack)
         stack.append(x)
@@ -1586,8 +1586,8 @@ class _DIVType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(x / y)
@@ -1604,8 +1604,8 @@ class _POWType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(np.power(x, y))
@@ -1622,8 +1622,8 @@ class _FMODType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(np.fmod(x, y))
@@ -1640,8 +1640,8 @@ class _MINType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(np.minimum(x, y))
@@ -1658,8 +1658,8 @@ class _MAXType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(np.maximum(x, y))
@@ -1676,8 +1676,8 @@ class _ATAN2Type(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(np.arctan2(x, y))
@@ -1694,8 +1694,8 @@ class _HYPOTType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(np.hypot(x, y))
@@ -1712,8 +1712,8 @@ class _R2Type(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(x ** 2 + y ** 2)
@@ -1730,8 +1730,8 @@ class _EQType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(x == y)
@@ -1748,8 +1748,8 @@ class _NEType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(x != y)
@@ -1766,8 +1766,8 @@ class _LTType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(x < y)
@@ -1784,8 +1784,8 @@ class _LEType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(x <= y)
@@ -1802,8 +1802,8 @@ class _GTType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(x > y)
@@ -1820,8 +1820,8 @@ class _GEType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(x >= y)
@@ -1838,8 +1838,8 @@ class _NANType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
@@ -1866,8 +1866,8 @@ class _ANDType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
@@ -1891,8 +1891,8 @@ class _ORType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
@@ -1921,8 +1921,8 @@ class _IANDType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(np.bitwise_and(x, y))
@@ -1939,8 +1939,8 @@ class _IORType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(np.bitwise_or(x, y))
@@ -1957,8 +1957,8 @@ class _BTESTType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         if not _is_integer(x):
@@ -1979,8 +1979,8 @@ class _AVGType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
@@ -2008,8 +2008,8 @@ class _DXDYType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         if isinstance(x, np.ndarray) or isinstance(y, np.ndarray):
@@ -2038,8 +2038,8 @@ class _EXCHType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y = _get_xy(stack)
         stack.append(y)
@@ -2057,8 +2057,8 @@ class _INRANGEType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y, z = _get_xyz(stack)
         if any(isinstance(v, np.ndarray) for v in [x, y, z]):
@@ -2080,8 +2080,8 @@ class _BOXCARType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y, z = _get_xyz(stack)
         if np.size(x) == 1:
@@ -2121,8 +2121,8 @@ class _GAUSSType(Operator):
 
     def __call__(
         self,
-        stack: MutableSequence[NumberOrArray],
-        environment: Mapping[str, NumberOrArray],
+        stack: MutableSequence[FloatOrArray],
+        environment: Mapping[str, FloatOrArray],
     ) -> None:
         x, y, z = _get_xyz(stack)
         if np.size(x) == 1:
@@ -2788,7 +2788,7 @@ _KEYWORDS = {
 }
 
 
-def _is_integer(x: NumberOrArray) -> bool:
+def _is_integer(x: FloatOrArray) -> bool:
     """Determine if number is an integer or array of integers.
 
     :param x:
@@ -2802,7 +2802,7 @@ def _is_integer(x: NumberOrArray) -> bool:
     return isinstance(x, Integral)
 
 
-def _get_x(stack: MutableSequence[NumberOrArray]) -> NumberOrArray:
+def _get_x(stack: MutableSequence[FloatOrArray]) -> FloatOrArray:
     if not stack:
         raise StackUnderflowError(
             "attempted to get element from the 'stack' but the stack is empty"
@@ -2810,9 +2810,7 @@ def _get_x(stack: MutableSequence[NumberOrArray]) -> NumberOrArray:
     return stack.pop()
 
 
-def _get_xy(
-    stack: MutableSequence[NumberOrArray]
-) -> Tuple[NumberOrArray, NumberOrArray]:
+def _get_xy(stack: MutableSequence[FloatOrArray],) -> Tuple[FloatOrArray, FloatOrArray]:
     if not stack:
         raise StackUnderflowError(
             "attempted to get 2 elements from the 'stack' but the stack " "is empty"
@@ -2828,8 +2826,8 @@ def _get_xy(
 
 
 def _get_xyz(
-    stack: MutableSequence[NumberOrArray]
-) -> Tuple[NumberOrArray, NumberOrArray, NumberOrArray]:
+    stack: MutableSequence[FloatOrArray],
+) -> Tuple[FloatOrArray, FloatOrArray, FloatOrArray]:
     if not stack:
         raise StackUnderflowError(
             "attempted to get 3 elements from the 'stack' but the stack " "is empty"

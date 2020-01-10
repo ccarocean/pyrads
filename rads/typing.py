@@ -9,9 +9,8 @@ __all__ = [
     "PathLike",
     "PathLikeOrFile",
     "PathOrFile",
-    "Number",
     "IntOrArray",
-    "NumberOrArray",
+    "FloatOrArray",
 ]
 
 if TYPE_CHECKING:
@@ -23,9 +22,5 @@ else:
 
 PathLikeOrFile = Union[PathLike, IO[Any]]
 
-# for the purpose of PyRADS bool as a number since it will act
-# as 0 or 1 when used as a number
-Number = Union[int, float, bool]
-
 IntOrArray = Union[int, np.generic, np.ndarray]
-NumberOrArray = Union[Number, np.generic, np.ndarray]
+FloatOrArray = Union[float, np.generic, np.ndarray]
