@@ -33,6 +33,7 @@ __all__ = [
     "datetime_to_timestamp",
     "timestamp_to_datetime",
     "get",
+    "getsorted",
 ]
 
 
