@@ -29,7 +29,10 @@ from cf_units import Unit  # type: ignore
 from ..data.dataroot import Dataroot
 from ..paths import cache
 from ..rpn import CompleteExpression
-from ..typing import FloatOrArray, IntOrArray, PathLike, PathLikeOrFile
+from ..typing import FloatOrArray, IntOrArray, PathLikeOrFile
+
+# avoid flake8 error, should not be required
+_cache = cache
 
 __all__ = [
     "PreConfig",
@@ -82,7 +85,7 @@ class PreConfig:
     A collection of 2 character satellite ID strings giving the satellites
     that should not be loaded regardless of the value of `satellites`.
     """
-    cache: Path = field(default_factory=cache)
+    cache: Path = field(default_factory=_cache)
     """Path to cache directory."""
 
 
