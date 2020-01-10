@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime
 from numbers import Integral
+from pathlib import Path
 from textwrap import indent
 from typing import (
     Any,
@@ -26,6 +27,7 @@ import numpy as np  # type: ignore
 from cf_units import Unit  # type: ignore
 
 from ..data.dataroot import Dataroot
+from ..paths import cache
 from ..rpn import CompleteExpression
 from ..typing import IntOrArray, Number, NumberOrArray, PathLikeOrFile
 
@@ -80,6 +82,8 @@ class PreConfig:
     A collection of 2 character satellite ID strings giving the satellites
     that should not be loaded regardless of the value of `satellites`.
     """
+    cache: Path = field(default_factory=cache)
+    """Path to cache directory."""
 
 
 @dataclass
@@ -759,6 +763,8 @@ class Config:
 
     dataroot: Dataroot
     """PyRADS data root object."""
+    cache: Path
+    """Path to cache directory."""
     config_files: Sequence[PathLikeOrFile]
     """Paths to the XML configuration files used to load this configuration.
 
@@ -780,11 +786,16 @@ class Config:
             descriptor objects.
         """
         self.dataroot = pre_config.dataroot
+        self.cache = pre_config.cache
         self.config_files = pre_config.config_files[:]
         self.satellites = satellites
 
     def __str__(self) -> str:
-        strings = [f"dataroot: {self.dataroot}", "config_files:"]
+        strings = [
+            f"dataroot: {self.dataroot}",
+            f"cache: {self.cache}",
+            "config_files:",
+        ]
         for file in self.config_files:
             strings.append(_INDENT + str(file))
         strings.append(f"satellites: {' '.join(self.satellites)}")
@@ -799,7 +810,11 @@ class Config:
         :return:
             Human readable string representation of the PyRADS configuration.
         """
-        strings = [f"dataroot: {self.dataroot}", f"config_files:"]
+        strings = [
+            f"dataroot: {self.dataroot}",
+            f"cache: {self.cache}",
+            "config_files:",
+        ]
         for file in self.config_files:
             strings.append(_INDENT + str(file))
         for satellite in self.satellites.values():
