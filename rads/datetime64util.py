@@ -106,7 +106,7 @@ def microsecond(datetime64: np.datetime64) -> np.generic:
 
 
 def ymdhmsus(
-    datetime64: np.datetime64
+    datetime64: np.datetime64,
 ) -> Tuple[
     np.generic, np.generic, np.generic, np.generic, np.generic, np.generic, np.generic
 ]:

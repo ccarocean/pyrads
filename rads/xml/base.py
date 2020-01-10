@@ -133,7 +133,7 @@ class Element(Iterable["Element"], Sized, ABC):
         :return:
             Parent XML element.
 
-        :raises:
+        :raises StopIteration:
             If there is no parent element.
         """
 
