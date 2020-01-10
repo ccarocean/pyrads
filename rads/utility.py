@@ -352,21 +352,23 @@ if TYPE_CHECKING:
 
 
 @overload
-def get(obj: "SupportsGetItem[_K, _V]", item: _K, default: _D) -> Union[_V, _D]:
+def get(
+    obj: "SupportsGetItem[_K, _V]", item: _K, default: _D
+) -> Union[_V, _D]:  # noqa: D103
     pass
 
 
 @overload
-def get(obj: "SupportsGetItem[_K, _V]", item: _K) -> Union[_V, None]:
+def get(obj: "SupportsGetItem[_K, _V]", item: _K) -> Union[_V, None]:  # noqa: D103
     pass
 
 
 def get(
     obj: "SupportsGetItem[_K, _V]", item: _K, default: Optional[_D] = None
 ) -> Union[_V, Optional[_D]]:
-    """Extends dict.get to any type supporting :func:`__getitem__`.
+    """Return value of `item` if found, otherwise returns the `default`.
 
-    Returns value of `item` if found, otherwise returns the `default`.
+    Extends dict.get to any type supporting :func:`__getitem__`.
 
     :param obj:
         An object supporting :func:`__getitem__`.  It should raise
