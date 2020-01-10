@@ -26,7 +26,7 @@ import numpy as np  # type: ignore
 from cf_units import Unit  # type: ignore
 
 from ..rpn import CompleteExpression
-from ..typing import IntOrArray, Number, NumberOrArray, PathLike, PathLikeOrFile
+from ..typing import FloatOrArray, IntOrArray, PathLike, PathLikeOrFile
 
 __all__ = [
     "PreConfig",
@@ -278,7 +278,7 @@ class Flags(ABC):
     """Base class of all data fields of type flags."""
 
     @abstractmethod
-    def extract(self, flags: NumberOrArray) -> NumberOrArray:
+    def extract(self, flags: FloatOrArray) -> FloatOrArray:
         """Extract the flag value from a number or array.
 
         See the concrete implementations for further information:
@@ -611,7 +611,7 @@ class Variable(Generic[N]):
 
     See :class:`Compress`.
     """
-    default: Optional[Number] = None
+    default: Optional[float] = None
     """Default numerical or boolean value to use when data sources is unavailable."""
 
     def __str__(self) -> str:  # noqa: C901
@@ -694,7 +694,7 @@ class Satellite:
     When the pseudo variable is accessed any of the RADS variables listed here
     can be used.  In particular, the first one available will be used.
     """
-    variables: Mapping[str, Variable[Number]] = field(default_factory=dict)
+    variables: Mapping[str, Variable[float]] = field(default_factory=dict)
     """Mapping from variable name identifiers to variable descriptors.
 
     These are all the variables supported by the satellite.

@@ -87,7 +87,7 @@ from rads.rpn import (
     Variable,
     token,
 )
-from rads.typing import NumberOrArray
+from rads.typing import FloatOrArray
 
 GOLDEN_RATIO = math.log((1 + math.sqrt(5)) / 2)
 
@@ -110,8 +110,8 @@ class TestLiteral:
         assert Literal(3.14).value == 3.14
 
     def test_call(self):
-        stack: MutableSequence[NumberOrArray] = []
-        environment: MutableMapping[str, NumberOrArray] = {}
+        stack: MutableSequence[FloatOrArray] = []
+        environment: MutableMapping[str, FloatOrArray] = {}
         assert Literal(3.14)(stack, environment) is None
         assert Literal(2.71)(stack, environment) is None
         assert stack == [3.14, 2.71]
@@ -198,7 +198,7 @@ class TestVariable:
         assert Variable("alt").name == "alt"
 
     def test_call(self):
-        stack: MutableSequence[NumberOrArray] = []
+        stack: MutableSequence[FloatOrArray] = []
         environment = {"alt": np.array([1, 2, 3]), "dry_tropo": 4, "wet_tropo": 5}
         assert Variable("wet_tropo")(stack, environment) is None
         assert Variable("alt")(stack, environment) is None
@@ -235,14 +235,14 @@ class TestVariable:
         assert str(Variable("alt")) == "alt"
 
 
-def contains_array(stack: MutableSequence[NumberOrArray]) -> bool:
+def contains_array(stack: MutableSequence[FloatOrArray]) -> bool:
     for item in stack:
         if isinstance(item, np.ndarray):
             return True
     return False
 
 
-def contains_nan(stack: MutableSequence[NumberOrArray]) -> bool:
+def contains_nan(stack: MutableSequence[FloatOrArray]) -> bool:
     for item in stack:
         try:
             if math.isnan(item):
@@ -254,9 +254,9 @@ def contains_nan(stack: MutableSequence[NumberOrArray]) -> bool:
 
 def assert_token(
     operator: Token,
-    pre_stack: MutableSequence[NumberOrArray],
-    post_stack: MutableSequence[NumberOrArray],
-    environment: Optional[Mapping[str, NumberOrArray]] = None,
+    pre_stack: MutableSequence[FloatOrArray],
+    post_stack: MutableSequence[FloatOrArray],
+    environment: Optional[Mapping[str, FloatOrArray]] = None,
     *,
     approx: bool = False,
     rtol: float = 1e-15,
