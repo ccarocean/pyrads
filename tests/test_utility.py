@@ -1,6 +1,7 @@
 import io
 from datetime import datetime
 
+import numpy as np  # type: ignore
 import pytest  # type: ignore
 
 from rads.constants import EPOCH
@@ -11,6 +12,7 @@ from rads.utility import (
     ensure_open,
     fortran_float,
     get,
+    getsorted,
     isio,
     merge_sublist,
     timestamp_to_datetime,
@@ -198,3 +200,72 @@ def test_get_with_list_and_custom_default():
     assert get(list_, 2) == "c"
     assert get(list_, 3, 10) == 10
     assert get(list_, 3, "not found") == "not found"
+
+
+def test_getsorted_with_scalar_value():
+    array = np.array([1, 2, 4, 5, 7])
+    n = len(array)
+    assert getsorted(array, 0) == n
+    assert getsorted(array, 1) == 0
+    assert getsorted(array, 2) == 1
+    assert getsorted(array, 3) == n
+    assert getsorted(array, 4) == 2
+    assert getsorted(array, 5) == 3
+    assert getsorted(array, 6) == n
+    assert getsorted(array, 7) == 4
+    assert getsorted(array, 8) == n
+    assert getsorted(array, 9) == n
+
+
+def test_getsorted_with_vector_value():
+    array = np.array([1, 2, 4, 5, 7])
+    n = len(array)
+    np.testing.assert_equal(
+        getsorted(array, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]),
+        np.array([n, 0, 1, n, 2, 3, n, 4, n, n]),
+    )
+
+
+def test_getsorted_with_vector_value_and_valid_only():
+    array = np.array([1, 2, 4, 5, 7])
+    np.testing.assert_equal(
+        getsorted(array, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], valid_only=True),
+        np.array([0, 1, 2, 3, 4]),
+    )
+
+
+def test_getsorted_with_scalar_value_and_sorter():
+    array = np.array([2, 7, 1, 5, 4])
+    sorter = np.argsort(array)
+    n = len(array)
+    assert getsorted(array, 0, sorter=sorter) == n
+    assert getsorted(array, 1, sorter=sorter) == 2
+    assert getsorted(array, 2, sorter=sorter) == 0
+    assert getsorted(array, 3, sorter=sorter) == n
+    assert getsorted(array, 4, sorter=sorter) == 4
+    assert getsorted(array, 5, sorter=sorter) == 3
+    assert getsorted(array, 6, sorter=sorter) == n
+    assert getsorted(array, 7, sorter=sorter) == 1
+    assert getsorted(array, 8, sorter=sorter) == n
+    assert getsorted(array, 9, sorter=sorter) == n
+
+
+def test_getsorted_with_vector_value_and_sorter():
+    array = np.array([2, 7, 1, 5, 4])
+    sorter = np.argsort(array)
+    n = len(array)
+    np.testing.assert_equal(
+        getsorted(array, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], sorter=sorter),
+        np.array([n, 2, 0, n, 4, 3, n, 1, n, n]),
+    )
+
+
+def test_getsorted_with_vector_value_and_valid_only_and_sorter():
+    array = np.array([2, 7, 1, 5, 4])
+    sorter = np.argsort(array)
+    np.testing.assert_equal(
+        getsorted(
+            array, [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], valid_only=True, sorter=sorter
+        ),
+        np.array([2, 0, 4, 3, 1]),
+    )

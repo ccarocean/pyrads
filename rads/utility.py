@@ -15,6 +15,7 @@ from typing import (
     overload,
 )
 
+import numpy as np  # type: ignore
 from wrapt import ObjectProxy  # type: ignore
 
 from .constants import EPOCH
@@ -386,3 +387,68 @@ def get(
         return obj[item]
     except (IndexError, KeyError):
         return default
+
+
+def getsorted(
+    array: np.ndarray,
+    value: Any,
+    *,
+    sorter: Optional[np.ndarray] = None,
+    valid_only: bool = False,
+) -> Union[np.ndarray, int]:
+    """Get index of value in array.
+
+    This is similar to :func:`numpy.searchsorted` but is focused on looking up
+    a value in a sorted array instead of inserting into it.
+
+    :param array:
+        Sorted 1D array to find value in.
+    :param value:
+        Value or array of values to search for.
+    :param sorter:
+        Optional array of integer indices that sort the array into ascending
+        order.  It is typically the result of :func:`numpy.argsort`.
+    :param valid_only:
+        Set to True to only return valid indices, the returned array may no
+        longer be the same shape as `value`.  Ignored when value is a scalar.
+
+    :return:
+        Index or indices of the `value` or values in the given `array`.
+        `N`, where N is the length of `array`, is returned if value cannot be
+        found.
+    """
+    # search with bisection for a theoretical insertion location
+    indices = np.searchsorted(array, value, sorter=sorter)
+
+    if sorter is None:
+        # scalar - invalidate if the given value is not found
+        if np.isscalar(value):
+            if indices < len(array) and array[indices] == value:
+                return indices
+            return len(array)
+
+        # array - invalidate locations where the given value is not found
+        valid = indices < len(array)
+        value = np.asarray(value)
+        valid[valid] = array[indices[valid]] == value[valid]
+        indices[~valid] = len(array)
+        if valid_only:
+            return indices[valid]
+        return indices
+
+    # scalar - invalidate if the given value is not found
+    if np.isscalar(value):
+        if indices < len(array) and array[sorter[indices]] == value:
+            return sorter[indices]
+        return len(array)
+
+    # array - invalidate locations where the given value is not found
+    valid = indices < len(array)
+    value = np.asarray(value)
+    valid[valid] = array[sorter[indices[valid]]] == value[valid]
+    indices[~valid] = len(array)
+    if valid_only:
+        return sorter[indices[valid]]
+    result = len(array) * np.ones(indices.size)
+    result[valid] = sorter[indices[valid]]
+    return result
